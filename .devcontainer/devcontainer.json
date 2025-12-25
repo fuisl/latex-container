@@ -39,7 +39,7 @@
                     "%TMPFILE%",
                     "-y=defaultIndent: '%INDENT%'"
                 ],
-                "latex-workshop.latex.outDir": "%DIR%/out"
+                "latex-workshop.latex.outDir": "%DIR%/../out"
             }
         }
     }
