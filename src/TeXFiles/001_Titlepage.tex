@@ -1,0 +1,75 @@
+\thispagestyle{empty}
+%\pdfbookmark[0]{Titelblatt}{title}
+
+%*******************************************************
+% Titlepage
+%*******************************************************
+%%%
+%%% title page (german)
+%%%
+\thispagestyle{empty}
+\pdfbookmark[0]{Titelblatt}{title}
+\begin{titlepage}
+
+
+  \vspace*{-2.5cm}
+  \begin{center}
+    \begin{minipage}[t]{0.40\textwidth}
+      \raggedright
+      \includegraphics[width=4.8cm,keepaspectratio]{Figures/vgu-logo}
+    \end{minipage}\hfill
+    \begin{minipage}[t]{0.40\textwidth}
+      \raggedleft
+      \includegraphics[width=5.3cm,keepaspectratio]{Figures/company-logo}
+    \end{minipage}
+  \end{center}
+
+  \begin{center}
+    \vspace{0.1cm}
+    \LARGE \textbf{Vietnamese-German University}\\
+    \vspace{0.4cm}
+    \Large -- Faculty of Engineering --\\
+    \vspace{0.1cm}
+    \large Computer Science Program
+  \end{center}
+
+  \vfill
+
+  \begin{center}
+    \Huge \textbf{\ThesisTitle}\\   %%%%% >>>>> Bitte in TeXFiles/000_Settings eintragen 
+    % \huge {\ThesisSubtitle}
+  \end{center}
+
+  \vfill
+
+  % Practical Training Report layout (English)
+  \ifdefined\ThesisLanguageIsEnglish
+    \begin{center}
+      \vspace{0.3cm}
+      {\Large
+        \setlength{\tabcolsep}{12pt}%
+        \renewcommand{\arraystretch}{1.4}%
+        \begin{tabular}{@{}ll}
+          Company:       & \textbf{\CompanyName} \\
+          Intern period: & \InternPeriod         \\
+          Supervisor:    & \Supervisor           \\
+          \\
+          Author:        & \textbf{\myName}      \\
+          Program:       & Computer Science      \\
+          Student ID:    & \myStudentId          \\
+          Intake:        & \Intake               \\
+        \end{tabular}
+      }
+      \vspace{3cm}
+      \\
+      {\Large \ReportYear, Vietnam}
+    \end{center}
+  \else
+    \begin{center}
+      \Large Abschlussarbeit zur Erlangung des akademischen Grades\\
+      \vspace{0.3cm}
+      \Large \ThesisDegree   %%%%% >>>>> Bitte in TeXFiles/000_Settings eintragen 
+    \end{center}
+  \fi
+
+\end{titlepage}
