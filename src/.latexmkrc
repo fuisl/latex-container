@@ -1,10 +1,7 @@
 # Use XeLaTeX as the default engine
 $pdf_mode = 5;  # 5 = XeLaTeX
 
-# Alternative: Use LuaLaTeX instead
-# $pdf_mode = 4;  # 4 = LuaLaTeX
-
-# Additional options
+# Biber configuration
 $biber = 'biber %O %S';
 $bibtex_use = 2;  # Use biber instead of bibtex
 
@@ -22,12 +19,12 @@ sub run_makeglossaries {
     my ($base) = @_;
     # Extract directory and basename
     my ($name, $path) = fileparse($base);
-    # Run makeglossaries quietly
+    # Change to output directory and run makeglossaries quietly
     my $ret = system("cd '$path' && makeglossaries -q '$name'");
     return $ret;
 }
 
-# Optimize: Only generate PDF
+# Optimize: Only generate PDF, skip XDV intermediate
 $xelatex = 'xelatex %O %S';
 
 # Ensure latexmk knows about glossary files
@@ -35,7 +32,3 @@ $clean_ext .= ' %R.ist %R.acn %R.acr %R.alg %R.glg %R.glo %R.gls';
 
 # Enable recorder to track file dependencies accurately
 $recorder = 1;
-
-# Preview settings - uncomment for continuous preview mode
-# $preview_continuous_mode = 1;
-# $pdf_previewer = 'start %O %S';
