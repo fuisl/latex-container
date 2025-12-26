@@ -45,17 +45,28 @@
                         "command": "latexmk",
                         "args": [
                             "-interaction=nonstopmode",
-                            "-pdf",
+                            "-xelatex",
                             "-synctex=1",
                             "-file-line-error",
                             "-outdir=%OUTDIR%",
                             "%DOC%"
-                        ]
+                        ],
+                        "env": {}
+                    },
+                    {
+                        "name": "makeglossaries",
+                        "command": "makeglossaries",
+                        "args": [
+                            "-d",
+                            "%OUTDIR%",
+                            "%DOCFILE%"
+                        ],
+                        "env": {}
                     }
                 ],
                 "latex-workshop.latex.recipes": [
                     {
-                        "name": "latexmk (outdir)",
+                        "name": "latexmk (with glossaries)",
                         "tools": [
                             "latexmk"
                         ]

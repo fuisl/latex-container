@@ -30,7 +30,7 @@
 % Dokumententyp: (legt grundlegende Formatierrichtlinien fest)
     %{book}
     %{report}
-{report}
+{scrreprt}
     %{scrreprt}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -77,11 +77,38 @@
 
 %%%% Serifenloser Textstil fuer das ganze Dokument: 
 
-\RequirePackage[sfdefault,lf]{carlito}
-\usepackage{lmodern}
-\RequirePackage[T1]{fontenc}
-% to imitate Calibri:
-\renewcommand*\familydefault{\sfdefault} %% Base font of the document is to be sans serif
+% Use fontspec for custom fonts (requires XeLaTeX or LuaLaTeX)
+\usepackage{fontspec}
+
+% Set Mona Sans as the main/sans-serif font
+\setmainfont{MonaSans}[
+    Path = ../fonts/mona-sans/static/otf/,
+    Extension = .otf,
+    UprightFont = *-Regular,
+    BoldFont = *-Bold,
+    ItalicFont = *-Italic,
+    BoldItalicFont = *-BoldItalic
+]
+
+% Set Mona Sans as sans-serif font explicitly
+\setsansfont{MonaSans}[
+    Path = ../fonts/mona-sans/static/otf/,
+    Extension = .otf,
+    UprightFont = *-Regular,
+    BoldFont = *-Bold,
+    ItalicFont = *-Italic,
+    BoldItalicFont = *-BoldItalic
+]
+
+% Set Monaspace for monospaced/code text
+\setmonofont{Monaspace Neon}[
+    Path = ../fonts/mona-space/Monaspace Neon/,
+    Extension = .ttf,
+    UprightFont = * Var
+]
+
+% Base font of the document is to be sans serif
+\renewcommand*\familydefault{\sfdefault}
 
 %%%%%% Grafiken einbinden
 \usepackage{graphicx}
@@ -258,6 +285,10 @@
 % Zeilenabstand für das ganze Dokument (1.0 = Normalwert):
 \renewcommand{\baselinestretch}{1.0}
 
+%%%%% Glossaries and Acronyms setup:
+\usepackage[acronym,toc]{glossaries}
+\makeglossaries
+
 %%%%% Acronymdefinitionen einbinden:
 \input{TeXFiles/005_Acronyms}
 
@@ -355,6 +386,10 @@
 \end{appendix}
 
 \clearpage
+
+% Only print glossary entries that are referenced in the text
+% To print all entries (even unreferenced), uncomment the line below:
+% \glsaddall
 
 \ifdefined\ThesisLanguageIsEnglish
   \printglossary[type=\acronymtype, title=List of Abbreviations, toctitle=List of Abbreviations]
