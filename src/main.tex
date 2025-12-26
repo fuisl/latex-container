@@ -131,14 +131,14 @@
 %%%%%% die Höhe des Top-Margin errechnen:
 \newlength\mytopmargin
 \newsavebox{\headbox}\savebox{\headbox}{
-    %\includegraphics[width=0.3\textwidth]{Figures/xxx.png} \hfill
-    \raisebox{-1ex}{\includegraphics[width=0.1\textwidth]{Figures/vgu-logo.pdf}}
+    % Smaller header box for more compact design
+    \raisebox{-0.5ex}{\includegraphics[height=1.2cm]{Figures/vgu-logo.pdf}}
 }
-\setlength{\mytopmargin}{\totalheightof{\usebox{\headbox}}+2cm}
+\setlength{\mytopmargin}{\totalheightof{\usebox{\headbox}}+1.5cm}
 \geometry{verbose,
           tmargin=\mytopmargin,
-          headheight=1.1\mytopmargin,
-          footskip=9ex
+          headheight=1.8cm,
+          footskip=8ex
 }
 
 % Flexiblere Tabellen
@@ -169,28 +169,38 @@
 \usepackage{fancyhdr}
 \pagestyle{fancy}  % Eigener Seitenstil
 \fancyhf{}         % Alle Kopf- und Fußzeilenfelder bereinigen
-%\fancyhead[L]{} % Kopfzeile links
-\fancyhead[l]{\leftmark
-   %\makebox[0.3\textwidth]{\includegraphics[width=0.3\textwidth]{Figures/xxx.png}}
-}  
-\fancyhead[c]{\hspace*{0.15\textwidth}\rightmark}
-%\fancyhead[C]{\usebox\headbox}                        % Zentrierte Kopfzeile
+
+% Header configuration - smaller and more elegant
+\fancyhead[L]{%
+  \fontsize{9}{11}\selectfont\fontseries{l}\selectfont% Light weight, smaller font
+  \leftmark%
+}
+\fancyhead[C]{%
+  \fontsize{8.5}{10}\selectfont\fontseries{l}\selectfont% Extra light, smaller
+  \rightmark%
+}
 \fancyhead[R]{%
-  \makebox[\textwidth][r]{%
-    \raisebox{-1ex}{%
-      \includegraphics[width=0.1\textwidth]{Figures/vgu-logo.pdf}%
-      \hspace{1em}%
-      \includegraphics[height=\totalheightof{\usebox\headbox}]{Figures/company-logo.png}%
-    }%
+  \raisebox{-0.5ex}{% Reduced vertical offset
+    \includegraphics[height=0.5cm]{Figures/vgu-logo.pdf}% Smaller logos
+    \hspace{0.5em}% Reduced spacing
+    \includegraphics[height=0.5cm]{Figures/company-logo.png}%
   }%
-}  % Kopfzeile rechts
-\renewcommand{\headrulewidth}{0.4pt} % Obere Trennlinie
-%\fancyfoot[L]{\today}
-\fancyfoot[C]{\ThesisTitleShort} 
-%\fancyfoot[R]{Seite \thepage ~von \ref{TotPages}}  % Seitennummer
-\fancyfoot[R]{\thepage} % Seitennummer 
-\renewcommand{\footrulewidth}{0.4pt} % Untere Trennlinie
-\setlength{\mytopmargin}{\totalheightof{\usebox\headbox} +2cm}
+}
+
+\renewcommand{\headrulewidth}{0.3pt} % Thinner header line
+\setlength{\headheight}{1.8cm} % Reduced header height
+
+% Footer configuration - minimal and elegant
+\fancyfoot[C]{%
+  \fontsize{8.5}{10}\selectfont\fontseries{l}\selectfont% Light weight
+  \textit{\ThesisTitleShort}% Italic for elegance
+} 
+\fancyfoot[R]{%
+  \fontsize{9}{11}\selectfont\fontseries{m}\selectfont% Medium weight
+  \thepage% Page number
+}
+\renewcommand{\footrulewidth}{0.2pt} % Thinner footer line
+\setlength{\mytopmargin}{\totalheightof{\usebox\headbox} +1.5cm}% Reduced margin
 %Unterschied zwischen geraden/ungeraden Seiten:
 %\fancyhead[OR]{} % "O" steht für "odd", also ungerade Seiten
 %\fancyhead[ER]{} % "E" für "even", also gerade Seiten.
