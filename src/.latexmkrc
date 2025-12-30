@@ -9,7 +9,7 @@ $bibtex_use = 2;  # Use biber instead of bibtex
 $max_repeat = 5;
 
 # Silent mode for faster builds (set to 0 to see all output for debugging)
-$silent = 1;
+$silent = 0;  # Changed to 0 to see output in LaTeX Workshop
 
 # Enable glossaries support - simplified version
 add_cus_dep('glo', 'gls', 0, 'run_makeglossaries');
@@ -24,11 +24,17 @@ sub run_makeglossaries {
     return $ret;
 }
 
-# Optimize: Only generate PDF, skip XDV intermediate
-$xelatex = 'xelatex %O %S';
+# XeLaTeX command with proper flags
+$xelatex = 'xelatex -interaction=nonstopmode -synctex=1 -file-line-error %O %S';
 
 # Ensure latexmk knows about glossary files
 $clean_ext .= ' %R.ist %R.acn %R.acr %R.alg %R.glg %R.glo %R.gls';
 
 # Enable recorder to track file dependencies accurately
 $recorder = 1;
+
+# Set output directory if specified
+$out_dir = '../out' unless $out_dir;
+
+# Ensure auxiliary files go to output directory
+$aux_dir = $out_dir;

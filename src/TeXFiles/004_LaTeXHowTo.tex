@@ -1,57 +1,496 @@
-\chapter*{\LaTeX HowTo}
+\chapter*{\LaTeX{} How-To Guide}
 \label{ch:LaTeXHowTo}
+\addcontentsline{toc}{chapter}{\LaTeX{} How-To Guide}
 
-\section{Testsektion}
-\label{sec:LateXHowTo_TestSektion}
+This chapter provides a comprehensive guide on how to use \LaTeX{} for writing technical reports. It covers essential features including document structure, cross-referencing, figures, tables, mathematical equations, code listings, citations, and more.
 
-\subsection{Testsubsektion}
-\label{sec:LateXHowTo_Testsubsektion}
+%=============================================================================
+\section{Document Structure and Cross-References}
+\label{sec:HowTo_Structure}
+%=============================================================================
 
-test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test testtest test test test test test test testtest test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test testtest test test test test test test testtest test test test
+\subsection{Chapters, Sections, and Subsections}
+\label{sec:HowTo_Sections}
 
-Hallo, wir befinden uns gerade in Sektion \ref{sec:LateXHowTo_TestSektion}, bzw. genauer gesagt in
-Abschnitt \ref{sec:LateXHowTo_Testsubsektion} ...
+\LaTeX{} provides a hierarchical structure for organizing your document:
 
-Beispiel für das Einbinden einer Grafik:
-\begin{figure}[htbp!]
+\begin{itemize}
+  \item \texttt{\textbackslash chapter\{Title\}} -- Main divisions (in report/book classes)
+  \item \texttt{\textbackslash section\{Title\}} -- Major sections within chapters
+  \item \texttt{\textbackslash subsection\{Title\}} -- Subsections
+  \item \texttt{\textbackslash subsubsection\{Title\}} -- Further subdivisions
+  \item \texttt{\textbackslash paragraph\{Title\}} -- Named paragraphs
+\end{itemize}
+
+\subsection{Labels and Cross-References}
+\label{sec:HowTo_CrossRef}
+
+Every element that you want to reference should have a \texttt{\textbackslash label\{key\}} command. You can then reference it using:
+
+\begin{itemize}
+  \item \texttt{\textbackslash ref\{key\}} -- Returns the number (e.g., ``Section~\ref{sec:HowTo_CrossRef}'')
+  \item \texttt{\textbackslash pageref\{key\}} -- Returns the page number
+  \item \texttt{\textbackslash autoref\{key\}} -- Automatically includes the type (e.g., ``Section'')
+\end{itemize}
+
+For example, we are currently in Section~\ref{sec:HowTo_Structure}, specifically in Subsection~\ref{sec:HowTo_CrossRef}.
+
+%=============================================================================
+\section{Figures and Graphics}
+\label{sec:HowTo_Figures}
+%=============================================================================
+
+\subsection{Basic Figure Insertion}
+\label{sec:HowTo_BasicFigure}
+
+Figures are inserted using the \texttt{figure} environment with the \texttt{graphicx} package:
+
+\begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.8\textwidth]{Figures/vgu-logo.pdf}
-  \caption{Logo der Frankfurt University of Applied Sciences}
-  \label{fig:Logo}
+  \includegraphics[width=0.5\textwidth]{Figures/vgu-logo.pdf}
+  \caption{Example of a centered figure with caption.}
+  \label{fig:ExampleLogo}
 \end{figure}
 
-und die Bezugnahme auf die Abbildung:
+The placement specifiers \texttt{[htbp]} control where \LaTeX{} tries to place the figure:
+\begin{itemize}
+  \item \texttt{h} -- Here (approximately where it appears in the source)
+  \item \texttt{t} -- Top of the page
+  \item \texttt{b} -- Bottom of the page
+  \item \texttt{p} -- On a separate page of floats
+  \item \texttt{!} -- Override internal parameters
+\end{itemize}
 
-Wie in Abbildung \ref{fig:Logo} zu sehen ...
-Literatur zitiert man so: \citep{friese_handbuch_2020}. Sobald man eine Literaturreferenz zitiert,
-wird diese automatisch
-in die Bibliographie eingetragen. Referenzierung von Web-Seiten ist auch moeglich, wie in \citep{oneclickVDIUnd2019} gezeigt.
-Durch Verwendung von citep werden die Literaturreferenzen anklickbar.
-test test
+To reference Figure~\ref{fig:ExampleLogo}, use \texttt{\textbackslash ref\{fig:ExampleLogo\}}.
 
-\newpage
+\subsection{Subfigures}
+\label{sec:HowTo_Subfigures}
 
-Abkürzungen und Akronyme können so verwendet werden: Der größte gemeinsame Teiler (\acrlong{gcd}), ist die größte ganzzahlige Zahl, durch die
-zwei betrachtetete Zahlen restfrei geteilt werden können.
-Die Abkürzung lautet \acrshort{gcd}.\\
-Glossareinträge können folgendermassen verwendet werden:  \Gls{latex} ist das beste Textsatzsystem überhaupt :)
-Sobald Akronymreferenzen und Glossarreferenzen im Text verwendet werden, erscheinen die entsprechenden Einträge im Akronymverzeichnis bzw. Glossar
+For multiple related figures, use the \texttt{subcaption} package:
 
-test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test testtest test test test test test test testtest test test test
+\begin{figure}[htbp]
+  \centering
+  \begin{subfigure}[b]{0.45\textwidth}
+    \centering
+    \includegraphics[width=0.8\textwidth]{Figures/vgu-logo.pdf}
+    \caption{First subfigure.}
+    \label{fig:sub1}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[b]{0.45\textwidth}
+    \centering
+    \includegraphics[width=0.8\textwidth]{Figures/company-logo.png}
+    \caption{Second subfigure.}
+    \label{fig:sub2}
+  \end{subfigure}
+  \caption{Example of subfigures: (a) VGU Logo, (b) Company Logo.}
+  \label{fig:Subfigures}
+\end{figure}
 
-\mycomment{hier müsste noch beschrieben werden, dass ....}
+Reference individual subfigures as Figure~\ref{fig:sub1} or the whole figure as Figure~\ref{fig:Subfigures}.
 
-test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test testtest test test test test test test testtest test test test
-test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test testtest test test test test test test testtest test test test
-test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test testtest test test test test test test testtest test test test
-test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test testtest test test test test test test testtest test test test
-test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test testtest test test test test test test testtest test test testtest test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test testtest test test test test test test testtest test test test
-test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test testtest test test test test test test testtest test test testtest test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test testtest test test test test test test testtest test test testtest test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test testtest test test test test test test testtest test test testtest test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test testtest test test test test test test testtest test test test
-% test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test testtest test test test test test test testtest test test test
-% test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test testtest test test test test test test testtest test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test testtest test test test test test test testtest test test test
-% test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test testtest test test test test test test testtest test test test
-% test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test testtest test test test test test test testtest test test test
-% test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test testtest test test test test test test testtest test test test
-% test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test testtest test test test test test test testtest test test test
-% test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test testtest test test test test test test testtest test test test
-% test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test testtest test test test test test test testtest test test testtest test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test test testtest test test test test test test testtest test test test
+%=============================================================================
+\section{Tables}
+\label{sec:HowTo_Tables}
+%=============================================================================
+
+\subsection{Basic Tables with Booktabs}
+\label{sec:HowTo_BasicTables}
+
+Professional tables use the \texttt{booktabs} package for clean horizontal rules:
+
+\begin{table}[htbp]
+  \centering
+  \caption{Example of a professional table using booktabs.}
+  \label{tab:BasicTable}
+  \begin{tabular}{lcc}
+    \toprule
+    \textbf{Method}  & \textbf{Accuracy (\%)} & \textbf{Time (s)} \\
+    \midrule
+    Baseline         & 85.2                   & 1.23              \\
+    Proposed         & 92.7                   & 0.89              \\
+    State-of-the-art & 91.3                   & 2.15              \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Key commands from \texttt{booktabs}:
+\begin{itemize}
+  \item \texttt{\textbackslash toprule} -- Top rule (thicker)
+  \item \texttt{\textbackslash midrule} -- Middle rule (thinner)
+  \item \texttt{\textbackslash bottomrule} -- Bottom rule (thicker)
+  \item \texttt{\textbackslash cmidrule\{i-j\}} -- Partial rule from column $i$ to $j$
+\end{itemize}
+
+\subsection{Multi-row and Multi-column Cells}
+\label{sec:HowTo_MultiRowCol}
+
+Use \texttt{multirow} and \texttt{multicolumn} for spanning cells:
+
+\begin{table}[htbp]
+  \centering
+  \caption{Table with multi-row and multi-column cells.}
+  \label{tab:MultiTable}
+  \begin{tabular}{lccc}
+    \toprule
+                         & \multicolumn{3}{c}{\textbf{Metrics}}                                       \\
+    \cmidrule(lr){2-4}
+    \textbf{Model}       & \textbf{Precision}                   & \textbf{Recall} & \textbf{F1-Score} \\
+    \midrule
+    \multirow{2}{*}{CNN} & 0.89                                 & 0.87            & 0.88              \\
+                         & 0.91                                 & 0.85            & 0.88              \\
+    \midrule
+    \multirow{2}{*}{RNN} & 0.85                                 & 0.90            & 0.87              \\
+                         & 0.86                                 & 0.88            & 0.87              \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+%=============================================================================
+\section{Mathematical Equations}
+\label{sec:HowTo_Math}
+%=============================================================================
+
+\subsection{Inline and Display Math}
+\label{sec:HowTo_InlineMath}
+
+Inline math is written between dollar signs: The equation $E = mc^2$ is famous. For display equations, use the \texttt{equation} environment:
+
+\begin{equation}
+  f(x) = \int_{-\infty}^{\infty} \hat{f}(\xi) e^{2\pi i \xi x} \, d\xi
+  \label{eq:FourierTransform}
+\end{equation}
+
+Equation~\ref{eq:FourierTransform} shows the inverse Fourier transform.
+
+\subsection{Multi-line Equations with Alignment}
+\label{sec:HowTo_AlignedMath}
+
+Use the \texttt{align} environment for aligned multi-line equations:
+
+\begin{align}
+  \nabla \cdot \mathbf{E}  & = \frac{\rho}{\varepsilon_0} \label{eq:Maxwell1}                                                    \\
+  \nabla \cdot \mathbf{B}  & = 0 \label{eq:Maxwell2}                                                                             \\
+  \nabla \times \mathbf{E} & = -\frac{\partial \mathbf{B}}{\partial t} \label{eq:Maxwell3}                                       \\
+  \nabla \times \mathbf{B} & = \mu_0 \mathbf{J} + \mu_0 \varepsilon_0 \frac{\partial \mathbf{E}}{\partial t} \label{eq:Maxwell4}
+\end{align}
+
+These are Maxwell's equations (Equations~\ref{eq:Maxwell1}--\ref{eq:Maxwell4}).
+
+\subsection{Matrices and Arrays}
+\label{sec:HowTo_Matrices}
+
+Various matrix environments are available:
+
+\begin{equation}
+  \mathbf{A} = \begin{bmatrix}
+    a_{11} & a_{12} & a_{13} \\
+    a_{21} & a_{22} & a_{23} \\
+    a_{31} & a_{32} & a_{33}
+  \end{bmatrix}
+  \qquad
+  \mathbf{B} = \begin{pmatrix}
+    b_1 \\
+    b_2 \\
+    b_3
+  \end{pmatrix}
+  \label{eq:Matrices}
+\end{equation}
+
+Other matrix styles: \texttt{matrix} (no delimiters), \texttt{vmatrix} (vertical bars for determinants), \texttt{Vmatrix} (double vertical bars).
+
+\subsection{Common Mathematical Symbols}
+\label{sec:HowTo_MathSymbols}
+
+\begin{itemize}
+  \item Greek letters: $\alpha, \beta, \gamma, \delta, \epsilon, \theta, \lambda, \mu, \sigma, \phi, \omega$
+  \item Operators: $\sum_{i=1}^{n}$, $\prod_{j=1}^{m}$, $\int_a^b$, $\lim_{x \to \infty}$
+  \item Relations: $\leq, \geq, \neq, \approx, \equiv, \propto, \sim$
+  \item Sets: $\in, \notin, \subset, \subseteq, \cup, \cap, \emptyset, \mathbb{R}, \mathbb{N}$
+  \item Arrows: $\rightarrow, \leftarrow, \Rightarrow, \Leftrightarrow, \mapsto$
+  \item Fractions: $\frac{a}{b}$, $\dfrac{dy}{dx}$
+  \item Roots: $\sqrt{x}$, $\sqrt[n]{x}$
+\end{itemize}
+
+%=============================================================================
+\section{Code Listings}
+\label{sec:HowTo_Code}
+%=============================================================================
+
+\subsection{Basic Code Listing}
+\label{sec:HowTo_BasicCode}
+
+Use the \texttt{listings} package for syntax-highlighted code:
+
+\begin{lstlisting}[language=Python, caption={Example Python function for calculating factorial.}, label={lst:PythonExample}]
+def factorial(n):
+    """Calculate the factorial of n recursively."""
+    if n <= 1:
+        return 1
+    else:
+        return n * factorial(n - 1)
+
+# Example usage
+result = factorial(5)  # Returns 120
+print(f"5! = {result}")
+\end{lstlisting}
+
+Reference code listings as Listing~\ref{lst:PythonExample}.
+
+\subsection{Different Programming Languages}
+\label{sec:HowTo_CodeLanguages}
+
+The \texttt{listings} package supports many languages:
+
+\begin{lstlisting}[language=C, caption={Example C code for bubble sort.}, label={lst:CExample}]
+void bubbleSort(int arr[], int n) {
+    for (int i = 0; i < n - 1; i++) {
+        for (int j = 0; j < n - i - 1; j++) {
+            if (arr[j] > arr[j + 1]) {
+                // Swap elements
+                int temp = arr[j];
+                arr[j] = arr[j + 1];
+                arr[j + 1] = temp;
+            }
+        }
+    }
+}
+\end{lstlisting}
+
+\begin{lstlisting}[language=Java, caption={Example Java class definition.}, label={lst:JavaExample}]
+public class Person {
+    private String name;
+    private int age;
+    
+    public Person(String name, int age) {
+        this.name = name;
+        this.age = age;
+    }
+    
+    public String getName() {
+        return this.name;
+    }
+}
+\end{lstlisting}
+
+%=============================================================================
+\section{Algorithms and Pseudocode}
+\label{sec:HowTo_Algorithms}
+%=============================================================================
+
+For presenting algorithms, use the \texttt{algorithm} and \texttt{algpseudocode} packages:
+
+\begin{algorithm}[htbp]
+  \caption{Binary Search Algorithm}
+  \label{alg:BinarySearch}
+  \begin{algorithmic}[1]
+    \Require Sorted array $A[1..n]$, target value $x$
+    \Ensure Index of $x$ in $A$, or $-1$ if not found
+    \State $left \gets 1$
+    \State $right \gets n$
+    \While{$left \leq right$}
+    \State $mid \gets \lfloor (left + right) / 2 \rfloor$
+    \If{$A[mid] = x$}
+    \State \Return $mid$
+    \ElsIf{$A[mid] < x$}
+    \State $left \gets mid + 1$
+    \Else
+    \State $right \gets mid - 1$
+    \EndIf
+    \EndWhile
+    \State \Return $-1$
+  \end{algorithmic}
+\end{algorithm}
+
+Algorithm~\ref{alg:BinarySearch} shows the classic binary search with $O(\log n)$ time complexity.
+
+%=============================================================================
+\section{Citations and Bibliography}
+\label{sec:HowTo_Citations}
+%=============================================================================
+
+\subsection{Citation Commands}
+\label{sec:HowTo_CitationCommands}
+
+This template uses BibLaTeX with the \texttt{natbib} compatibility layer. Common citation commands:
+
+\begin{itemize}
+  \item \texttt{\textbackslash citep\{key\}} -- Parenthetical citation: \citep{friese_handbuch_2020}
+  \item \texttt{\textbackslash citet\{key\}} -- Textual citation: \citet{friese_handbuch_2020}
+  \item \texttt{\textbackslash cite\{key\}} -- Basic citation: \cite{friese_handbuch_2020}
+\end{itemize}
+
+For multiple citations: \citep{friese_handbuch_2020, beermann_veranderungen_2020}.
+
+\subsection{Managing Bibliography}
+\label{sec:HowTo_Bibliography}
+
+Bibliography entries are stored in \texttt{bibliography.bib}. Common entry types:
+
+\begin{itemize}
+  \item \texttt{@article} -- Journal articles
+  \item \texttt{@book} -- Books
+  \item \texttt{@inproceedings} -- Conference papers
+  \item \texttt{@techreport} -- Technical reports
+  \item \texttt{@misc} -- Websites and other sources
+  \item \texttt{@phdthesis}, \texttt{@mastersthesis} -- Theses
+\end{itemize}
+
+%=============================================================================
+\section{Acronyms and Glossary}
+\label{sec:HowTo_Acronyms}
+%=============================================================================
+
+The \texttt{glossaries} package manages acronyms and glossary entries.
+
+\subsection{Using Acronyms}
+\label{sec:HowTo_UsingAcronyms}
+
+Acronym commands:
+\begin{itemize}
+  \item \texttt{\textbackslash acrshort\{key\}} -- Short form: \acrshort{gcd}
+  \item \texttt{\textbackslash acrlong\{key\}} -- Long form: \acrlong{gcd}
+  \item \texttt{\textbackslash acrfull\{key\}} -- Full form: \acrfull{lcm}
+  \item \texttt{\textbackslash gls\{key\}} -- Smart reference (expands on first use)
+\end{itemize}
+
+The \acrfull{gcd} is used in number theory to find common factors. Later references use \acrshort{gcd}.
+
+\subsection{Glossary Entries}
+\label{sec:HowTo_Glossary}
+
+Glossary entries are referenced with \texttt{\textbackslash gls\{key\}}, \texttt{\textbackslash Gls\{key\}} (capitalized), or \texttt{\textbackslash glspl\{key\}} (plural). For example: \Gls{latex} is a document preparation system based on \gls{maths}.
+
+%=============================================================================
+\section{Lists and Enumerations}
+\label{sec:HowTo_Lists}
+%=============================================================================
+
+\subsection{Itemized Lists}
+\label{sec:HowTo_Itemize}
+
+\begin{itemize}
+  \item First level item
+  \item Another first level item
+        \begin{itemize}
+          \item Second level item
+          \item Another second level item
+                \begin{itemize}
+                  \item Third level item
+                \end{itemize}
+        \end{itemize}
+\end{itemize}
+
+\subsection{Enumerated Lists}
+\label{sec:HowTo_Enumerate}
+
+\begin{enumerate}
+  \item First step
+  \item Second step
+        \begin{enumerate}
+          \item Sub-step 2.1
+          \item Sub-step 2.2
+        \end{enumerate}
+  \item Third step
+\end{enumerate}
+
+\subsection{Description Lists}
+\label{sec:HowTo_Description}
+
+\begin{description}
+  \item[Term 1] Definition of the first term.
+  \item[Term 2] Definition of the second term with more detailed explanation.
+  \item[Term 3] Brief definition.
+\end{description}
+
+%=============================================================================
+\section{Text Formatting}
+\label{sec:HowTo_Formatting}
+%=============================================================================
+
+\subsection{Basic Text Styles}
+\label{sec:HowTo_TextStyles}
+
+\begin{itemize}
+  \item \textbf{Bold text} -- \texttt{\textbackslash textbf\{...\}}
+  \item \textit{Italic text} -- \texttt{\textbackslash textit\{...\}}
+  \item \underline{Underlined text} -- \texttt{\textbackslash underline\{...\}}
+  \item \texttt{Monospace text} -- \texttt{\textbackslash texttt\{...\}}
+  \item \textsc{Small Caps} -- \texttt{\textbackslash textsc\{...\}}
+  \item \sout{Strikethrough text} -- \texttt{\textbackslash sout\{...\}} (requires \texttt{ulem} package)
+\end{itemize}
+
+\subsection{Quotations}
+\label{sec:HowTo_Quotations}
+
+For short inline quotes, use quotation marks: ``This is a quote.''
+
+For longer block quotes, use the \texttt{quote} or \texttt{quotation} environment:
+
+\begin{quote}
+  \colorbox{gray!15}{\parbox{\dimexpr\linewidth-2\fboxsep}{%
+    This is a block quotation. It is indented from both margins and is useful for longer quoted passages from other sources.%
+  }}
+\end{quote}
+
+%=============================================================================
+\section{Comments and TODOs}
+\label{sec:HowTo_Comments}
+%=============================================================================
+
+\subsection{LaTeX Comments}
+\label{sec:HowTo_LaTeXComments}
+
+Use \texttt{\%} for single-line comments. For multi-line comments, use the \texttt{comment} environment:
+
+% This is a single-line comment
+\begin{comment}
+This entire block is commented out.
+It will not appear in the output.
+Useful for temporarily removing large sections.
+\end{comment}
+
+\subsection{TODO Notes}
+\label{sec:HowTo_TodoNotes}
+
+This template provides inline TODO notes for review:
+
+\mycomment{This is an example TODO note that appears inline in the document.}
+
+These notes are visible during writing but can be disabled for final submission.
+
+%=============================================================================
+\section{Hyperlinks and URLs}
+\label{sec:HowTo_Hyperlinks}
+%=============================================================================
+
+The \texttt{hyperref} package enables clickable links:
+
+\begin{itemize}
+  \item URLs: \url{https://www.latex-project.org/}
+  \item Named links: \href{https://www.overleaf.com}{Overleaf Online Editor}
+  \item Email: \href{mailto:example@university.edu}{example@university.edu}
+\end{itemize}
+
+All cross-references, citations, and table of contents entries are automatically hyperlinked.
+
+%=============================================================================
+\section{Best Practices}
+\label{sec:HowTo_BestPractices}
+%=============================================================================
+
+\begin{enumerate}
+  \item \textbf{Use meaningful labels}: Prefix labels with the type (e.g., \texttt{fig:}, \texttt{tab:}, \texttt{eq:}, \texttt{sec:}, \texttt{lst:}, \texttt{alg:}).
+
+  \item \textbf{Compile multiple times}: Run the compiler at least twice to resolve cross-references. For bibliography, run: \texttt{pdflatex} $\rightarrow$ \texttt{biber} $\rightarrow$ \texttt{pdflatex} $\rightarrow$ \texttt{pdflatex}.
+
+  \item \textbf{Use non-breaking spaces}: Use \texttt{\~{}} before references to prevent line breaks: \texttt{Figure\~{}\textbackslash ref\{fig:example\}}.
+
+  \item \textbf{Keep source files organized}: Use separate \texttt{.tex} files for each chapter/section.
+
+  \item \textbf{Use vector graphics}: Prefer PDF or SVG for diagrams and figures when possible.
+
+  \item \textbf{Backup your work}: Use version control (Git) and regular backups.
+
+  \item \textbf{Check for overfull boxes}: Review warnings about overfull \texttt{hbox} or \texttt{vbox} and adjust text/figures accordingly.
+\end{enumerate}

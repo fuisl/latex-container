@@ -42,7 +42,14 @@
 \usepackage{xcolor}
 
 \parindent = 0pt  % Neue Absaetze nicht einruecken
-\parskip = 1ex % Neue Absaetze: 1/2 Zeile Abstand
+\parskip = 1.0\baselineskip % paragraph gap: one baseline for clearer separation
+
+% Improve overall micro-typography and line spacing for better readability
+\usepackage{microtype} % better justification and protrusion
+\usepackage{setspace}
+% Use a slightly increased line spacing similar to the black example
+% 1.2-1.25 gives a more open, readable look; choose 1.22 as compromise
+\setstretch{1.22}
 
 
 
@@ -114,8 +121,26 @@
 \usepackage{graphicx}
 % https://golatex.de//wiki/%5cincludegraphics
 
+%%%%%% Caption styling - even smaller and lighter
+\usepackage{caption}
+% Macro to select punctuation after the label: colon or period
+% Usage: set to ":" or "." in the preamble
+\providecommand{\CaptionLabelPunct}{.}
+% Define a custom label format that appends the chosen punctuation
+\DeclareCaptionLabelFormat{labelsepWithPunct}{#1~#2\CaptionLabelPunct\,}
+\captionsetup{
+  font={footnotesize,it},         % smaller and italic font for the caption
+  labelfont={footnotesize,it},    % label smaller and italic (no bold)
+  textfont={footnotesize,it},     % caption text smaller and italic
+  labelsep=none,                 % we'll use a custom label format
+  labelformat=labelsepWithPunct, % use the custom label format defined above
+  justification=centering,       % Center-aligned captions
+  skip=6pt                       % Reduced space between figure and caption
+}
+
 %%%%%% Mathematik-Paket AMSMath:
 \usepackage[fleqn,reqno]{amsmath}
+\usepackage{amssymb}  % Additional math symbols (e.g., \mathbb for number sets)
 
 
 %%%%%% Seitengeometrie einstellen:
@@ -153,6 +178,40 @@
 
 % Durchstreichen von Text
 \usepackage[normalem]{ulem} % mit \sout
+
+%%%%%% Code listings with syntax highlighting
+\usepackage{listings}
+\usepackage{xcolor} % already loaded earlier, but needed for listings colors
+\lstset{
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue}\bfseries,
+    commentstyle=\color{gray}\itshape,
+    stringstyle=\color{red},
+    numberstyle=\tiny\color{gray},
+    numbers=left,
+    numbersep=8pt,
+    frame=single,
+    breaklines=true,
+    breakatwhitespace=true,
+    showstringspaces=false,
+    tabsize=2,
+    captionpos=b,
+    aboveskip=1.5em,
+    belowskip=1em
+}
+
+%%%%%% Algorithm and pseudocode formatting
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+
+%%%%%% Subfigures support
+\usepackage{subcaption}
+
+%%%%%% Professional table formatting (booktabs)
+\usepackage{booktabs}
+
+%%%%%% Enhanced list environments - using paralist (already loaded earlier)
+% Note: enumitem conflicts with paralist, so we use paralist which is already loaded
 
 
 
