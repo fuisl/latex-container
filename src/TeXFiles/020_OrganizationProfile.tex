@@ -1,0 +1,160 @@
+\chapter{Organization Profile and Internship Setup}
+\label{ch:OrgProfile}
+
+% Page budget: 4 pages (Pages 4-7)
+% Covers guideline: Profile of organization, Tasks assigned by senior role, Intra-organization communication (explicit)
+
+%=============================================================================
+\section{Organization Profile}
+\label{sec:OrgProfile_Profile}
+%=============================================================================
+
+DevSamurai is a software company focused on building business productivity applications and integrations for major SaaS ecosystems. The company positions itself as an engineering partner that helps organizations automate and optimize digital workflows through marketplace apps and platform extensions.\cite{DevSamurai_Website}
+
+\subsection{Geographic Footprint}
+
+DevSamurai operates with an international footprint, including a base in Japan and a Vietnam division (DevSamurai Vietnam) that provides software development consulting and delivery capacity across multiple solution areas. This distributed model enables rapid scaling and access to specialized engineering talent.
+
+\subsection{Core Offerings and Technical Focus}
+
+DevSamurai's work clusters into two complementary streams:
+
+\begin{enumerate}
+    \item \textbf{Marketplace Applications \& Integrations}
+          \begin{itemize}
+              \item Design and development of apps distributed through major SaaS ecosystems: Atlassian Marketplace (Jira/Confluence), Salesforce AppExchange, monday.com Marketplace, and Microsoft AppSource.
+              \item The emphasis is on ``workflow-native'' products: software that embeds into existing tools to improve productivity and collaboration.
+          \end{itemize}
+
+    \item \textbf{Enterprise Engineering \& DevOps/Cloud Practices}
+          \begin{itemize}
+              \item Cloud-native DevOps practices aimed at automating the software delivery lifecycle.
+              \item Enterprise solution work including ERP, data/analysis, and AI applications, aligned with business process automation.
+          \end{itemize}
+\end{enumerate}
+
+
+
+%=============================================================================
+\section{Role, Responsibilities, and Stakeholders}
+\label{sec:OrgProfile_Role}
+%=============================================================================
+
+As an AI engineering intern, my role is positioned within DevSamurai's R\&D and product engineering division, with direct accountability to senior engineering leadership. The internship operates across two primary stakeholder groups:
+
+\subsection{Senior Roles and Review Authority}
+
+\begin{itemize}
+    \item \textbf{Product Engineering Lead}: Sets overall technical direction, approves architectural decisions, and ensures alignment with DevSamurai's product roadmap.
+    \item \textbf{Senior AI/ML Engineer}: Provides mentorship on evaluation methodology, production hardening practices, and integration patterns for AI systems.
+    \item \textbf{DevOps and Reliability Engineer}: Reviews deployment topology, CI/CD pipeline, and operational runbook completeness.
+\end{itemize}
+
+\subsection{What I Owned}
+
+Within clearly defined boundaries, I was responsible for:
+
+\begin{itemize}
+    \item End-to-end design and prototyping of AI integration patterns (workflow orchestration, model serving, agent platforms).
+    \item Technical decision documentation (ADR format) and evidence collection (benchmarks, evaluation signals).
+    \item Production-ready code, configuration, and deployment artifacts.
+    \item Operational documentation: runbooks, monitoring dashboards, and hardening checklists.
+\end{itemize}
+
+% Figure placeholder: F3 - Stakeholder / communication diagram (you ↔ teams)
+% \begin{figure}[htbp]
+%   \centering
+%   % \includegraphics[width=0.8\textwidth]{Figures/stakeholder-diagram.pdf}
+%   \caption{Stakeholder and communication diagram showing the intern's interactions with various teams.}
+%   \label{fig:stakeholder_diagram}
+% \end{figure}
+
+
+%=============================================================================
+\section{Communication and Execution Model}
+\label{sec:OrgProfile_Communication}
+%=============================================================================
+
+The internship follows a structured, iterative execution model designed for transparency and continuous stakeholder alignment:
+
+\subsection{Requirement Intake}
+
+Initial requirements and success criteria are gathered during intake meetings with product engineering leadership. These establish:
+
+\begin{itemize}
+    \item Problem statement and scope boundaries
+    \item Success metrics (performance targets, operational readiness signals)
+    \item Time and resource constraints
+    \item Integration points with existing systems
+\end{itemize}
+
+\subsection{Review and Iteration Cycles}
+
+Technical work proceeds in two-week sprint cycles with:
+
+\begin{itemize}
+    \item Weekly sync meetings with product engineering lead (architecture feedback, scope adjustments)
+    \item Bi-weekly architecture reviews with senior AI/ML engineer (decision rationale, evidence validation)
+    \item Operational reviews with DevOps engineer before hardening and deployment phases
+\end{itemize}
+
+\subsection{Handoff and Acceptance}
+
+A formal handoff occurs when:
+
+\begin{itemize}
+    \item All architectural decisions are documented with evidence (ADR format)
+    \item Code passes review and automated testing
+    \item Operational documentation (runbook, monitoring, hardening checklist) is complete and tested
+    \item Deployment to production environment is approved by DevOps lead
+\end{itemize}
+
+
+
+%=============================================================================
+\section{High-Level Challenges and Constraints}
+\label{sec:OrgProfile_Challenges}
+%=============================================================================
+
+The internship operates within real organizational constraints that shaped technical decisions and prioritization:
+
+\subsection{Time Constraints}
+
+The internship is structured as a fixed-duration engagement (typically 3--6 months). This necessitates:
+
+\begin{itemize}
+    \item Prioritization of production-ready work over exploratory research
+    \item Early identification of high-impact tasks vs. nice-to-have features
+    \item Clear scope boundaries to prevent scope creep
+\end{itemize}
+
+\subsection{Operational Constraints}
+
+\begin{itemize}
+    \item \textbf{Infrastructure availability}: Deployment targets (Google Cloud Run, Postgres, Redis) are shared with production systems; no dedicated staging environment.
+    \item \textbf{Data sensitivity}: Integration with existing product data requires strict access controls and audit logging.
+    \item \textbf{Third-party dependencies}: Reliance on external LLM providers (OpenAI, etc.) introduces cost and rate-limit considerations.
+\end{itemize}
+
+\subsection{Mitigation Strategies}
+
+The internship is designed with clear mitigation for each constraint:
+
+\begin{table}[htbp]
+    \centering
+    \caption{Key constraints and mitigation strategies.}
+    \label{tab:Constraints}
+    \begin{tabular}{p{3cm}p{4cm}p{4cm}}
+        \toprule
+        \textbf{Constraint}      & \textbf{Impact}                          & \textbf{Mitigation}                                                           \\
+        \midrule
+        Time (3-6 months)        & Limited scope for exploratory R\&D       & Prioritize deliverables; phase work in two tracks                             \\
+        \midrule
+        Shared Infrastructure    & Risk of production impact during testing & Separate dev, staging, and production environments; feature flags for rollout \\
+        \midrule
+        Third-Party Dependencies & Cost and latency unpredictability        & Pre-commit cost budgets; implement rate-limit handling                        \\
+        \midrule
+        Data Sensitivity         & Compliance and audit risk                & Minimal data in staging; PII redaction in logs                                \\
+        \bottomrule
+    \end{tabular}
+\end{table}

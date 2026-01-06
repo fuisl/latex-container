@@ -19,7 +19,7 @@
   footinclude=true,
     %cleardoublepage=empty,
     %BCOR=5mm,
-  fontsize=12pt,%11pt,
+  fontsize=11pt,%11pt,
   paper=a4,
     %letterpaper
     %a4paper,
@@ -42,7 +42,7 @@
 \usepackage{xcolor}
 
 \parindent = 0pt  % Neue Absaetze nicht einruecken
-\parskip = 1.0\baselineskip % paragraph gap: one baseline for clearer separation
+\parskip = 0.85\baselineskip % paragraph gap: one baseline for clearer separation
 
 % Improve overall micro-typography and line spacing for better readability
 \usepackage{microtype} % better justification and protrusion
@@ -231,11 +231,11 @@
 
 % Header configuration - smaller and more elegant
 \fancyhead[L]{%
-  \fontsize{9}{11}\selectfont\fontseries{l}\selectfont% Light weight, smaller font
+  \fontsize{5}{11}\selectfont\fontseries{l}\selectfont% Light weight, smaller font
   \leftmark%
 }
 \fancyhead[C]{%
-  \fontsize{8.5}{10}\selectfont\fontseries{l}\selectfont% Extra light, smaller
+  \fontsize{5}{10}\selectfont\fontseries{l}\selectfont% Extra light, smaller
   \rightmark%
 }
 \fancyhead[R]{%
@@ -444,18 +444,18 @@
 % =============================================================================
 % 0) Front Matter (Pages 1-3)
 % =============================================================================
-\input{TeXFiles/010_Kurzfassung}
+\input{TeXFiles/010_ExecutiveSummary}
 % \input{TeXFiles/004_LaTeXHowTo}      %%%%%% <<<<<< LaTeX How-To Guide (keep as reference)
 
 % =============================================================================
 % 1) Organization Profile & Internship Setup (Pages 4-7)
 % =============================================================================
-\input{TeXFiles/020_Einfuehrung}
+\input{TeXFiles/020_OrganizationProfile}
 
 % =============================================================================
 % 2) Engineering Method (Pages 8-10)
 % =============================================================================
-\input{TeXFiles/030_Hintergrund}
+\input{TeXFiles/030_EngineeringMethod}
 
 % =============================================================================
 % TRACK A — Workflow Automation & Infra R&D (Pages 11-26)
@@ -478,24 +478,24 @@
 % =============================================================================
 
 % 7) Track B Overview: Agent Platform Goals & Requirements (Pages 27-29)
-\input{TeXFiles/040_StandDerTechnik}
+\input{TeXFiles/040_TrackBOverview}
 
 % 8-9) LangGraph Industrial Architecture + Graph Design (Pages 30-43)
-\input{TeXFiles/050_EntwickelteMethode}
+\input{TeXFiles/050_LangGraphArchitecture}
 
 % 10-11) Governance & Observability + CI/CD & Operations (Pages 44-48)
-\input{TeXFiles/060_EvaluationDerMethode}
+\input{TeXFiles/060_GovernanceCICD}
 
 % =============================================================================
 % 12) Results, Skills, Lessons, and Personal Commentary (Pages 49-50)
 % =============================================================================
-\input{TeXFiles/070_Ergebnisse}
+\input{TeXFiles/070_Results}
 
 % Conclusion + References
-\input{TeXFiles/080_Zusammenfassung}
+\input{TeXFiles/080_Conclusion}
 
 \begin{appendix}
-  \input{TeXFiles/090_Anhang}
+  \input{TeXFiles/090_Appendix}
 \end{appendix}
 
 \clearpage
