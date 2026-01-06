@@ -1,42 +1,133 @@
+%=============================================================================
 \chapter{Track A Overview: Workflow Automation and Infrastructure R\&D}
 \label{ch:TrackAOverview}
+%=============================================================================
+% Page budget: 2 pages (Pages 11--12)
+% Track A is presented as an independent engineering track focused on
+% workflow automation, infrastructure experimentation, and interoperability
+% research. No architectural or runtime dependency on LangGraph is assumed.
+%=============================================================================
 
-% Page budget: 2 pages (Pages 11-12)
-% Track A is presented as its own "mini-portfolio" with its own architecture diagrams
-% No attempt to connect it to LangGraph
+This chapter provides an overview of Track A, which encompasses workflow
+automation and infrastructure-oriented research and development conducted
+during the internship. Track A is treated as an independent engineering
+initiative with its own objectives, scope, and architectural considerations.
+The work in this track focused on understanding how AI-enabled capabilities
+can be integrated into existing systems through deterministic workflows,
+as well as evaluating infrastructure patterns relevant to serving and
+operating such systems in practice.
 
 %=============================================================================
 \section{Track A Goals and Scope}
 \label{sec:TrackA_Goals}
 %=============================================================================
 
-% 1 page
-% What problems it addressed
-% What is explicitly out-of-scope
+The primary goal of Track A was to explore and validate practical approaches
+for integrating AI-assisted functionality into existing enterprise systems
+and workflows, while maintaining operational safety, traceability, and
+predictability.
 
-% Track A covers:
-% - n8n ERP integration (workflow automation)
-% - Local server deployment + serving evaluation (infrastructure)
-% - MCP exploration as "tooling interoperability research" (not LangGraph)
+Specifically, Track A addressed the following problem areas:
 
+\begin{itemize}
+    \item \textbf{Workflow automation for enterprise systems}, with a focus
+          on integrating AI-assisted steps into existing ERP-related
+          processes using deterministic orchestration.
+    \item \textbf{Infrastructure experimentation for model serving}, including
+          local deployment patterns and comparative evaluation of serving
+          approaches from an operational perspective.
+    \item \textbf{Tooling interoperability research}, explored through
+          experimentation with the Model Context Protocol (MCP) as a
+          standardized interface for exposing tools, resources, and prompts
+          to AI systems.
+\end{itemize}
 
+The intent of this track was exploratory and evaluative rather than
+product-defining. The work emphasized understanding trade-offs, operational
+constraints, and failure modes associated with each approach, rather than
+building a single end-to-end production system.
+
+\subsection{Explicit Scope}
+\label{subsec:TrackA_ExplicitScope}
+
+Track A includes the following concrete activities:
+\begin{itemize}
+    \item Design and implementation of AI-enabled workflow automation using
+          \texttt{n8n}, integrated with existing ERP processes.
+    \item Evaluation of local model serving and enterprise-oriented deployment
+          options, including performance and operational considerations.
+    \item Experimental investigation of MCP as a mechanism for tool and
+          context interoperability across AI systems.
+\end{itemize}
+
+\subsection{Out-of-Scope}
+\label{subsec:TrackA_OutOfScope}
+
+To maintain clarity and architectural separation, the following items are
+explicitly out of scope for Track A:
+\begin{itemize}
+    \item Agent orchestration, stateful reasoning, or human-in-the-loop control
+          implemented via LangGraph.
+    \item Production-grade agent lifecycle management, governance, or
+          observability mechanisms introduced in Track B.
+    \item Tight coupling between workflow automation components and agent-based
+          systems.
+\end{itemize}
+
+This separation ensures that conclusions drawn in Track A remain applicable
+to workflow and infrastructure design in general, without assuming an
+agent-based execution model.
 
 %=============================================================================
 \section{Track A Architecture Overview}
 \label{sec:TrackA_Architecture}
 %=============================================================================
 
-% 1 page
-% A high-level diagram that includes:
-% - n8n
-% - ERP integration points
-% - Local serving experiments (if relevant)
-% - MCP research sandbox
+Track A employed a modular and loosely coupled architecture that allowed
+individual components to be evaluated in isolation. The architecture was
+designed to support experimentation while minimizing the risk of unintended
+side effects on existing systems.
 
-% Figure placeholder: F6 - Track A system context (workflow + infra sandbox)
-% \begin{figure}[htbp]
-%   \centering
-%   % \includegraphics[width=\textwidth]{Figures/track-a-context.pdf}
-%   \caption{Track A system context showing workflow automation components and infrastructure research sandbox.}
-%   \label{fig:track_a_context}
-% \end{figure}
+At a high level, the architecture consists of four conceptual layers:
+
+\begin{enumerate}
+    \item \textbf{Enterprise system layer}, representing existing ERP systems
+          and business processes that act as sources of events or consumers
+          of automated actions.
+    \item \textbf{Workflow orchestration layer}, implemented using \texttt{n8n},
+          responsible for deterministic execution of automation logic,
+          conditional branching, retries, and error handling.
+    \item \textbf{Infrastructure and serving sandbox}, used to evaluate local
+          and enterprise-oriented model serving patterns under controlled
+          conditions.
+    \item \textbf{Interoperability research sandbox}, where MCP was explored as
+          a standardized interface for exposing tools and contextual resources
+          to AI-enabled components.
+\end{enumerate}
+
+These layers were intentionally kept independent to allow focused evaluation
+of each concern. In particular, workflow orchestration was treated as a
+deterministic control plane, while infrastructure and interoperability
+experiments were conducted in isolation from production workflows.
+
+\begin{figure}[htbp]
+    \centering
+    % \includegraphics[width=\textwidth]{Figures/track-a-context.pdf}
+    \caption{Track A system context illustrating workflow automation components,
+        infrastructure experimentation, and interoperability research sandbox.}
+    \label{fig:track_a_context}
+\end{figure}
+
+This architectural separation enabled:
+\begin{itemize}
+    \item clear reasoning about failure modes and recovery paths in automated
+          workflows,
+    \item controlled evaluation of serving and deployment options without
+          production risk,
+    \item and exploratory investigation of interoperability mechanisms without
+          constraining later architectural decisions.
+\end{itemize}
+
+The findings and lessons from Track A informed general engineering judgment and
+operational awareness, but did not impose architectural dependencies on the
+agent-based systems developed in Track B.
