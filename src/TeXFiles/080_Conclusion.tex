@@ -1,32 +1,58 @@
+%=============================================================================
 \chapter{Conclusion}
 \label{ch:Conclusion}
-
-% Page budget: ~0.5 page (Page 50)
-% If strictly capped at 50 pages including references, keep references to ~25-35 items max
-
 %=============================================================================
+% Page budget: ~0.5 page (Page 50)
+%=============================================================================
+
 \section{Summary}
 \label{sec:Summary}
-%=============================================================================
 
-% Brief summary of the entire internship work
+This internship focused on the research, design, and implementation of
+AI-assisted systems across multiple levels of abstraction, ranging from
+workflow automation and infrastructure exploration to a production-oriented
+agent platform built using LangGraph. The work progressed deliberately from
+exploratory prototypes toward an industrial-grade architecture, emphasizing
+deterministic execution, human-in-the-loop control, and operational robustness.
 
+Key outcomes included the successful integration of AI-assisted logic into
+enterprise workflows using deterministic orchestration, the evaluation of
+local and hosted model serving strategies, and the design and deployment of a
+stateful agent platform capable of supporting iterative QA workflows. Through
+the use of explicit state machines, structured outputs, governance controls,
+and observability tooling, the final system demonstrates that AI agents can be
+integrated into real engineering processes without sacrificing control or
+reliability.
 
-%=============================================================================
 \section{Future Work and Roadmap}
 \label{sec:FutureWork}
-%=============================================================================
 
-% What could be done next, improvements, extensions
+Several directions for future work naturally emerge from this internship.
+From a technical perspective, further improvements could be made in automated
+evaluation methodologies, particularly for agent-driven QA tasks where
+standard benchmarks remain limited. Additional policy and safety mechanisms
+could also be explored, such as stricter validation of resume payloads and more
+granular governance controls.
 
+From a platform perspective, the agent architecture can be extended to support
+additional graphs, broader testing scenarios, and deeper integration with
+existing development tooling. As model capabilities and tooling ecosystems
+continue to evolve, the modular design of the system allows these advances to
+be incorporated incrementally without requiring fundamental redesign.
 
-%=============================================================================
 \section{Personal Reflection}
 \label{sec:PersonalReflection}
-%=============================================================================
 
-% Personal comments on the internship experience
+This internship provided valuable experience in bridging the gap between
+research-oriented experimentation and production-quality engineering. Beyond
+technical implementation, it emphasized the importance of architectural
+discipline, clear decision-making criteria, and explicit handling of failure
+modes in AI systems.
 
-% Note: References follow this chapter (~1.5 pages)
-% Cite only what you used: LangGraph docs, LangChain, Langfuse, Hydra/OmegaConf, Cloud Run docs, etc.
-
+Working on real-world constraints such as cost governance, deployment pipelines,
+and human-centered evaluation significantly shaped my understanding of how AI
+systems should be built and operated in practice. The experience strengthened
+my ability to reason about trade-offs, document design decisions, and approach
+AI development as a systems engineering problem rather than a purely model-
+centric one. These lessons will strongly inform my future academic and
+professional work.

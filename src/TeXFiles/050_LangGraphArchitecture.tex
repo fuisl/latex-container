@@ -1,237 +1,261 @@
-% =============================================================================
-% TRACK B: LangGraph Agent Platform Engineering
-% Page budget: 22 pages (Pages 27-48) - but split across multiple files
-% This file covers: Industrial Architecture (7 pages) + Graph Design (7 pages) = 14 pages
-% =============================================================================
-
+%=============================================================================
 \chapter{LangGraph Industrial Architecture}
 \label{ch:LangGraphArchitecture}
+%=============================================================================
+% Page budget: 7 pages (Pages 30--36)
+%=============================================================================
 
-% Page budget: 7 pages (Pages 30-36)
-% This is the centerpiece for professionalism
+This chapter describes the production architecture of the AgileTest Agent
+platform built using LangGraph. The architecture reflects a deliberate shift
+from exploratory prototypes toward an industrial-grade system that emphasizes
+deterministic behavior, human-in-the-loop control, and operational robustness.
+
+Rather than treating the agent as a monolithic component, the system is
+designed as a collection of loosely coupled services with clearly defined
+responsibilities. This separation enables independent scaling, governance, and
+observability, consistent with modern cloud-native design principles
+\cite{googleSRE,microsoftWellArchitected}.
 
 %=============================================================================
 \section{Component Architecture}
 \label{sec:ComponentArchitecture}
 %=============================================================================
 
-% 2 pages
-% - LangGraph API service
-% - Redis governance
-% - Postgres checkpoints
-% - LLM provider
-% - Langfuse observability
-% - Clients/consumers
+At a high level, the LangGraph platform is composed of five primary components:
+the LangGraph API service, persistence and governance services, the language
+model provider, observability tooling, and external clients.
 
-% Figure placeholder: F17 - Component diagram (LangGraph platform)
-% \begin{figure}[htbp]
-%   \centering
-%   % \includegraphics[width=\textwidth]{Figures/langgraph-component-diagram.pdf}
-%   \caption{Component diagram showing the LangGraph platform architecture with all major services.}
-%   \label{fig:langgraph_component}
-% \end{figure}
+The LangGraph API service forms the core execution engine. It exposes HTTP
+endpoints for graph invocation, interrupt handling, and resume operations. The
+service loads graph definitions from a registry and executes them as explicit
+state machines rather than ad-hoc control flows \cite{langgraphOverview}.
 
+Persistence is split by concern. PostgreSQL is used for durable storage of graph
+threads and checkpoints, enabling pause-and-resume execution across failures
+or restarts. Redis is used for operational state, including token usage
+counters and per-organization enforcement of consumption limits. This
+separation reflects common industry practice of using relational storage for
+durable state and in-memory stores for fast operational metadata
+\cite{postgresDocs,redisDocs}.
+
+Language model access is abstracted behind a provider interface, allowing the
+system to invoke hosted models without coupling graph logic to a specific
+vendor. This abstraction supports future model substitution without requiring
+graph redesign \cite{langchain}.
+
+Observability is implemented using Langfuse callbacks, which capture traces,
+latency, and usage metrics. Importantly, observability is treated as
+best-effort: failures in tracing must not interrupt core execution paths
+\cite{langfuseDocs,googleSRE}.
+
+Finally, external clients—including web applications and internal services—
+interact with the platform exclusively through the API layer. Clients never
+directly manipulate graph state, preserving encapsulation and safety.
+
+\begin{figure}[htbp]
+    \centering
+    % \includegraphics[width=\textwidth]{Figures/langgraph-component-diagram.pdf}
+    \caption{Component diagram showing the LangGraph platform architecture and
+        its major services.}
+    \label{fig:langgraph_component}
+\end{figure}
 
 %=============================================================================
 \section{Deployment Architecture (Cloud Run)}
 \label{sec:DeploymentArchitecture}
 %=============================================================================
 
-% 2 pages
-% Service boundaries: API service + cron service
-% Scaling model, concurrency, cold starts considerations
-% Network/secrets policy
+The platform is deployed on Google Cloud Run, a fully managed container runtime
+that supports automatic scaling and request-based billing
+\cite{cloudRunOverview}. Cloud Run was selected to reduce operational overhead
+while maintaining fine-grained control over service boundaries.
 
-% Figure placeholder: F18 - Deployment topology (Cloud Run + dependencies)
-% \begin{figure}[htbp]
-%   \centering
-%   % \includegraphics[width=\textwidth]{Figures/deployment-topology-cloudrun.pdf}
-%   \caption{Deployment topology on GCP Cloud Run showing service boundaries and dependencies.}
-%   \label{fig:deployment_topology}
-% \end{figure}
+Two services are deployed independently. The primary service hosts the
+LangGraph API and handles all request execution. A secondary cron service is
+responsible for scheduled maintenance tasks, such as cleaning up Redis usage
+keys. Separating these concerns avoids introducing background workloads into
+the request path.
 
+Cloud Run’s concurrency model allows multiple graph executions to be handled by
+a single container instance. This makes connection pooling, particularly for
+Redis, a critical consideration to avoid resource exhaustion under load.
+
+Secrets such as API keys are injected via the platform’s secret management
+mechanism rather than baked into images. Network access to persistence services
+is restricted to minimize blast radius in case of compromise, aligning with
+zero-trust deployment principles \cite{microsoftWellArchitected}.
+
+\begin{figure}[htbp]
+    \centering
+    % \includegraphics[width=\textwidth]{Figures/deployment-topology-cloudrun.pdf}
+    \caption{Deployment topology on Google Cloud Run showing service boundaries
+        and infrastructure dependencies.}
+    \label{fig:deployment_topology}
+\end{figure}
 
 %=============================================================================
 \section{Runtime Request Lifecycle}
 \label{sec:RuntimeLifecycle}
 %=============================================================================
 
-% 2 pages
-% Invoke, interrupts, resume, checkpoints, callbacks
+A typical request begins with a client invoking a graph through the API
+service. The request is associated with a thread identifier, which represents
+the execution context across invocations.
 
-% Figure placeholder: F19 - Sequence diagram (invoke/resume lifecycle)
-% \begin{figure}[htbp]
-%   \centering
-%   % \includegraphics[width=\textwidth]{Figures/invoke-resume-sequence.pdf}
-%   \caption{Sequence diagram showing the invoke/resume lifecycle with interrupt and checkpoint handling.}
-%   \label{fig:invoke_resume_sequence}
-% \end{figure}
+During execution, the graph may reach an interrupt point, at which time the
+current state is checkpointed to persistent storage and execution is paused.
+The API returns a structured response indicating that human input is required.
+When the user provides feedback, execution resumes from the stored checkpoint
+rather than restarting from the beginning \cite{langgraphInterrupts}.
 
-% Figure placeholder: F20 - "Control points" diagram (where governance/validation happens)
-% \begin{figure}[htbp]
-%   \centering
-%   % \includegraphics[width=0.9\textwidth]{Figures/control-points.pdf}
-%   \caption{Control points diagram showing where governance and validation occur in the request flow.}
-%   \label{fig:control_points}
-% \end{figure}
+Throughout execution, callbacks are invoked to record usage metrics and traces.
+Governance checks, such as token limit enforcement, are applied before model
+calls to prevent uncontrolled resource consumption.
 
+\begin{figure}[htbp]
+    \centering
+    % \includegraphics[width=\textwidth]{Figures/invoke-resume-sequence.pdf}
+    \caption{Sequence diagram illustrating invoke, interrupt, and resume phases
+        of graph execution.}
+    \label{fig:invoke_resume_sequence}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    % \includegraphics[width=0.9\textwidth]{Figures/control-points.pdf}
+    \caption{Control points in the request lifecycle where validation and
+        governance checks are applied.}
+    \label{fig:control_points}
+\end{figure}
 
 %=============================================================================
 \section{Key Architectural Decisions}
 \label{sec:KeyArchDecisions}
 %=============================================================================
 
-% 1 page, ADR summary
-% State machines, HITL interrupts, structured outputs, best-effort tracing, pooling
+Several architectural decisions were central to the platform’s design. These
+decisions were documented using lightweight Architecture Decision Records
+(ADRs), following established best practices \cite{nygard2011adr}.
 
-% Table placeholder: T9 - ADR summary table (decision → options → trade-offs)
-% \begin{table}[htbp]
-%   \centering
-%   \caption{Summary of key architectural decisions.}
-%   \label{tab:ADRSummary}
-%   \begin{tabular}{lp{4cm}p{5cm}}
-%     \toprule
-%     \textbf{Decision} & \textbf{Options Considered} & \textbf{Trade-offs} \\
-%     \midrule
-%     State machines & Custom, LangGraph & LangGraph: built-in persistence \\
-%     HITL interrupts & Polling, Interrupts & Interrupts: cleaner UX \\
-%     Structured outputs & Prompt, Schema & Schema: validation + reliability \\
-%     Tracing & Strict, Best-effort & Best-effort: no blocking \\
-%     \bottomrule
-%   \end{tabular}
-% \end{table}
+\begin{table}[htbp]
+    \centering
+    \caption{Summary of key architectural decisions.}
+    \label{tab:ADRSummary}
+    \begin{tabular}{lp{4cm}p{5cm}}
+        \toprule
+        \textbf{Decision}  & \textbf{Options Considered} & \textbf{Trade-offs}                             \\
+        \midrule
+        State machines     & Custom logic, LangGraph     & LangGraph provides persistence and interrupts   \\
+        HITL control       & Polling, Interrupts         & Interrupts give explicit pause/resume semantics \\
+        Structured outputs & Free-form text, Schemas     & Schemas reduce drift and validation errors      \\
+        Observability      & Strict, Best-effort         & Best-effort avoids availability impact          \\
+        \bottomrule
+    \end{tabular}
+\end{table}
 
-
-%=============================================================================
 %=============================================================================
 \chapter{Graph Design and Runtime Behavior}
 \label{ch:GraphDesign}
+%=============================================================================
+% Page budget: 7 pages (Pages 37--43)
+%=============================================================================
 
-% Page budget: 7 pages (Pages 37-43)
-% This section "differentiates agent from workflow" by showing state machines and formal contracts
+This chapter focuses on the internal design of LangGraph graphs used by the
+AgileTest Agent. Unlike traditional workflows, these graphs explicitly model
+state, transitions, and validation boundaries, enabling controlled agent
+behavior rather than unconstrained autonomy.
 
 %=============================================================================
 \section{State and Schema Design}
 \label{sec:StateSchemaDesign}
 %=============================================================================
 
-% 2 pages
-% State schema, reducers
-% Structured output contracts (with_structured_output)
-% Validation strategy and failure recovery
+Each graph operates over a strongly typed state object that represents the
+entire execution context. Reducers define how state is updated across node
+transitions, ensuring that updates are explicit and auditable.
 
-% Figure placeholder: F21 - State schema + reducers diagram (state ownership)
-% \begin{figure}[htbp]
-%   \centering
-%   % \includegraphics[width=0.9\textwidth]{Figures/state-schema-reducers.pdf}
-%   \caption{State schema and reducers diagram showing state ownership and update patterns.}
-%   \label{fig:state_schema}
-% \end{figure}
+All language model outputs are constrained using structured output schemas.
+This approach reduces ambiguity, simplifies validation, and enables reliable
+downstream processing \cite{langchainStructuredOutput}.
 
-% Figure placeholder: F22 - Structured output boundary diagram (schema contracts)
-% \begin{figure}[htbp]
-%   \centering
-%   % \includegraphics[width=0.8\textwidth]{Figures/structured-output-boundary.pdf}
-%   \caption{Structured output contract boundaries showing schema validation points.}
-%   \label{fig:structured_output}
-% \end{figure}
+Schema validation failures are treated as recoverable errors. When validation
+fails, execution can retry with stricter prompts or fall back to a safe abort
+path, rather than propagating invalid state.
 
+\begin{figure}[htbp]
+    \centering
+    % \includegraphics[width=0.9\textwidth]{Figures/state-schema-reducers.pdf}
+    \caption{State schema and reducer ownership across graph nodes.}
+    \label{fig:state_schema}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    % \includegraphics[width=0.8\textwidth]{Figures/structured-output-boundary.pdf}
+    \caption{Structured output boundaries showing schema validation points.}
+    \label{fig:structured_output}
+\end{figure}
 
 %=============================================================================
 \section{Graph A: Requirement to Test Cases}
 \label{sec:GraphA}
 %=============================================================================
 
-% 2 pages
-% Transitions, regen modes, HITL gate, loop
+Graph A transforms a natural-language requirement into a set of candidate test
+cases. Execution begins in a generation state, transitions to a human review
+gate, and may loop back for regeneration based on feedback.
 
-% Figure placeholder: F23 - State machine diagram: Test Cases graph
-% \begin{figure}[htbp]
-%   \centering
-%   % \includegraphics[width=\textwidth]{Figures/graph-a-state-machine.pdf}
-%   \caption{State machine diagram for Graph A: Requirement → Test Cases.}
-%   \label{fig:graph_a_state_machine}
-% \end{figure}
+This design explicitly models iteration as a state transition rather than
+embedding it in prompt logic, making the system easier to reason about and
+debug \cite{langgraphOverview}.
 
-% Table placeholder: T10 - Action → transition → node → state delta (Graph A)
-% \begin{table}[htbp]
-%   \centering
-%   \caption{Graph A state transitions and their effects.}
-%   \label{tab:GraphATransitions}
-%   \begin{tabular}{llll}
-%     \toprule
-%     \textbf{Action} & \textbf{Transition} & \textbf{Node} & \textbf{State Delta} \\
-%     \midrule
-%     Generate & START → generate & generate\_cases & cases created \\
-%     Review & generate → review & review\_gate & awaiting input \\
-%     Approve & review → END & finalize & output ready \\
-%     Reject & review → generate & regenerate & cases cleared \\
-%     \bottomrule
-%   \end{tabular}
-% \end{table}
-
+\begin{figure}[htbp]
+    \centering
+    % \includegraphics[width=\textwidth]{Figures/graph-a-state-machine.pdf}
+    \caption{State machine for Graph A: Requirement $\rightarrow$ Test Cases.}
+    \label{fig:graph_a_state_machine}
+\end{figure}
 
 %=============================================================================
 \section{Graph B: Test Case to Test Steps}
 \label{sec:GraphB}
 %=============================================================================
 
-% 2 pages
-% Edit semantics, reject + feedback + regen loop
+Graph B focuses on refining a single test case into a sequence of executable
+steps. In addition to generation, this graph supports explicit edit commands,
+including add, delete, and update operations.
 
-% Figure placeholder: F24 - State machine diagram: Test Steps graph
-% \begin{figure}[htbp]
-%   \centering
-%   % \includegraphics[width=\textwidth]{Figures/graph-b-state-machine.pdf}
-%   \caption{State machine diagram for Graph B: Test Case → Test Steps.}
-%   \label{fig:graph_b_state_machine}
-% \end{figure}
+Edits are validated against schema constraints before being applied, ensuring
+that partial updates cannot corrupt state. Rejection with feedback transitions
+the graph back into a regeneration state.
 
-% Table placeholder: T11 - Edit commands → validation → effect (Graph B)
-% \begin{table}[htbp]
-%   \centering
-%   \caption{Edit command semantics and validation for Graph B.}
-%   \label{tab:GraphBEditCommands}
-%   \begin{tabular}{llp{5cm}}
-%     \toprule
-%     \textbf{Command} & \textbf{Validation} & \textbf{Effect} \\
-%     \midrule
-%     ADD & Step schema valid & Insert at position \\
-%     DELETE & Step ID exists & Remove from list \\
-%     UPDATE & Step ID exists, schema valid & Replace in place \\
-%     \bottomrule
-%   \end{tabular}
-% \end{table}
-
-% Table placeholder: T12 - Failure modes and recovery (schema/LLM/provider)
-% \begin{table}[htbp]
-%   \centering
-%   \caption{Failure modes and recovery strategies.}
-%   \label{tab:FailureRecovery}
-%   \begin{tabular}{llp{5cm}}
-%     \toprule
-%     \textbf{Failure Type} & \textbf{Source} & \textbf{Recovery} \\
-%     \midrule
-%     Schema validation & LLM output & Retry with stricter prompt \\
-%     Provider timeout & API & Retry with backoff \\
-%     State corruption & Bug & Rollback to checkpoint \\
-%     \bottomrule
-%   \end{tabular}
-% \end{table}
-
+\begin{figure}[htbp]
+  \centering
+  % \includegraphics[width=\textwidth]{Figures/graph-b-state-machine.pdf}
+  \caption{State machine for Graph B: Test Case $\rightarrow$ Test Steps.}
+  \label{fig:graph_b_state_machine}
+\end{figure}
 
 %=============================================================================
 \section{HITL Interrupt and Resume Lifecycle}
 \label{sec:HITLLifecycle}
 %=============================================================================
 
-% 1 page
-% What is stored, what is validated, thread lifecycle
+When a graph reaches a human-in-the-loop interrupt, execution state is
+checkpointed and associated with a thread identifier. Only validated state is
+persisted, ensuring that resumption begins from a consistent snapshot.
 
-% Figure placeholder: F25 - Interrupt/resume timeline + checkpoint diagram
-% \begin{figure}[htbp]
-%   \centering
-%   % \includegraphics[width=\textwidth]{Figures/hitl-lifecycle-timeline.pdf}
-%   \caption{Timeline showing the HITL interrupt/resume lifecycle with checkpoint storage.}
-%   \label{fig:hitl_timeline}
-% \end{figure}
+Upon resume, user input is validated before being merged into state. Execution
+then continues deterministically from the interrupt point rather than
+replaying earlier nodes.
+
+This lifecycle enables reliable collaboration between humans and agents while
+preserving strong execution guarantees \cite{langgraphInterrupts,anthropicAgents2024}.
+
+\begin{figure}[htbp]
+  \centering
+  % \includegraphics[width=\textwidth]{Figures/hitl-lifecycle-timeline.pdf}
+  \caption{HITL interrupt and resume lifecycle with checkpoint storage.}
+  \label{fig:hitl_timeline}
+\end{figure}
+

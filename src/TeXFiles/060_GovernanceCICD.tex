@@ -1,131 +1,382 @@
-% =============================================================================
-% Governance & Observability + CI/CD & Operations
-% Page budget: 5 pages (Pages 44-48)
-% =============================================================================
+%=============================================================================
+\chapter{Governance, Observability, and Safety}
+\label{ch:GovernanceObservability}
+%=============================================================================
+% Page budget: 6 pages (Pages 44--49)
+%=============================================================================
 
-\chapter{Governance and Observability}
-\label{ch:Governance}
+This chapter describes the governance, observability, and safety mechanisms
+implemented in the LangGraph agent platform. These concerns are treated as
+first-class architectural requirements rather than auxiliary features. The
+goal is to ensure that the agent platform can be operated as a reliable,
+multi-tenant service under real production constraints.
 
-% Page budget: 3 pages (Pages 44-46)
+Rather than assuming ideal conditions, the design explicitly accounts for
+partial failures, untrusted inputs, and operational limits. This approach
+aligns with established production engineering principles that emphasize
+graceful degradation and explicit control over system behavior
+\cite{googleSRE,microsoftWellArchitected}.
 
 %=============================================================================
-\section{Token Usage Tracking}
+\section{Governance Model}
+\label{sec:GovernanceModel}
+%=============================================================================
+
+Governance in the agent platform focuses on controlling resource usage,
+enforcing isolation boundaries, and preventing uncontrolled execution. Unlike
+traditional software services, LLM-based systems introduce variable and
+potentially unbounded costs, making governance a core design concern rather
+than an afterthought.
+
+The platform adopts a multi-tenant governance model, in which every request is
+scoped to an explicit execution context containing user and organization
+identifiers. This context is injected at the beginning of graph execution and
+propagated throughout the runtime lifecycle. All governance checks operate on
+this scoped context.
+
+\subsection{Token Usage Tracking}
 \label{sec:TokenTracking}
-%=============================================================================
 
-% Callback → usage_metadata → Redis counters
+Token usage is tracked on a per-request basis using callback mechanisms that
+intercept language model responses. The platform extracts token usage metadata
+from model responses and aggregates counts by organization and model type.
 
-% Figure placeholder: F26 - Token governance flow
-% \begin{figure}[htbp]
-%   \centering
-%   % \includegraphics[width=\textwidth]{Figures/token-governance-flow.pdf}
-%   \caption{Token governance flow showing callback processing, Redis counter updates, and enforcement points.}
-%   \label{fig:token_governance}
-% \end{figure}
+Redis is used as the backing store for usage counters due to its low-latency
+read/write characteristics and suitability for ephemeral operational data
+\cite{redisDocs}. Counters are maintained separately for input tokens, output
+tokens, and total tokens, enabling fine-grained monitoring and enforcement.
 
+This design enables near real-time visibility into resource consumption while
+avoiding the overhead of persistent database writes on the critical request
+path.
 
-%=============================================================================
-\section{Limit Enforcement}
+\subsection{Limit Enforcement}
 \label{sec:LimitEnforcement}
-%=============================================================================
 
-% Pre-call checks, block behavior, multi-tenant safety
+Usage limits are enforced proactively rather than retroactively. Before each
+model invocation, the runtime checks current usage against configured limits
+for the corresponding organization and model. If a limit is exceeded,
+execution is aborted before issuing the model request.
 
+This guard-based approach ensures that cost overruns are prevented rather than
+merely detected after the fact. Limits are configurable per organization,
+supporting different usage tiers and deployment scenarios. The enforcement
+logic is intentionally simple and deterministic, reducing the risk of false
+positives or inconsistent behavior.
 
-%=============================================================================
-\section{Observability with Langfuse}
-\label{sec:ObservabilityLangfuse}
-%=============================================================================
+\subsection{Usage Data Lifecycle}
+\label{sec:UsageLifecycle}
 
-% Best-effort observability approach
-% Attach handler only if auth passes
-% Traces enriched with org/user/project
-% Minimum viable monitoring signals
+Usage data is treated as operational metadata with a bounded lifetime. A
+separate maintenance service periodically scans and cleans up expired usage
+keys in Redis, preventing unbounded growth of operational state.
 
-% Figure placeholder: F27 - Observability integration diagram (traces + metrics + tags)
-% \begin{figure}[htbp]
-%   \centering
-%   % \includegraphics[width=\textwidth]{Figures/observability-architecture.pdf}
-%   \caption{Observability integration showing trace collection, metrics aggregation, and tenant-aware tagging.}
-%   \label{fig:observability_architecture}
-% \end{figure}
-
-% Table placeholder: T13 - Signals table (metric → source → action)
-% \begin{table}[htbp]
-%   \centering
-%   \caption{Monitoring signals and operator actions.}
-%   \label{tab:MonitoringSignals}
-%   \begin{tabular}{lll}
-%     \toprule
-%     \textbf{Metric} & \textbf{Source} & \textbf{Operator Action} \\
-%     \midrule
-%     ... & ... & ... \\
-%     \bottomrule
-%   \end{tabular}
-% \end{table}
-
-% ADR Box: observability best-effort principle
-% ADR Box: token governance design (Redis key schema)
-
+This cleanup process is decoupled from request handling and runs as a separate
+Cloud Run service, ensuring that maintenance tasks do not interfere with
+latency-sensitive workloads. This separation follows standard operational
+guidelines for background processing in production systems
+\cite{googleSRE}.
 
 %=============================================================================
-%=============================================================================
-\chapter{CI/CD and Operations}
-\label{ch:CICD}
-
-% Page budget: 2 pages (Pages 47-48)
-
-%=============================================================================
-\section{CI/CD Pipeline Overview}
-\label{sec:PipelineOverview}
+\section{Observability Strategy}
+\label{sec:ObservabilityStrategy}
 %=============================================================================
 
-% Build → test → containerize → deploy to Cloud Run
-% Versioning and rollback strategy
+Observability is essential for operating an agent platform, but it must not
+compromise availability. The system therefore adopts a best-effort
+observability model: tracing and metrics are collected when possible, but
+failures in observability components must not block or fail core execution
+paths.
 
-% Figure placeholder: F28 - CI/CD pipeline diagram
-% \begin{figure}[htbp]
-%   \centering
-%   % \includegraphics[width=\textwidth]{Figures/cicd-pipeline.pdf}
-%   \caption{CI/CD pipeline showing build, test, containerization, and Cloud Run deployment stages.}
-%   \label{fig:cicd_pipeline}
-% \end{figure}
+This design choice reflects the reality that external observability systems
+can become unavailable and should not be treated as hard dependencies
+\cite{googleSRE}.
 
+\subsection{Tracing and Metrics}
+\label{sec:TracingMetrics}
+
+The platform integrates with Langfuse to collect traces and usage metrics for
+graph execution. Traces capture high-level execution structure, latency, and
+selected metadata such as user identifiers.
+
+Tracing is initialized at service startup only if authentication with the
+observability backend succeeds. If initialization fails, tracing is disabled
+for that runtime instance, and execution continues without instrumentation.
+This prevents cascading failures caused by unavailable observability services
+\cite{langfuseDocs}.
+
+\subsection{Operational Signals}
+\label{sec:OperationalSignals}
+
+Rather than attempting to monitor every internal detail, the platform focuses
+on a small set of actionable operational signals:
+
+\begin{itemize}
+    \item Graph-level error rates and exception counts.
+    \item Latency percentiles for graph invocation and resume operations.
+    \item Model provider error and timeout rates.
+    \item Redis connectivity and command error rates.
+    \item Token usage per organization and per model.
+\end{itemize}
+
+These signals provide sufficient visibility to detect regressions, capacity
+issues, and cost anomalies without overwhelming operators with low-value
+metrics.
 
 %=============================================================================
-\section{Operational Runbook and Hardening Checklist}
-\label{sec:OperationalRunbook}
+\section{Safety and Failure Handling}
+\label{sec:SafetyFailure}
 %=============================================================================
 
-% Common failure modes
-% Monthly maintenance
-% Security checklist: secrets, network, auth, validation
+Safety in the agent platform is achieved through a combination of explicit
+state management, validation boundaries, and controlled failure modes. Rather
+than attempting to eliminate all errors, the system is designed to fail in
+predictable and recoverable ways.
 
-% Figure placeholder: F29 - Hardening checklist as control-map diagram
-% \begin{figure}[htbp]
-%   \centering
-%   % \includegraphics[width=0.9\textwidth]{Figures/hardening-checklist.pdf}
-%   \caption{Hardening control map showing security controls, network policies, and validation layers.}
-%   \label{fig:hardening_checklist}
-% \end{figure}
+\subsection{State Safety and Validation}
+\label{sec:StateSafety}
 
-% Table placeholder: T14 - Runbook quick reference (symptom → likely cause → action)
-% \begin{table}[htbp]
-%   \centering
-%   \caption{Operational runbook quick reference.}
-%   \label{tab:RunbookReference}
-%   \begin{tabular}{lll}
-%     \toprule
-%     \textbf{Symptom} & \textbf{Likely Cause} & \textbf{Action} \\
-%     \midrule
-%     ... & ... & ... \\
-%     \bottomrule
-%   \end{tabular}
-% \end{table}
+All graph state transitions are explicit and validated. Language model outputs
+are constrained using structured output schemas, and invalid outputs are
+detected before being merged into state. This prevents malformed or unexpected
+model responses from corrupting execution state.
 
-% ADR Box: Cloud Run deployment choice
+When validation fails, the system may retry with stricter prompts, transition
+to a safe abort path, or surface an error to the user, depending on the graph
+and execution context. This approach prioritizes correctness over silent
+failure.
 
+\subsection{Failure Modes and Recovery}
+\label{sec:FailureRecovery}
 
+The platform distinguishes between different classes of failure and applies
+appropriate recovery strategies:
 
+\begin{itemize}
+    \item \textbf{Model failures}, such as timeouts or transient errors, are
+          handled through retries with backoff.
+    \item \textbf{Validation failures} result in controlled regeneration or
+          explicit error states.
+    \item \textbf{Infrastructure failures}, such as Redis or observability
+          outages, degrade functionality but do not halt execution.
+\end{itemize}
 
+By separating these concerns, the system avoids treating all failures as
+equivalent and enables targeted mitigation strategies.
 
+%=============================================================================
+\section{Discussion and Implications}
+\label{sec:GovernanceDiscussion}
+%=============================================================================
+
+The governance and observability mechanisms described in this chapter
+demonstrate a deliberate shift away from ad-hoc agent implementations toward a
+service-oriented, production-ready platform. Cost control, traceability, and
+failure isolation are treated as core requirements rather than optional
+enhancements.
+
+These design choices directly address common risks associated with deploying
+LLM-based systems in production, including cost overruns, silent failures, and
+unpredictable behavior. By enforcing explicit boundaries and best-effort
+dependencies, the platform achieves a balance between flexibility and control.
+
+The next chapter builds on this foundation by describing the continuous
+integration, deployment, and operational practices used to deliver and evolve
+the platform in a production environment.
+
+%=============================================================================
+\chapter{CI/CD, Deployment, and Production Evaluation}
+\label{ch:CICDDeployment}
+%=============================================================================
+% Page budget: 6 pages (Pages 50--55)
+%=============================================================================
+
+This chapter describes the continuous integration and deployment (CI/CD)
+pipeline, runtime deployment strategy, and production evaluation practices
+used for the LangGraph agent platform. Together, these practices ensure that
+the system can be iteratively improved while maintaining reliability,
+traceability, and operational safety.
+
+Unlike experimental prototypes, the agent platform is treated as a
+long-running service with real operational costs and quality expectations.
+As a result, deployment and evaluation are considered integral parts of the
+engineering process rather than post-development concerns
+\cite{googleSRE,microsoftWellArchitected}.
+
+%=============================================================================
+\section{CI/CD Pipeline Design}
+\label{sec:CICDPipeline}
+%=============================================================================
+
+The CI/CD pipeline is designed to automate build, validation, and deployment
+steps while enforcing basic quality gates. The pipeline is triggered on changes
+to the main branch and follows a linear sequence of stages to reduce ambiguity
+in failure diagnosis.
+
+At a high level, the pipeline performs the following actions:
+
+\begin{itemize}
+    \item Build a container image for the LangGraph API service using the
+          LangGraph CLI.
+    \item Run basic validation checks to ensure that graph definitions compile
+          correctly and required configuration is present.
+    \item Push the resulting image to a container registry.
+    \item Deploy the image to Google Cloud Run.
+\end{itemize}
+
+This structure prioritizes reproducibility and traceability over aggressive
+optimization. Each deployment corresponds to an immutable container image,
+allowing rollbacks to be performed by redeploying a known artifact.
+
+\subsection{Graph Build and Validation}
+\label{sec:GraphBuild}
+
+A key step in the pipeline is the compilation and registration of LangGraph
+graphs. Graph definitions are exported through a registry file, which serves as
+the contract between development and runtime environments.
+
+By compiling graphs during CI rather than at runtime, configuration errors are
+detected early and prevented from reaching deployment. This approach mirrors
+best practices in traditional software systems, where schema and contract
+validation are performed before release rather than in production
+\cite{nygard2011adr}.
+
+%=============================================================================
+\section{Deployment Strategy}
+\label{sec:DeploymentStrategy}
+%=============================================================================
+
+The platform is deployed on Google Cloud Run, which provides a managed runtime
+for containerized services with automatic scaling and request-based billing
+\cite{cloudRunOverview}. Cloud Run was selected to minimize operational overhead
+while still allowing fine-grained control over concurrency and resource limits.
+
+\subsection{Service Separation}
+\label{sec:ServiceSeparation}
+
+Two services are deployed independently:
+
+\begin{itemize}
+    \item The \textbf{LangGraph API service}, which handles all graph execution,
+          interrupts, and resume operations.
+    \item A \textbf{maintenance service}, responsible for scheduled cleanup of
+          operational data such as token usage counters.
+\end{itemize}
+
+Separating these services prevents background maintenance tasks from impacting
+latency-sensitive request handling and simplifies operational reasoning.
+
+\subsection{Scaling and Concurrency}
+\label{sec:ScalingConcurrency}
+
+Cloud Run scales instances based on incoming request volume. Because a single
+instance may handle multiple concurrent executions, the platform relies on
+connection pooling for shared resources such as Redis and database connections.
+
+Cold starts are an inherent characteristic of serverless platforms. While they
+introduce some latency for infrequent traffic, this trade-off was deemed
+acceptable for a staging and early production environment, especially given
+the reduced operational complexity.
+
+\begin{figure}[htbp]
+    \centering
+    % \includegraphics[width=\textwidth]{Figures/cicd-deployment-flow.pdf}
+    \caption{CI/CD and deployment flow from source code to Cloud Run services.}
+    \label{fig:cicd_flow}
+\end{figure}
+
+%=============================================================================
+\section{Configuration and Environment Management}
+\label{sec:ConfigManagement}
+%=============================================================================
+
+Configuration is managed through a combination of environment variables and
+structured configuration files. Environment-specific values, such as API keys
+and service endpoints, are injected at deployment time rather than hard-coded
+into images.
+
+A notable implementation detail is that environment variables are loaded
+before higher-level configuration resolution. This ensures that runtime
+overrides take precedence over default values and allows the same artifact to
+be deployed across multiple environments without modification.
+
+This approach reduces configuration drift and aligns with recommended
+practices for cloud-native services \cite{microsoftWellArchitected}.
+
+%=============================================================================
+\section{Production Evaluation and Testing}
+\label{sec:ProductionEvaluation}
+%=============================================================================
+
+Evaluation of the agent platform extends beyond unit or integration testing.
+Because the system produces language-based outputs, qualitative and
+human-driven evaluation plays a central role.
+
+\subsection{Staging Environment Testing}
+\label{sec:StagingTesting}
+
+The LangGraph agent is deployed to a staging environment where it is exercised
+by QA engineers. This environment mirrors production infrastructure but is
+isolated from end users.
+
+Evaluation focuses on:
+
+\begin{itemize}
+    \item Correctness and completeness of generated test cases and steps.
+    \item Stability of interrupt and resume behavior.
+    \item Responsiveness under iterative editing and regeneration.
+\end{itemize}
+
+Human feedback collected during this phase is used to refine prompts, schema
+constraints, and graph transitions rather than to retrain models.
+
+\subsection{Observability-Driven Evaluation}
+\label{sec:ObservabilityEvaluation}
+
+Langfuse traces and metrics are used to support evaluation rather than to
+replace human judgment. Traces provide visibility into execution paths,
+latencies, and failure modes, enabling engineers to identify bottlenecks and
+unexpected behaviors.
+
+Importantly, observability data is interpreted in context. For example,
+increased latency may be acceptable for complex generation steps but not for
+resume operations. This nuanced interpretation reflects the limitations of
+purely quantitative evaluation for agent systems
+\cite{anthropicAgents2024}.
+
+%=============================================================================
+\section{Operational Readiness and Limitations}
+\label{sec:OperationalReadiness}
+%=============================================================================
+
+At the time of writing, the agent platform is considered production-ready from
+an architectural and operational perspective, but it is still undergoing
+intensive evaluation in a staging environment.
+
+Several limitations are acknowledged:
+
+\begin{itemize}
+    \item Model performance and output quality remain dependent on user input
+          quality and prompt design.
+    \item Cold start latency may impact user experience under sporadic load.
+    \item Automated benchmarks for this class of task remain limited, making
+          human evaluation essential.
+\end{itemize}
+
+These limitations are not treated as failures but as inherent characteristics
+of current-generation agent systems.
+
+%=============================================================================
+\section{Summary}
+\label{sec:CICDSummary}
+%=============================================================================
+
+The CI/CD pipeline, deployment architecture, and evaluation practices described
+in this chapter complete the transformation of the LangGraph agent from a
+research prototype into an operable service.
+
+By combining automated deployment with human-centered evaluation and
+observability, the platform supports iterative improvement without sacrificing
+control or reliability. This foundation enables future expansion while
+maintaining the discipline required for operating AI-driven systems in
+production environments.
