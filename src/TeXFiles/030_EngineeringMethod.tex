@@ -5,69 +5,64 @@
 % Page budget: ~3 pages (Pages 8--10)
 %=============================================================================
 
-This chapter describes the engineering methodology applied throughout the
-internship. The method emphasizes structured exploration, evidence-based
-decision making, and incremental hardening toward production readiness.
-It was applied consistently across independent initiatives, including
-workflow automation, infrastructure experimentation, and agent platform
-development.
+This chapter describes the engineering methodology used throughout the
+internship. The approach emphasizes structured exploration, evidence-based
+decisions, and incremental hardening toward production readiness.
+The same method was applied across workflow automation, infrastructure
+experimentation, and agent platform development.
 
 %=============================================================================
 \section{R\&D Method: Exploration to Production}
 \label{sec:RDMethod}
 %=============================================================================
 
-Engineering work during the internship followed an iterative
-\gls{rd} lifecycle designed to reduce technical risk while
-maintaining delivery velocity. Each task progressed through four recurring
-phases as described in figure \ref{fig:rd_lifecycle}:
+Engineering work followed an iterative \gls{rd} lifecycle designed to reduce
+technical risk while maintaining delivery velocity. Each task moved through
+four recurring phases (see Figure~\ref{fig:rd_lifecycle}):
 
 \begin{itemize}
-    \item \textbf{Exploration}: Clarifying objectives and desired outcomes,
-          surveying the ecosystem, and studying official documentation to understand
-          intended usage patterns, constraints, and common failure modes
+    \item \textbf{Exploration}: Objectives and desired outcomes were clarified,
+          the ecosystem was surveyed, and official documentation was studied to
+          understand usage patterns, constraints, and common failure modes
           \cite{googleTechWriting,diataxis}.
 
-    \item \textbf{Prototyping and Evidence Gathering}: Implementing minimal,
-          focused prototypes to validate feasibility, followed by lightweight
-          benchmarking or operational observation to assess performance, cost, and
-          correctness.
+    \item \textbf{Prototyping and Evidence Gathering}: Minimal prototypes were
+          built to validate feasibility, followed by lightweight benchmarking or
+          operational observation to assess performance, cost, and correctness.
 
-    \item \textbf{Decision and Commitment}: Selecting a primary approach once it
-          satisfied baseline requirements, and committing to it early in order to
-          enable deeper iteration and architectural refinement.
+    \item \textbf{Decision and Commitment}: A primary approach was selected once
+          baseline requirements were satisfied, enabling deeper iteration and
+          architectural refinement.
 
-    \item \textbf{Hardening and Validation}: Improving reliability,
-          configurability, and operational safety to reach a
-          \gls{mvp} state suitable for production use
-          \cite{googleSRE,microsoftWellArchitected}.
+    \item \textbf{Hardening and Validation}: Reliability, configurability, and
+          operational safety were improved to reach an \gls{mvp} state suitable
+          for production \cite{googleSRE,microsoftWellArchitected}.
 \end{itemize}
 
 \begin{figure}[htbp]
     \centering
     \includegraphics[width=0.5\textwidth]{Figures/rd_lifecycle_diagram.png}
-    \caption{\gls{rd} lifecycle illustrating the iterative progression from
-        exploration through decision to production hardening.}
+    \caption{\gls{rd} lifecycle showing iterative progression from exploration
+        through decision to production hardening.}
     \label{fig:rd_lifecycle}
 \end{figure}
 
-Exploration was intentionally time-bounded. Once an approach was deemed viable
-and aligned with the task objective, further comparison was deprioritized in
-favor of iterative improvement following an agile development model.
+Exploration was time-bounded. Once an approach proved viable and aligned with
+objectives, further comparison was deprioritized in favor of iterative
+improvement.
 
-Validation criteria were task-specific rather than benchmark-driven. Evidence
-used to validate solutions included:
+Validation criteria were task-specific. Evidence used to validate solutions
+included:
 \begin{itemize}
-    \item correctness of execution flow and explicit state transitions,
+    \item correctness of execution flow and state transitions,
     \item human evaluation of generated artifacts,
-    \item runtime behavior observed in staging environments (e.g., latency,
-          execution time, and cost),
-    \item and review or approval by senior engineers.
+    \item runtime behavior in staging (latency, execution time, cost),
+    \item review or approval by senior engineers.
 \end{itemize}
 
-A task was considered ready to progress when it satisfied its definition of
-done, achieved an \gls{mvp} suitable for a production environment, and passed
-peer or supervisor review.
+A task was considered ready to progress when it met its definition of done,
+reached an \gls{mvp} suitable for production, and passed peer or supervisor
+review.
 
 
 %=============================================================================
@@ -75,26 +70,23 @@ peer or supervisor review.
 \label{sec:ADRPractice}
 %=============================================================================
 
-To maintain consistency and traceability, major engineering decisions were
-evaluated using a lightweight \gls{adr} format
-\cite{nygard2011adr}. This format was applied informally during development
-and later formalized through pull request descriptions, code comments, and
-internal documentation.
+Major engineering decisions were documented using a lightweight \gls{adr}
+format \cite{nygard2011adr}. This was applied informally during development
+and later formalized in pull request descriptions, code comments, and internal
+documentation.
 
 Each decision followed the same structure:
 \begin{itemize}
-    \item \textbf{Context}: The problem and constraints motivating the decision.
-    \item \textbf{Options}: Viable alternatives considered.
+    \item \textbf{Context}: The problem and constraints behind the decision.
+    \item \textbf{Options}: Alternatives that were considered.
     \item \textbf{Criteria}: Factors used to compare options.
     \item \textbf{Evidence}: Prototypes, observations, or feedback.
     \item \textbf{Decision}: The selected approach.
-    \item \textbf{Trade-offs and Mitigations}: Known limitations and how they are
-          addressed.
+    \item \textbf{Trade-offs}: Known limitations and how they are addressed.
 \end{itemize}
 
-This practice ensured that decisions prioritized long-term extensibility,
-operational predictability, and simplicity, rather than short-term
-implementation convenience.
+This practice kept decisions focused on extensibility, operational
+predictability, and simplicity over short-term convenience.
 
 \begin{table}[htbp]
     \centering
@@ -126,32 +118,30 @@ implementation convenience.
 \label{sec:WorkflowVsAgent}
 %=============================================================================
 
-A clear conceptual distinction was maintained between
-\textbf{workflow automation systems} and \textbf{agent systems}, as the two
-paradigms (figure \ref{fig:workflow_vs_agent}) address fundamentally different problem classes
-\cite{googleSRE,openaiPrompting}.
+A clear distinction was maintained between \textbf{workflow automation systems}
+and \textbf{agent systems}. These paradigms address different problem classes
+(see Figure~\ref{fig:workflow_vs_agent}) \cite{googleSRE,openaiPrompting}.
 
 \textbf{Workflow systems} are characterized by:
 \begin{itemize}
     \item deterministic orchestration with predefined execution paths,
     \item explicit retries and idempotency guarantees,
     \item strong auditability and traceability,
-    \item suitability for integration-heavy and compliance-sensitive tasks.
+    \item suitability for integration and compliance tasks.
 \end{itemize}
 
-\textbf{Agent systems}, by contrast, emphasize:
+\textbf{Agent systems} emphasize:
 \begin{itemize}
     \item stateful reasoning across multiple steps,
     \item tool invocation under uncertainty,
     \item non-deterministic behavior driven by \glspl{llm},
-    \item the need for explicit evaluation, guardrails, and governance mechanisms.
+    \item the need for evaluation, guardrails, and governance.
 \end{itemize}
 
-Rather than a binary distinction, these approaches form a spectrum. As systems
-become more agentic, flexibility increases, but so do risks related to
-correctness, observability, and control. This distinction informed
-architectural choices throughout the internship and justified the use of
-different systems for different tasks.
+These approaches exist on a spectrum rather than as a binary choice. As systems
+become more agentic, flexibility increases---but so do risks around correctness,
+observability, and control. This distinction informed architectural choices
+and justified using different systems for different tasks.
 
 \begin{figure}[htbp]
     \centering
@@ -159,7 +149,7 @@ different systems for different tasks.
     % Left: Workflow system (boxes, arrows, retries, logs)
     % Right: Agent system (state container, decision nodes, tool calls, loops)
     \includegraphics[width=\textwidth]{Figures/workflow-agent-figure.png}
-    \caption{Conceptual comparison of workflow automation systems and agent
-        systems, highlighting architectural and operational differences.}
+    \caption{Workflow automation vs agent systems: architectural and operational
+        differences.}
     \label{fig:workflow_vs_agent}
 \end{figure}
