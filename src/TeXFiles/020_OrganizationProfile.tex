@@ -1,38 +1,50 @@
 \chapter{Organization Profile and Internship Setup}
 \label{ch:OrgProfile}
 
-% Page budget: 4 pages (Pages 4-7)
-% Covers guideline: Profile of organization, Tasks assigned by senior role, Intra-organization communication (explicit)
+% Page budget: ~4 pages
+% Covers guideline: Profile of organization, Tasks assigned by senior role, Intra-organization communication,
+% Results/skills context (introduced here), and constraints shaping decisions.
 
 %=============================================================================
 \section{Organization Profile}
 \label{sec:OrgProfile_Profile}
 %=============================================================================
 
-DevSamurai is a software company focused on building business productivity applications and integrations for major SaaS ecosystems. The company positions itself as an engineering partner that helps organizations automate and optimize digital workflows through marketplace apps and platform extensions.\cite{DevSamurai_Website}
+DevSamurai \cite{DevSamurai_Website} is a software engineering company that builds \textbf{business productivity applications and platform integrations} for major SaaS ecosystems. Its product footprint is most visible in the Atlassian ecosystem (e.g., Jira/Confluence) through the Atlassian Marketplace, and also extends to platforms such as monday.com, Salesforce (AppExchange), and Microsoft AppSource. In practice, DevSamurai delivers ``workflow-native'' solutions that embed into existing tools to improve productivity, collaboration, and operational visibility.
 
-\subsection{Geographic Footprint}
-
-DevSamurai operates with an international footprint, including a base in Japan and a Vietnam division (DevSamurai Vietnam) that provides software development consulting and delivery capacity across multiple solution areas. This distributed model enables rapid scaling and access to specialized engineering talent.
+DevSamurai operates internationally with a base in Japan and an engineering presence in Vietnam. This structure supports delivery at scale while maintaining access to specialized engineering skills across product development, cloud infrastructure, and applied AI.
 
 \subsection{Core Offerings and Technical Focus}
+\label{subsec:OrgProfile_CoreOfferings}
 
-DevSamurai's work clusters into two complementary streams:
+DevSamurai's work can be summarized into two complementary streams:
 
 \begin{enumerate}
-    \item \textbf{Marketplace Applications \& Integrations}
+    \item \textbf{Marketplace Applications and Integrations}
           \begin{itemize}
-              \item Design and development of apps distributed through major SaaS ecosystems: Atlassian Marketplace (Jira/Confluence), Salesforce AppExchange, monday.com Marketplace, and Microsoft AppSource.
-              \item The emphasis is on ``workflow-native'' products: software that embeds into existing tools to improve productivity and collaboration.
+              \item Development of applications distributed through major SaaS marketplaces, including Atlassian Marketplace, Salesforce AppExchange, monday.com Marketplace, and Microsoft AppSource.
+              \item Emphasis on deep platform integration, including permission models, API compatibility, and user experience aligned with host products.
           \end{itemize}
 
-    \item \textbf{Enterprise Engineering \& DevOps/Cloud Practices}
+    \item \textbf{Enterprise Engineering and Cloud/DevOps Practices}
           \begin{itemize}
-              \item Cloud-native DevOps practices aimed at automating the software delivery lifecycle.
-              \item Enterprise solution work including ERP, data/analysis, and AI applications, aligned with business process automation.
+              \item Cloud-native engineering practices that improve delivery velocity and operational reliability (CI/CD, monitoring, and secure deployment patterns).
+              \item Solution development for enterprise workflows, including ERP-adjacent automation, data/analytics enablement, and applied AI capabilities aligned with business process automation.
           \end{itemize}
 \end{enumerate}
 
+\subsection{Market Presence and Credibility}
+\label{subsec:OrgProfile_Credibility}
+
+DevSamurai positions its products and services for global teams and showcases customer adoption signals on its public website. In this report, such signals are used only to provide context on the company's market orientation and the production-grade expectations applied to engineering deliverables.
+
+% Recommended figure placement: after introducing offerings and market orientation.
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{Figures/devsamurai-trusted-by-logos.png}
+    \caption{Customer adoption signals displayed on the DevSamurai website (selected logos). This figure provides market context and does not imply that the internship deliverables were shipped to these organizations.}
+    \label{fig:devsamurai_trusted_by}
+\end{figure}
 
 
 %=============================================================================
@@ -40,32 +52,36 @@ DevSamurai's work clusters into two complementary streams:
 \label{sec:OrgProfile_Role}
 %=============================================================================
 
-As an AI engineering intern, my role is positioned within DevSamurai's R\&D and product engineering division, with direct accountability to senior engineering leadership. The internship operates across two primary stakeholder groups:
+I worked as an AI engineering intern within DevSamurai's R\&D and product engineering environment. The internship emphasized two goals: (i) exploring solution approaches through targeted prototypes, and (ii) producing production-ready deliverables where the organization required operational maturity (deployment, governance, observability, and documentation).
 
-\subsection{Senior Roles and Review Authority}
+\subsection{Stakeholders and Review Authority}
+\label{subsec:OrgProfile_Stakeholders}
 
-\begin{itemize}
-    \item \textbf{Product Engineering Lead}: Sets overall technical direction, approves architectural decisions, and ensures alignment with DevSamurai's product roadmap.
-    \item \textbf{Senior AI/ML Engineer}: Provides mentorship on evaluation methodology, production hardening practices, and integration patterns for AI systems.
-    \item \textbf{DevOps and Reliability Engineer}: Reviews deployment topology, CI/CD pipeline, and operational runbook completeness.
-\end{itemize}
-
-\subsection{What I Owned}
-
-Within clearly defined boundaries, I was responsible for:
+The work was executed under review from the following roles:
 
 \begin{itemize}
-    \item End-to-end design and prototyping of AI integration patterns (workflow orchestration, model serving, agent platforms).
-    \item Technical decision documentation (ADR format) and evidence collection (benchmarks, evaluation signals).
-    \item Production-ready code, configuration, and deployment artifacts.
-    \item Operational documentation: runbooks, monitoring dashboards, and hardening checklists.
+    \item \textbf{Product Engineering Lead}: defined technical direction, reviewed architecture-level decisions, and ensured alignment with product priorities.
+    \item \textbf{Senior AI/ML Engineer}: reviewed evaluation methodology, agent/workflow design choices, and production hardening practices for AI systems.
+    \item \textbf{DevOps/Reliability Engineer}: reviewed deployment topology, CI/CD quality gates, operational readiness, and failure-mode coverage.
 \end{itemize}
 
-% Figure placeholder: F3 - Stakeholder / communication diagram (you ↔ teams)
+\subsection{Responsibilities and Ownership}
+\label{subsec:OrgProfile_Ownership}
+
+Within agreed boundaries, my responsibilities included:
+
+\begin{itemize}
+    \item Designing and implementing AI system prototypes (workflow automation, serving experiments, and agent platform development).
+    \item Documenting decisions using concise decision records (ADR-style) supported by evidence (benchmarks, evaluation results, and operational signals).
+    \item Delivering production-ready artifacts when required: code, configuration, infrastructure definitions, CI/CD pipelines, and deployment manifests.
+    \item Producing operational documentation, including runbooks, monitoring signal definitions, and deployment hardening checklists.
+\end{itemize}
+
+% Figure placeholder: stakeholder/communication diagram
 % \begin{figure}[htbp]
 %   \centering
-%   % \includegraphics[width=0.8\textwidth]{Figures/stakeholder-diagram.pdf}
-%   \caption{Stakeholder and communication diagram showing the intern's interactions with various teams.}
+%   % \includegraphics[width=0.85\textwidth]{Figures/stakeholder-diagram.pdf}
+%   \caption{Stakeholder and communication model for the internship, including review points and acceptance gates.}
 %   \label{fig:stakeholder_diagram}
 % \end{figure}
 
@@ -75,40 +91,42 @@ Within clearly defined boundaries, I was responsible for:
 \label{sec:OrgProfile_Communication}
 %=============================================================================
 
-The internship follows a structured, iterative execution model designed for transparency and continuous stakeholder alignment:
+The internship followed an iterative execution model designed to maintain stakeholder alignment and to de-risk technical decisions early.
 
 \subsection{Requirement Intake}
+\label{subsec:OrgProfile_Intake}
 
-Initial requirements and success criteria are gathered during intake meetings with product engineering leadership. These establish:
+Requirements and success criteria were established through intake discussions with product and engineering leadership. Each intake concluded with a scoped problem statement and explicit acceptance criteria, typically covering:
 
 \begin{itemize}
-    \item Problem statement and scope boundaries
-    \item Success metrics (performance targets, operational readiness signals)
-    \item Time and resource constraints
-    \item Integration points with existing systems
+    \item Scope boundaries and integration constraints
+    \item Success metrics (quality targets, latency/cost budgets, and operational readiness signals)
+    \item Delivery timeline and dependency assumptions
+    \item Security considerations (secrets handling, access control, and logging constraints)
 \end{itemize}
 
 \subsection{Review and Iteration Cycles}
+\label{subsec:OrgProfile_Iteration}
 
-Technical work proceeds in two-week sprint cycles with:
-
-\begin{itemize}
-    \item Weekly sync meetings with product engineering lead (architecture feedback, scope adjustments)
-    \item Bi-weekly architecture reviews with senior AI/ML engineer (decision rationale, evidence validation)
-    \item Operational reviews with DevOps engineer before hardening and deployment phases
-\end{itemize}
-
-\subsection{Handoff and Acceptance}
-
-A formal handoff occurs when:
+Work progressed through short iteration cycles with structured review points:
 
 \begin{itemize}
-    \item All architectural decisions are documented with evidence (ADR format)
-    \item Code passes review and automated testing
-    \item Operational documentation (runbook, monitoring, hardening checklist) is complete and tested
-    \item Deployment to production environment is approved by DevOps lead
+    \item Regular check-ins with the Product Engineering Lead for scope alignment and architecture feedback.
+    \item Technical reviews with the Senior AI/ML Engineer for design rationale, evaluation validity, and safety/quality guardrails.
+    \item Operational reviews with DevOps/Reliability prior to deployment, focusing on failure handling, observability, and rollback readiness.
 \end{itemize}
 
+\subsection{Handoff and Acceptance Criteria}
+\label{subsec:OrgProfile_Acceptance}
+
+A deliverable was considered ready for handoff when:
+
+\begin{itemize}
+    \item Architecture and major trade-offs were captured in decision records with supporting evidence.
+    \item Code passed review and automated checks (tests, linting, and build reproducibility).
+    \item Operational documentation was complete and actionable (runbook, monitoring signals, and hardening checklist).
+    \item Deployment was reviewed and approved according to DevOps operational requirements.
+\end{itemize}
 
 
 %=============================================================================
@@ -116,45 +134,51 @@ A formal handoff occurs when:
 \label{sec:OrgProfile_Challenges}
 %=============================================================================
 
-The internship operates within real organizational constraints that shaped technical decisions and prioritization:
+Technical priorities and design decisions were shaped by practical constraints typical of production environments.
 
 \subsection{Time Constraints}
+\label{subsec:OrgProfile_TimeConstraints}
 
-The internship is structured as a fixed-duration engagement (typically 3--6 months). This necessitates:
+The internship was a fixed-duration engagement, requiring disciplined scope control:
 
 \begin{itemize}
-    \item Prioritization of production-ready work over exploratory research
-    \item Early identification of high-impact tasks vs. nice-to-have features
-    \item Clear scope boundaries to prevent scope creep
+    \item Preference for high-impact deliverables over broad exploration.
+    \item Early identification of risk drivers (e.g., reliability, cost, or integration complexity).
+    \item Clear scoping to avoid uncontrolled expansion of requirements.
 \end{itemize}
 
-\subsection{Operational Constraints}
+\subsection{Operational and Platform Constraints}
+\label{subsec:OrgProfile_OperationalConstraints}
 
 \begin{itemize}
-    \item \textbf{Infrastructure availability}: Deployment targets (Google Cloud Run, Postgres, Redis) are shared with production systems; no dedicated staging environment.
-    \item \textbf{Data sensitivity}: Integration with existing product data requires strict access controls and audit logging.
-    \item \textbf{Third-party dependencies}: Reliance on external LLM providers (OpenAI, etc.) introduces cost and rate-limit considerations.
+    \item \textbf{Shared infrastructure}: deployment targets (e.g., managed compute, Postgres, Redis) were shared resources, increasing the importance of safe rollout and isolation.
+    \item \textbf{Data sensitivity}: access to product and customer-adjacent data required careful logging practices and strict access controls.
+    \item \textbf{External AI dependencies}: reliance on third-party model providers introduced variability in latency, rate limits, and cost.
 \end{itemize}
 
 \subsection{Mitigation Strategies}
+\label{subsec:OrgProfile_Mitigations}
 
-The internship is designed with clear mitigation for each constraint:
+The following mitigations were applied to reduce risk and maintain delivery quality:
 
 \begin{table}[htbp]
+    \begingroup
     \centering
-    \caption{Key constraints and mitigation strategies.}
+    \footnotesize % make table text smaller
+    \caption{Key constraints and mitigation strategies applied during the internship.}
     \label{tab:Constraints}
-    \begin{tabular}{p{3cm}p{4cm}p{4cm}}
+    \begin{tabularx}{\textwidth}{|X|X|X|}
         \toprule
-        \textbf{Constraint}      & \textbf{Impact}                          & \textbf{Mitigation}                                                           \\
+        \textbf{Constraint}                       & \textbf{Primary Impact}                                             & \textbf{Mitigation Strategy}                                                             \\
         \midrule
-        Time (3-6 months)        & Limited scope for exploratory R\&D       & Prioritize deliverables; phase work in two tracks                             \\
+        Fixed internship timeline                 & Limited bandwidth for parallel exploration and production hardening & Phased delivery; explicit milestones; decision records to avoid rework                   \\
         \midrule
-        Shared Infrastructure    & Risk of production impact during testing & Separate dev, staging, and production environments; feature flags for rollout \\
+        Shared production-adjacent infrastructure & Higher risk when testing and rolling out changes                    & Environment separation; feature flags; conservative rollout; runbook validation          \\
         \midrule
-        Third-Party Dependencies & Cost and latency unpredictability        & Pre-commit cost budgets; implement rate-limit handling                        \\
+        Third-party model providers               & Cost and latency variability; rate limiting                         & Cost budgets; usage tracking; retry/backoff policies; provider failure handling          \\
         \midrule
-        Data Sensitivity         & Compliance and audit risk                & Minimal data in staging; PII redaction in logs                                \\
+        Data sensitivity                          & Compliance and privacy risk if mishandled in logs or traces         & Minimize sensitive payloads; redact identifiers; access control reviews; least-privilege \\
         \bottomrule
-    \end{tabular}
+    \end{tabularx}
+    \endgroup
 \end{table}
