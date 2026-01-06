@@ -92,7 +92,6 @@ predictability, and simplicity over short-term convenience.
     \centering
     \captionsetup{font=normalsize}
     \footnotesize
-    \caption{Decision criteria applied across engineering tasks.}
     \label{tab:DecisionCriteria}
     \begin{tabularx}{\textwidth}{|p{2.6cm}|X|p{1.8cm}|}
         \hline
@@ -111,6 +110,7 @@ predictability, and simplicity over short-term convenience.
         Operability        & Monitoring, deployment, and recovery capability     & High              \\
         \hline
     \end{tabularx}
+    \caption{Decision criteria applied across engineering tasks.}
 \end{table}
 
 %=============================================================================
@@ -138,11 +138,6 @@ and \textbf{agent systems}. These paradigms address different problem classes
     \item the need for evaluation, guardrails, and governance.
 \end{itemize}
 
-These approaches exist on a spectrum rather than as a binary choice. As systems
-become more agentic, flexibility increases---but so do risks around correctness,
-observability, and control. This distinction informed architectural choices
-and justified using different systems for different tasks.
-
 \begin{figure}[htbp]
     \centering
     % Side-by-side diagram:
@@ -153,3 +148,8 @@ and justified using different systems for different tasks.
         differences.}
     \label{fig:workflow_vs_agent}
 \end{figure}
+
+These approaches exist on a spectrum rather than as a binary choice. As systems
+become more agentic, flexibility increases, but so do risks around correctness,
+observability, and control. This will inform architectural choices
+and justify using different systems for different tasks.

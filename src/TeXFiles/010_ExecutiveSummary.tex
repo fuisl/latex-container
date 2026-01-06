@@ -6,20 +6,56 @@
 \label{ch:ExecutiveSummary}
 \addcontentsline{toc}{chapter}{Executive Summary}
 
-% Page budget: 3 pages total (Pages 1-3)
+% Page budget: 3 pages total (Pages 1--3)
 
 %=============================================================================
 % 0.1 Executive Summary (1 page)
 %=============================================================================
 
-% Internship mission and outcomes across two tracks:
-% - Track A: Workflow Automation & Infrastructure R&D
-% - Track B: LangGraph Agent Platform Engineering
-%
-% Main highlight: LangGraph server production architecture
-% Short bullet list of tangible deliverables per track
+This internship focused on the research, design, and implementation of
+AI-assisted systems for enterprise software, with an emphasis on progressing
+from exploratory experimentation to production-oriented engineering. The work
+was structured around two independent but complementary engineering tracks:
+\textbf{Track A: Workflow Automation and Infrastructure R\&D}, and
+\textbf{Track B: LangGraph Agent Platform Engineering}.
 
+Track A addressed the problem of safely integrating AI capabilities into
+existing enterprise workflows. It included the design of a deterministic ERP
+integration using workflow automation, evaluation of local and hosted model
+serving strategies, deployment of a retrieval-augmented generation (RAG) agent
+for product question answering, and exploratory research into tooling
+interoperability via the Model Context Protocol (MCP). This track emphasized
+risk isolation, auditability, and feasibility analysis, and served as a
+foundation for understanding the operational constraints of AI systems in
+enterprise environments.
 
+Track B represented the core engineering contribution of the internship. It
+focused on the design and implementation of an industrial-grade AI agent
+platform using LangGraph. The platform supports quality assurance workflows by
+transforming natural-language requirements into test cases, and test cases into
+test steps, with explicit human-in-the-loop review at each critical decision
+point. The system was implemented as a state-machine-driven service with
+structured output contracts, governance controls for token usage, best-effort
+observability via Langfuse, and a CI/CD pipeline targeting Google Cloud Run.
+
+Key tangible outcomes of the internship include:
+
+\begin{itemize}
+    \item Potential ERP integration workflow using n8n with explicit
+          failure handling and replay semantics.
+    \item Evaluation and comparison of local model serving and enterprise-ready
+          deployment approaches.
+    \item Production-oriented LangGraph agent platform with human-in-the-loop
+          execution, governance, and observability.
+    \item CI/CD and deployment setup for operating the agent as a
+          managed cloud service.
+\end{itemize}
+
+Across both tracks, the internship emphasized architectural decision-making,
+trade-off analysis, and disciplined system design. The resulting work
+demonstrates how AI capabilities can be integrated into enterprise software in a
+controlled, observable, and maintainable manner, reflecting industry-grade
+engineering practices rather than experimental prototypes.
 
 %=============================================================================
 % 0.2 Reading Guide and Structure Map (1 page)
@@ -27,17 +63,31 @@
 \section*{Reading Guide}
 \label{sec:ReadingGuide}
 
-% "How this report is organized"
-% Explain that Track A and Track B are independent engineering initiatives
+This report is organized to reflect the progression from exploratory research
+to production-oriented system engineering. The two main tracks are presented as
+\emph{independent engineering initiatives} that address different problem
+classes and should be read accordingly.
 
-% Figure placeholder: F1 - Report structure map (Track A vs Track B)
-% \begin{figure}[htbp]
-%   \centering
-%   % \includegraphics[width=\textwidth]{Figures/report-structure-map.pdf}
-%   \caption{Report structure showing the two independent engineering tracks and their relationship to internship tasks.}
-%   \label{fig:report_structure_map}
-% \end{figure}
+\textbf{Track A} (Chapters 4--6) documents workflow automation, infrastructure
+experiments, and protocol exploration. These chapters focus on feasibility,
+constraints, and lessons learned from early-stage research. They do not attempt
+to converge into a single system architecture.
 
+\textbf{Track B} (Chapters 7--11) forms the industrial core of the report. These
+chapters describe the design, implementation, governance, deployment, and
+evaluation of the LangGraph-based agent platform. Readers primarily interested
+in production architecture and agent engineering may focus on this track.
+
+Later chapters synthesize insights across both tracks and reflect on technical
+and professional growth achieved during the internship.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{Figures/report-structure-map.png}
+    \caption{Report structure showing the two independent engineering tracks and
+        their relationship to internship tasks.}
+    \label{fig:report_structure_map}
+\end{figure}
 
 %=============================================================================
 % 0.3 Traceability Matrix (1 page)
@@ -45,30 +95,26 @@
 \section*{Traceability Matrix}
 \label{sec:TraceabilityMatrix}
 
-% Task 1-7 mapped to chapters, artifacts, and skills
+To ensure transparency and alignment with internship objectives, this section
+maps the assigned tasks to concrete deliverables, report chapters, and the
+skills developed during execution. This traceability highlights how each task
+contributed to both technical outcomes and learning objectives.
 
-% Figure placeholder: F2 - Task traceability map (Task → artifact → chapter)
-% \begin{figure}[htbp]
-%   \centering
-%   % \includegraphics[width=\textwidth]{Figures/traceability-map.pdf}
-%   \caption{Traceability map showing how each task relates to deliverables and report chapters.}
-%   \label{fig:traceability_map}
-% \end{figure}
-
-% Table placeholder: T1 - Deliverables overview (Track A / Track B)
-% \begin{table}[htbp]
-%   \centering
-%   \caption{Overview of deliverables organized by track.}
-%   \label{tab:DeliverablesOverview}
-%   \begin{tabular}{llp{6cm}l}
-%     \toprule
-%     \textbf{Track} & \textbf{Task} & \textbf{Deliverable} & \textbf{Chapter} \\
-%     \midrule
-%     A & Task 1 & n8n ERP Integration & Ch. 4 \\
-%     A & Task 2 & Model Serving Evaluation & Ch. 5 \\
-%     A & Task 1.5 & MCP Exploration & Ch. 6 \\
-%     B & Task 4-7 & LangGraph Agent Platform & Ch. 8-11 \\
-%     \bottomrule
-%   \end{tabular}
-% \end{table}
-
+\begin{table}[htbp]
+    \centering
+    \label{tab:DeliverablesOverview}
+    \begin{tabular}{llp{10cm}l}
+        \toprule
+        \textbf{Track} & \textbf{Task} & \textbf{Deliverable}                                   & \textbf{Chapter} \\
+        \midrule
+        A              & Task 1        & ERP integration via workflow automation (n8n)          & Ch. 4            \\
+        A              & Task 2        & Local and enterprise model serving evaluation          & Ch. 5            \\
+        A              & Task 3        & RAG agent for product Q\&A                             & Ch. 5            \\
+        A              & Task 1.5      & MCP exploration and interoperability research          & Ch. 6            \\
+        B              & Task 4        & QA agent design using LangChain and LangGraph          & Ch. 8            \\
+        B              & Task 5        & CI/CD pipeline and cloud deployment (GCP)              & Ch. 10           \\
+        B              & Task 6--7     & Agent integration and production evaluation (Langfuse) & Ch. 9--11        \\
+        \bottomrule
+    \end{tabular}
+    \caption{Overview of deliverables organized by engineering track.}
+\end{table}

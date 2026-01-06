@@ -102,6 +102,7 @@ selected metadata such as user identifiers.
 Tracing is initialized at service startup only if authentication with the
 observability backend succeeds. If initialization fails, tracing is disabled
 for that runtime instance, and execution continues without instrumentation.
+
 This prevents cascading failures caused by unavailable observability services
 \cite{langfuseDocs}.
 

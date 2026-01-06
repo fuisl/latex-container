@@ -6,65 +6,61 @@
 % This is the "industrial core" - the LangGraph Agent Platform
 %=============================================================================
 
-This chapter introduces Track~B, which represents the transition from
-exploratory research to the development of a production-oriented \gls{ai}
-agent platform. Unlike earlier work that focused on workflow automation, local
-experimentation, or protocol-level abstractions, Track~B centers on building a
-stateful, human-in-the-loop agent system using \gls{langgraph} as the core
-orchestration framework.~\cite{langgraphOverview,langgraphProduct}
+This chapter introduces Track~B: the transition from exploratory research to
+building a production-oriented \gls{ai} agent platform. Where earlier work
+focused on workflow automation, local experimentation, or protocol-level
+abstractions, Track~B centers on a stateful, human-in-the-loop agent system
+using \gls{langgraph} for orchestration.~\cite{langgraphOverview,langgraphProduct}
 
-The objective of this track was to design and implement an agent platform that
-can be integrated into engineering workflows with explicit attention to
-correctness, governance, and operational reliability, consistent with
-production engineering principles.~\cite{googleSRE,microsoftWellArchitected}
+The objective was to design and implement an agent platform that integrates
+into engineering workflows with attention to correctness, governance, and
+operational reliability.~\cite{googleSRE,microsoftWellArchitected}
 
 %=============================================================================
 \section{Business Capability and User Journeys}
 \label{sec:TrackB_BusinessCapability}
 %=============================================================================
 
-The primary business capability delivered by the agent platform is the
-generation and refinement of \gls{qa} artifacts from natural-language inputs.
-Concretely, the system provides structured transformations from requirements
-into test cases and test steps, while preserving human oversight at each
-critical decision point (human-in-the-loop).~\cite{langgraphHITL,langgraphInterrupts,anthropicAgents2024}
+The agent platform generates and refines \gls{qa} artifacts from
+natural-language inputs. It transforms requirements into test cases and test
+steps while preserving human oversight at critical decision
+points.~\cite{langgraphHITL,langgraphInterrupts,anthropicAgents2024}
 
-This capability targets three user groups:
+Three user groups are targeted:
 
-\textbf{QA / Test Engineers} use the system to accelerate test creation with
-fast feedback loops, while retaining control over correctness through review
-and edits. Human review gates are modeled as explicit pauses in execution that
-require external input before continuing.~\cite{langgraphHITL,langgraphInterrupts}
+\textbf{QA / Test Engineers} use the system to accelerate test creation while
+retaining control over correctness through review and edits. Human review
+gates are modeled as explicit pauses that require input before
+continuing.~\cite{langgraphHITL,langgraphInterrupts}
 
-\textbf{Product Engineers and Product Managers} use the platform to translate
-feature requirements into concrete QA artifacts. This reflects a common
-industry pattern in which LLM-assisted systems serve as ``translation layers''
-between intent (requirements) and structured outputs (test artifacts).~\cite{langchainStructuredOutput,anthropicAgents2024}
+\textbf{Product Engineers and Product Managers} translate feature requirements
+into QA artifacts. This follows a common pattern where LLM-assisted systems
+act as ``translation layers'' between intent and structured
+outputs.~\cite{langchainStructuredOutput,anthropicAgents2024}
 
-\textbf{Platform and Operations teams} operate the agent service as a
-multi-tenant system, where governance and cost control (e.g., usage limits)
-and reliable observability signals are first-class operational requirements.~\cite{googleSRE,microsoftWellArchitected,langfuseDocs}
+\textbf{Platform and Operations teams} run the agent as a multi-tenant service
+where governance, cost control, and observability are first-class
+requirements.~\cite{googleSRE,microsoftWellArchitected,langfuseDocs}
 
-The platform supports two primary user journeys, both designed around
-human-in-the-loop interaction rather than full autonomy.~\cite{anthropicAgents2024,langgraphHITL}
+Two primary user journeys are supported, both built around human-in-the-loop
+interaction.~\cite{anthropicAgents2024,langgraphHITL}
 
-\textbf{Journey 1: Requirement $\rightarrow$ Test Cases (human-in-the-loop).}
+\textbf{Journey 1: Requirement $\rightarrow$ Test Cases.}
 A user submits a requirement and requests $N$ candidate test cases. The system
-generates candidate cases, then pauses for human review. During review, the
-user may approve, edit, regenerate, or request additional cases before
-continuing execution.~\cite{langgraphHITL,langgraphInterrupts}
+generates candidates, then pauses for review. The user may approve, edit,
+regenerate, or request more cases before
+continuing.~\cite{langgraphHITL,langgraphInterrupts}
 
-\textbf{Journey 2: Test Case $\rightarrow$ Test Steps (human-in-the-loop).}
+\textbf{Journey 2: Test Case $\rightarrow$ Test Steps.}
 A user selects a test case and requests steps. The system generates an ordered
-set of steps (e.g., 5--10), then pauses for human editing. The user may edit,
-add, delete, approve, or reject with feedback and trigger regeneration.~\cite{langgraphHITL,langgraphInterrupts}
+set (5--10 steps), then pauses for editing. The user may edit, add, delete,
+approve, or reject with feedback.~\cite{langgraphHITL,langgraphInterrupts}
 
 \begin{figure}[htbp]
     \centering
-    % \includegraphics[width=\textwidth]{Figures/user-journey-swimlane.pdf}
-    \caption{User journey swimlane diagram showing human-in-the-loop gates at each
-        decision point. Interrupt/resume mechanisms allow execution to pause and
-        continue based on human review outcomes.}
+    \includegraphics[width=\textwidth]{Figures/swimlane.png}
+    \caption{User journey swimlane showing human-in-the-loop gates. Interrupt
+        and resume mechanisms pause execution for human review.}
     \label{fig:user_journey_swimlane}
 \end{figure}
 
@@ -73,81 +69,74 @@ add, delete, approve, or reject with feedback and trigger regeneration.~\cite{la
 \label{sec:TrackB_Requirements}
 %=============================================================================
 
-The platform design was driven by a separation between functional requirements
-(what the system must do) and non-functional requirements (how the system must
-behave in production). This separation helps prevent feature development from
-eroding reliability and operability.~\cite{googleSRE,microsoftWellArchitected}
+Platform design separated functional requirements (what the system does) from
+non-functional requirements (how it behaves in production). This separation
+prevents feature work from eroding reliability.~\cite{googleSRE,microsoftWellArchitected}
 
 \subsection{Functional Requirements}
 \label{sec:TrackB_FunctionalReqs}
 
-The core functional requirement is support for iterative, stateful workflows
-rather than one-shot generation. In practice, this implies:
+The core functional requirement is iterative, stateful workflows rather than
+one-shot generation:
 
 \begin{itemize}
-    \item \textbf{Pause and resume:} execution must support explicit
-          interruption points for human review and continuation with updated inputs,
-          enabled by an interrupts mechanism that persists execution state.~\cite{langgraphInterrupts,langgraphHITL}
+    \item \textbf{Pause and resume:} execution supports explicit interruption
+          for human review, with state persisted across
+          pauses.~\cite{langgraphInterrupts,langgraphHITL}
 
-    \item \textbf{Editable artifacts:} generated test artifacts must be
-          editable at a granular level (e.g., approve/edit/delete/update selected
-          items) rather than treated as immutable text.~\cite{langchainStructuredOutput,anthropicAgents2024}
+    \item \textbf{Editable artifacts:} generated test artifacts are editable
+          at a granular level (approve, edit, delete, update) rather than
+          immutable.~\cite{langchainStructuredOutput,anthropicAgents2024}
 
-    \item \textbf{Selective regeneration:} the user must be able to regenerate
-          subsets (e.g., specific cases or steps) without restarting the entire run,
-          which requires explicit state management and repeatable transitions.~\cite{langgraphOverview,langgraphHITL}
+    \item \textbf{Selective regeneration:} users can regenerate subsets
+          (specific cases or steps) without restarting, requiring explicit
+          state management.~\cite{langgraphOverview,langgraphHITL}
 \end{itemize}
 
-These requirements reflect how QA correctness emerges through iteration and
-review, not through a single LLM call, and motivate the use of state-machine
-orchestration for predictable transitions.~\cite{langgraphOverview,anthropicAgents2024}
+These requirements reflect that QA correctness emerges through iteration, not
+a single LLM call, and motivate state-machine
+orchestration.~\cite{langgraphOverview,anthropicAgents2024}
 
 \subsection{Non-Functional Requirements}
 \label{sec:TrackB_NFRs}
 
-Non-functional requirements were decisive because the system is intended to be
-operated as a service rather than a one-off prototype.
+Non-functional requirements were decisive since the system is operated as a
+service, not a prototype.
 
-\textbf{Governance and multi-tenancy.} The system must scope requests to user
-and organization context and support enforceable usage controls (e.g., token
-limits). In production practice, this aligns with service governance patterns
-such as quotas, budget controls, and isolation mechanisms.~\cite{googleSRE,microsoftWellArchitected}
+\textbf{Governance and multi-tenancy.} Requests are scoped to user and
+organization context with enforceable usage controls (token limits). This
+aligns with service governance patterns: quotas, budget controls, and
+isolation.~\cite{googleSRE,microsoftWellArchitected}
 
-\textbf{Observability (best-effort).} Tracing and metrics must be collected to
-support debugging and operational monitoring, but failures in observability
-components must not break core execution paths. This ``best-effort'' approach
-prevents auxiliary dependencies from degrading service availability.~\cite{googleSRE,langfuseDocs}
+\textbf{Observability (best-effort).} Tracing and metrics support debugging
+and monitoring, but observability failures must not break core execution. This
+prevents auxiliary dependencies from degrading
+availability.~\cite{googleSRE,langfuseDocs}
 
-\textbf{Reliability and deployability.} The platform must support automated
-build and deployment to a managed runtime capable of running containerized
-services, enabling repeatable delivery pipelines and controlled rollouts.
-Cloud Run was selected as the primary deployment target, providing a fully
-managed container execution environment.~\cite{cloudRunDocs,cloudRunOverview,microsoftWellArchitected}
+\textbf{Reliability and deployability.} Automated build and deployment to a
+managed runtime is supported. Cloud Run was selected as the deployment target
+for its managed container execution.~\cite{cloudRunDocs,cloudRunOverview,microsoftWellArchitected}
 
-\textbf{Persistence and operational dependencies.} Long-running and resumable
-execution requires persistence and supporting infrastructure. Redis was used
-as a fast in-memory data store suitable for counters and operational keys, and
-PostgreSQL was used as a relational database for durable storage patterns and
-service state.~\cite{redisDocs,postgresDocs}
+\textbf{Persistence.} Resumable execution requires persistence. Redis handles
+counters and operational keys; PostgreSQL provides durable storage for service
+state.~\cite{redisDocs,postgresDocs}
 
-\textbf{Configuration discipline.} Production services require configurable
-behavior across environments. Hydra and OmegaConf provide composable,
-hierarchical configuration and interpolation, while python-dotenv supports
-loading environment-specific variables from \texttt{.env} files for local
-development workflows.~\cite{hydraIntro,omegaconfUsage,pythonDotenv}
+\textbf{Configuration discipline.} Hydra and OmegaConf provide composable
+configuration with interpolation; python-dotenv loads environment variables
+from \texttt{.env} files for local development.~\cite{hydraIntro,omegaconfUsage,pythonDotenv}
 
 \begin{figure}[htbp]
     \centering
     % \includegraphics[width=\textwidth]{Figures/requirements-mechanisms-map.pdf}
-    \caption{Mapping of requirements to implementation mechanisms in the agent
-        platform (e.g., interrupts for human review, structured outputs for contracts,
-        tracing for observability, and governance controls for multi-tenancy).}
+    \caption{Requirements mapped to implementation mechanisms: interrupts for
+        review, structured outputs for contracts, tracing for observability,
+        governance for multi-tenancy.}
     \label{fig:requirements_mechanisms}
 \end{figure}
 
 \begin{table}[htbp]
     \centering
-    \caption{Mapping user journeys to graphs, interrupt points, and outputs.}
+    \caption{User journeys mapped to graphs, interrupts, and outputs.}
     \label{tab:JourneyGraphMapping}
     \begin{tabular}{llll}
         \toprule
@@ -159,7 +148,7 @@ development workflows.~\cite{hydraIntro,omegaconfUsage,pythonDotenv}
     \end{tabular}
 \end{table}
 
-Taken together, these requirements define the platform as a controlled,
-stateful system that prioritizes correctness, transparency, and human agency
-over full autonomy. This framing sets the foundation for the architectural
-and implementation choices presented in the following chapters.~\cite{anthropicAgents2024,langgraphOverview}
+These requirements define a controlled, stateful system that prioritizes
+correctness, transparency, and human agency over full autonomy. This framing
+sets the foundation for subsequent architectural
+choices.~\cite{anthropicAgents2024,langgraphOverview}
