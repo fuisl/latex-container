@@ -1,82 +1,165 @@
+%=============================================================================
 \chapter{Research --- MCP Exploration}
 \label{ch:MCPExploration}
-
-% Page budget: 4 pages (Pages 23-26)
+%=============================================================================
+% Page budget: 4 pages (Pages 23--26)
 % MCP is explicitly placed here as part of the exploration phase, NOT as a LangGraph dependency
+%=============================================================================
+
+This chapter documents the exploratory research conducted on the Model Context
+Protocol (MCP). The purpose of this work was to evaluate MCP as a potential
+approach for standardizing how language models interact with external tools,
+resources, and application context. This exploration was conducted as part of
+the early research phase of the internship and informed later architectural
+decisions, but MCP itself was not adopted as a core dependency in subsequent
+LangGraph-based development.
 
 %=============================================================================
 \section{Why MCP Was Explored}
 \label{sec:MCP_Why}
 %=============================================================================
 
-% 0.5-1 page
-% The problem: standardizing tool/context exposure across systems
-% Research motivation
+As AI-assisted systems become more integrated into production applications, a
+recurring challenge is how to expose tools, data sources, and application
+context to language models in a consistent and reusable manner. Early agent
+prototypes often rely on tightly coupled, framework-specific integrations,
+making it difficult to reuse tooling across models or platforms.
 
+The Model Context Protocol was explored as a response to this problem.
+Introduced as an open protocol, MCP aims to standardize how models discover and
+invoke tools, access structured resources, and receive contextual information
+from external systems~\cite{anthropicMCP}. In principle, this abstraction
+promises improved interoperability between models, tooling, and host
+applications.
 
+From a research perspective, MCP aligned well with the internship’s early
+objectives: understanding interface boundaries, experimenting with
+model-to-system contracts, and evaluating whether protocol-level abstractions
+could simplify agent integration across heterogeneous environments. This made
+MCP a suitable candidate for exploratory evaluation, even though its maturity
+for production use remained uncertain.
 
 %=============================================================================
 \section{MCP Conceptual Model}
 \label{sec:MCP_Conceptual}
 %=============================================================================
 
-% 1 page
-% Tools/resources/prompts concept
-% Server/client boundaries
-% What "interoperability" means in your context
+At a conceptual level, MCP defines a clear separation between model clients and
+external systems through an explicit server boundary. Rather than embedding
+tool logic directly into an agent or framework, an MCP server advertises a set
+of capabilities that models can discover and invoke dynamically.
 
-% Figure placeholder: F13 - MCP conceptual diagram (client ↔ MCP server ↔ tools/resources)
-% \begin{figure}[htbp]
-%   \centering
-%   % \includegraphics[width=\textwidth]{Figures/mcp-conceptual.pdf}
-%   \caption{MCP conceptual model showing the relationship between clients, MCP servers, and exposed tools/resources.}
-%   \label{fig:mcp_conceptual}
-% \end{figure}
+The protocol distinguishes between three primary elements:
 
+\begin{itemize}
+    \item \textbf{Tools}, which represent executable actions exposed to the
+          model through a well-defined interface.
+    \item \textbf{Resources}, which provide structured or semi-structured data
+          that models can query or retrieve.
+    \item \textbf{Context}, which supplies metadata and environmental
+          information required to ground model behavior.
+\end{itemize}
+
+In this model, the client (typically an LLM runtime or agent framework) does
+not require prior knowledge of application-specific APIs. Instead, it relies
+on the MCP server to describe available capabilities at runtime. This approach
+shifts integration complexity away from the model and toward a protocol-driven
+interface layer.
+
+Within the context of this research, interoperability was understood as the
+ability to reuse the same tool and resource definitions across different model
+providers and agent implementations without rewriting integration logic. MCP
+provided a concrete mechanism to evaluate whether such decoupling could be
+achieved in practice.
+
+\begin{figure}[htbp]
+    \centering
+    % \includegraphics[width=\textwidth]{Figures/mcp-conceptual.pdf}
+    \caption{MCP conceptual model showing the relationship between clients, MCP
+        servers, and exposed tools and resources.}
+    \label{fig:mcp_conceptual}
+\end{figure}
 
 %=============================================================================
 \section{Prototype Architecture and Experiments}
 \label{sec:MCP_Prototype}
 %=============================================================================
 
-% 1 page
-% What you built/tested
-% Limitations found
+To evaluate MCP in practice, a lightweight prototype was implemented. The
+prototype MCP server exposed a limited set of tools and resources backed by
+existing application APIs. The goal was not feature completeness, but rather
+to understand developer ergonomics, protocol clarity, and runtime behavior.
 
-% Figure placeholder: F14 - MCP prototype deployment (high-level)
-% \begin{figure}[htbp]
-%   \centering
-%   % \includegraphics[width=0.8\textwidth]{Figures/mcp-prototype.pdf}
-%   \caption{High-level deployment architecture of the MCP prototype.}
-%   \label{fig:mcp_prototype}
-% \end{figure}
+The experimental setup consisted of:
+\begin{itemize}
+    \item An MCP server advertising a small number of application-specific
+          tools.
+    \item A client-side agent invoking these tools through MCP abstractions.
+    \item Manual inspection of tool invocation behavior and response handling.
+\end{itemize}
 
+While the prototype successfully demonstrated basic interoperability, several
+limitations became apparent. Tool invocation semantics were heavily dependent
+on model behavior, making outcomes sensitive to prompt phrasing and model
+capabilities. Additionally, the lack of strong, enforceable contracts at the
+protocol level made it difficult to guarantee correct or safe tool usage in
+non-trivial scenarios.
+
+Security considerations also emerged as a significant concern. Recent research
+has shown that minimally scoped MCP servers can enable unintended data
+exfiltration or cross-tool abuse if not carefully designed~\cite{croce2025trojans,song2025attack}.
+These findings reinforced the importance of strong governance and validation
+mechanisms, particularly in production environments.
+
+\begin{figure}[htbp]
+    \centering
+    % \includegraphics[width=0.8\textwidth]{Figures/mcp-prototype.pdf}
+    \caption{High-level deployment architecture of the MCP prototype used for
+        experimentation.}
+    \label{fig:mcp_prototype}
+\end{figure}
 
 %=============================================================================
 \section{Outcomes and Lessons}
 \label{sec:MCP_Outcomes}
 %=============================================================================
 
-% 1 page
-% What MCP exploration taught you about interfaces, contracts, and tooling
+The MCP exploration yielded several insights that influenced subsequent design
+decisions. While the protocol offers an appealing abstraction for tool
+interoperability, its practical application revealed trade-offs between
+flexibility, safety, and determinism.
 
-% Table placeholder: T7 - Findings table (assumption → experiment → result → lesson)
-% \begin{table}[htbp]
-%   \centering
-%   \caption{MCP exploration findings: from assumption to lesson learned.}
-%   \label{tab:MCP_Findings}
-%   \begin{tabular}{lp{3cm}p{3cm}p{4cm}}
-%     \toprule
-%     \textbf{Assumption} & \textbf{Experiment} & \textbf{Result} & \textbf{Lesson} \\
-%     \midrule
-%     ... & ... & ... & ... \\
-%     ... & ... & ... & ... \\
-%     \bottomrule
-%   \end{tabular}
-% \end{table}
+\begin{table}[htbp]
+    \centering
+    \caption{MCP exploration findings: from assumption to lesson learned.}
+    \label{tab:MCP_Findings}
+    \begin{tabular}{lp{3cm}p{3cm}p{4cm}}
+        \toprule
+        \textbf{Assumption}                            & \textbf{Experiment} & \textbf{Result} & \textbf{Lesson} \\
+        \midrule
+        Tool interfaces can be fully standardized      &
+        Implement MCP tool exposure                    &
+        Tool usage varied by model behavior            &
+        Protocols need stronger behavioral constraints                                                           \\
+        Interoperability reduces integration effort    &
+        Reuse tools across agents                      &
+        Integration simplified but debugging increased &
+        Abstractions shift, not eliminate, complexity                                                            \\
+        MCP is production-ready                        &
+        Security review of prototype                   &
+        Potential attack vectors identified            &
+        Governance is mandatory for safe adoption                                                                \\
+        \bottomrule
+    \end{tabular}
+\end{table}
 
-% Learning Highlight Box:
-% - What you assumed about tool interoperability
-% - What you observed in MCP implementation
-% - What you changed in your understanding
-% - Principle for future tool integration work
+A key outcome of this research was a refined understanding of interface design
+for AI systems. Protocol-level abstractions can reduce coupling and improve
+reuse, but they do not remove the need for explicit control over execution
+flow, validation, and safety. These observations motivated a later shift
+toward more structured orchestration approaches, where state transitions and
+execution paths are explicitly modeled.
+
+Overall, the MCP exploration served its intended purpose as a research probe.
+It clarified the limits of protocol-driven interoperability and provided a
+useful contrast to later work on stateful, workflow-oriented agent systems.

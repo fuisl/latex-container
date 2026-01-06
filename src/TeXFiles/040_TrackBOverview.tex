@@ -1,67 +1,165 @@
+%=============================================================================
 \chapter{Track B Overview: Agent Platform Goals and Requirements}
 \label{ch:TrackBOverview}
-
-% Page budget: 3 pages (Pages 27-29)
+%=============================================================================
+% Page budget: 3 pages (Pages 27--29)
 % This is the "industrial core" - the LangGraph Agent Platform
+%=============================================================================
+
+This chapter introduces Track~B, which represents the transition from
+exploratory research to the development of a production-oriented \gls{ai}
+agent platform. Unlike earlier work that focused on workflow automation, local
+experimentation, or protocol-level abstractions, Track~B centers on building a
+stateful, human-in-the-loop agent system using \gls{langgraph} as the core
+orchestration framework.~\cite{langgraphOverview,langgraphProduct}
+
+The objective of this track was to design and implement an agent platform that
+can be integrated into engineering workflows with explicit attention to
+correctness, governance, and operational reliability, consistent with
+production engineering principles.~\cite{googleSRE,microsoftWellArchitected}
 
 %=============================================================================
 \section{Business Capability and User Journeys}
 \label{sec:TrackB_BusinessCapability}
 %=============================================================================
 
-% 1.5 pages
-% Target users: QA, PM/PE, Ops
-% Primary journeys:
-% - Requirement → Test Cases (HITL)
-% - Test Case → Test Steps (HITL)
+The primary business capability delivered by the agent platform is the
+generation and refinement of \gls{qa} artifacts from natural-language inputs.
+Concretely, the system provides structured transformations from requirements
+into test cases and test steps, while preserving human oversight at each
+critical decision point (human-in-the-loop).~\cite{langgraphHITL,langgraphInterrupts,anthropicAgents2024}
 
-% Figure placeholder: F15 - User journey swimlane diagram (HITL)
-% \begin{figure}[htbp]
-%   \centering
-%   % \includegraphics[width=\textwidth]{Figures/user-journey-swimlane.pdf}
-%   \caption{User journey swimlane diagram showing human-in-the-loop gates at each decision point.}
-%   \label{fig:user_journey_swimlane}
-% \end{figure}
+This capability targets three user groups:
 
+\textbf{QA / Test Engineers} use the system to accelerate test creation with
+fast feedback loops, while retaining control over correctness through review
+and edits. Human review gates are modeled as explicit pauses in execution that
+require external input before continuing.~\cite{langgraphHITL,langgraphInterrupts}
+
+\textbf{Product Engineers and Product Managers} use the platform to translate
+feature requirements into concrete QA artifacts. This reflects a common
+industry pattern in which LLM-assisted systems serve as ``translation layers''
+between intent (requirements) and structured outputs (test artifacts).~\cite{langchainStructuredOutput,anthropicAgents2024}
+
+\textbf{Platform and Operations teams} operate the agent service as a
+multi-tenant system, where governance and cost control (e.g., usage limits)
+and reliable observability signals are first-class operational requirements.~\cite{googleSRE,microsoftWellArchitected,langfuseDocs}
+
+The platform supports two primary user journeys, both designed around
+human-in-the-loop interaction rather than full autonomy.~\cite{anthropicAgents2024,langgraphHITL}
+
+\textbf{Journey 1: Requirement $\rightarrow$ Test Cases (human-in-the-loop).}
+A user submits a requirement and requests $N$ candidate test cases. The system
+generates candidate cases, then pauses for human review. During review, the
+user may approve, edit, regenerate, or request additional cases before
+continuing execution.~\cite{langgraphHITL,langgraphInterrupts}
+
+\textbf{Journey 2: Test Case $\rightarrow$ Test Steps (human-in-the-loop).}
+A user selects a test case and requests steps. The system generates an ordered
+set of steps (e.g., 5--10), then pauses for human editing. The user may edit,
+add, delete, approve, or reject with feedback and trigger regeneration.~\cite{langgraphHITL,langgraphInterrupts}
+
+\begin{figure}[htbp]
+    \centering
+    % \includegraphics[width=\textwidth]{Figures/user-journey-swimlane.pdf}
+    \caption{User journey swimlane diagram showing human-in-the-loop gates at each
+        decision point. Interrupt/resume mechanisms allow execution to pause and
+        continue based on human review outcomes.}
+    \label{fig:user_journey_swimlane}
+\end{figure}
 
 %=============================================================================
 \section{Requirements Specification}
 \label{sec:TrackB_Requirements}
 %=============================================================================
 
-% 1.5 pages
+The platform design was driven by a separation between functional requirements
+(what the system must do) and non-functional requirements (how the system must
+behave in production). This separation helps prevent feature development from
+eroding reliability and operability.~\cite{googleSRE,microsoftWellArchitected}
 
 \subsection{Functional Requirements}
 \label{sec:TrackB_FunctionalReqs}
 
-% Iterative loops, edits, regeneration
+The core functional requirement is support for iterative, stateful workflows
+rather than one-shot generation. In practice, this implies:
 
+\begin{itemize}
+    \item \textbf{Pause and resume:} execution must support explicit
+          interruption points for human review and continuation with updated inputs,
+          enabled by an interrupts mechanism that persists execution state.~\cite{langgraphInterrupts,langgraphHITL}
+
+    \item \textbf{Editable artifacts:} generated test artifacts must be
+          editable at a granular level (e.g., approve/edit/delete/update selected
+          items) rather than treated as immutable text.~\cite{langchainStructuredOutput,anthropicAgents2024}
+
+    \item \textbf{Selective regeneration:} the user must be able to regenerate
+          subsets (e.g., specific cases or steps) without restarting the entire run,
+          which requires explicit state management and repeatable transitions.~\cite{langgraphOverview,langgraphHITL}
+\end{itemize}
+
+These requirements reflect how QA correctness emerges through iteration and
+review, not through a single LLM call, and motivate the use of state-machine
+orchestration for predictable transitions.~\cite{langgraphOverview,anthropicAgents2024}
 
 \subsection{Non-Functional Requirements}
 \label{sec:TrackB_NFRs}
 
-% Multi-tenant governance, observability best-effort, CI/CD, reliability
+Non-functional requirements were decisive because the system is intended to be
+operated as a service rather than a one-off prototype.
 
+\textbf{Governance and multi-tenancy.} The system must scope requests to user
+and organization context and support enforceable usage controls (e.g., token
+limits). In production practice, this aligns with service governance patterns
+such as quotas, budget controls, and isolation mechanisms.~\cite{googleSRE,microsoftWellArchitected}
 
-% Figure placeholder: F16 - Requirements-to-mechanisms map
-% \begin{figure}[htbp]
-%   \centering
-%   % \includegraphics[width=\textwidth]{Figures/requirements-mechanisms-map.pdf}
-%   \caption{Mapping of requirements to implementation mechanisms in the agent platform.}
-%   \label{fig:requirements_mechanisms}
-% \end{figure}
+\textbf{Observability (best-effort).} Tracing and metrics must be collected to
+support debugging and operational monitoring, but failures in observability
+components must not break core execution paths. This ``best-effort'' approach
+prevents auxiliary dependencies from degrading service availability.~\cite{googleSRE,langfuseDocs}
 
-% Table placeholder: T8 - Journey → Graph → Interrupt points → Outputs
-% \begin{table}[htbp]
-%   \centering
-%   \caption{Mapping user journeys to graphs, interrupt points, and outputs.}
-%   \label{tab:JourneyGraphMapping}
-%   \begin{tabular}{llll}
-%     \toprule
-%     \textbf{Journey} & \textbf{Graph} & \textbf{Interrupts} & \textbf{Outputs} \\
-%     \midrule
-%     Requirement → Cases & Graph A & Review gate & Test cases \\
-%     Case → Steps & Graph B & Edit gate & Test steps \\
-%     \bottomrule
-%   \end{tabular}
-% \end{table}
+\textbf{Reliability and deployability.} The platform must support automated
+build and deployment to a managed runtime capable of running containerized
+services, enabling repeatable delivery pipelines and controlled rollouts.
+Cloud Run was selected as the primary deployment target, providing a fully
+managed container execution environment.~\cite{cloudRunDocs,cloudRunOverview,microsoftWellArchitected}
+
+\textbf{Persistence and operational dependencies.} Long-running and resumable
+execution requires persistence and supporting infrastructure. Redis was used
+as a fast in-memory data store suitable for counters and operational keys, and
+PostgreSQL was used as a relational database for durable storage patterns and
+service state.~\cite{redisDocs,postgresDocs}
+
+\textbf{Configuration discipline.} Production services require configurable
+behavior across environments. Hydra and OmegaConf provide composable,
+hierarchical configuration and interpolation, while python-dotenv supports
+loading environment-specific variables from \texttt{.env} files for local
+development workflows.~\cite{hydraIntro,omegaconfUsage,pythonDotenv}
+
+\begin{figure}[htbp]
+    \centering
+    % \includegraphics[width=\textwidth]{Figures/requirements-mechanisms-map.pdf}
+    \caption{Mapping of requirements to implementation mechanisms in the agent
+        platform (e.g., interrupts for human review, structured outputs for contracts,
+        tracing for observability, and governance controls for multi-tenancy).}
+    \label{fig:requirements_mechanisms}
+\end{figure}
+
+\begin{table}[htbp]
+    \centering
+    \caption{Mapping user journeys to graphs, interrupt points, and outputs.}
+    \label{tab:JourneyGraphMapping}
+    \begin{tabular}{llll}
+        \toprule
+        \textbf{Journey}                & \textbf{Graph}        & \textbf{Interrupts} & \textbf{Outputs} \\
+        \midrule
+        Requirement $\rightarrow$ Cases & Case generation graph & Review gate         & Test cases       \\
+        Case $\rightarrow$ Steps        & Step generation graph & Edit gate           & Test steps       \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Taken together, these requirements define the platform as a controlled,
+stateful system that prioritizes correctness, transparency, and human agency
+over full autonomy. This framing sets the foundation for the architectural
+and implementation choices presented in the following chapters.~\cite{anthropicAgents2024,langgraphOverview}
