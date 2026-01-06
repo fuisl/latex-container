@@ -1,7 +1,131 @@
-\chapter{Evaluation der Methode}
-\label{ch:EvaluationDerMethode}
+% =============================================================================
+% Governance & Observability + CI/CD & Operations
+% Page budget: 5 pages (Pages 44-48)
+% =============================================================================
+
+\chapter{Governance and Observability}
+\label{ch:Governance}
+
+% Page budget: 3 pages (Pages 44-46)
+
+%=============================================================================
+\section{Token Usage Tracking}
+\label{sec:TokenTracking}
+%=============================================================================
+
+% Callback → usage_metadata → Redis counters
+
+% Figure placeholder: F26 - Token governance flow
+% \begin{figure}[htbp]
+%   \centering
+%   % \includegraphics[width=\textwidth]{Figures/token-governance-flow.pdf}
+%   \caption{Token governance flow showing callback processing, Redis counter updates, and enforcement points.}
+%   \label{fig:token_governance}
+% \end{figure}
+
+
+%=============================================================================
+\section{Limit Enforcement}
+\label{sec:LimitEnforcement}
+%=============================================================================
+
+% Pre-call checks, block behavior, multi-tenant safety
+
+
+%=============================================================================
+\section{Observability with Langfuse}
+\label{sec:ObservabilityLangfuse}
+%=============================================================================
+
+% Best-effort observability approach
+% Attach handler only if auth passes
+% Traces enriched with org/user/project
+% Minimum viable monitoring signals
+
+% Figure placeholder: F27 - Observability integration diagram (traces + metrics + tags)
+% \begin{figure}[htbp]
+%   \centering
+%   % \includegraphics[width=\textwidth]{Figures/observability-architecture.pdf}
+%   \caption{Observability integration showing trace collection, metrics aggregation, and tenant-aware tagging.}
+%   \label{fig:observability_architecture}
+% \end{figure}
+
+% Table placeholder: T13 - Signals table (metric → source → action)
+% \begin{table}[htbp]
+%   \centering
+%   \caption{Monitoring signals and operator actions.}
+%   \label{tab:MonitoringSignals}
+%   \begin{tabular}{lll}
+%     \toprule
+%     \textbf{Metric} & \textbf{Source} & \textbf{Operator Action} \\
+%     \midrule
+%     ... & ... & ... \\
+%     \bottomrule
+%   \end{tabular}
+% \end{table}
+
+% ADR Box: observability best-effort principle
+% ADR Box: token governance design (Redis key schema)
+
+
+%=============================================================================
+%=============================================================================
+\chapter{CI/CD and Operations}
+\label{ch:CICD}
+
+% Page budget: 2 pages (Pages 47-48)
+
+%=============================================================================
+\section{CI/CD Pipeline Overview}
+\label{sec:PipelineOverview}
+%=============================================================================
+
+% Build → test → containerize → deploy to Cloud Run
+% Versioning and rollback strategy
+
+% Figure placeholder: F28 - CI/CD pipeline diagram
+% \begin{figure}[htbp]
+%   \centering
+%   % \includegraphics[width=\textwidth]{Figures/cicd-pipeline.pdf}
+%   \caption{CI/CD pipeline showing build, test, containerization, and Cloud Run deployment stages.}
+%   \label{fig:cicd_pipeline}
+% \end{figure}
+
+
+%=============================================================================
+\section{Operational Runbook and Hardening Checklist}
+\label{sec:OperationalRunbook}
+%=============================================================================
+
+% Common failure modes
+% Monthly maintenance
+% Security checklist: secrets, network, auth, validation
+
+% Figure placeholder: F29 - Hardening checklist as control-map diagram
+% \begin{figure}[htbp]
+%   \centering
+%   % \includegraphics[width=0.9\textwidth]{Figures/hardening-checklist.pdf}
+%   \caption{Hardening control map showing security controls, network policies, and validation layers.}
+%   \label{fig:hardening_checklist}
+% \end{figure}
+
+% Table placeholder: T14 - Runbook quick reference (symptom → likely cause → action)
+% \begin{table}[htbp]
+%   \centering
+%   \caption{Operational runbook quick reference.}
+%   \label{tab:RunbookReference}
+%   \begin{tabular}{lll}
+%     \toprule
+%     \textbf{Symptom} & \textbf{Likely Cause} & \textbf{Action} \\
+%     \midrule
+%     ... & ... & ... \\
+%     \bottomrule
+%   \end{tabular}
+% \end{table}
+
+% ADR Box: Cloud Run deployment choice
 
 
 
 
- 
+

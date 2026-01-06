@@ -1,3 +1,91 @@
-\chapter{Hintergrund}
-\label{ch:Hintergrund}
+\chapter{Engineering Method}
+\label{ch:EngineeringMethod}
+
+% Page budget: 3 pages (Pages 8-10)
+% This replaces the old "end-to-end system overview" with a method-first view that applies to both tracks
+
+%=============================================================================
+\section{R\&D Method: Exploration to Production}
+\label{sec:RDMethod}
+%=============================================================================
+
+% 1.5 pages
+% How you explore options
+% How you validate (benchmarks, prototypes, operational signals)
+% What counts as evidence
+% Iterative cycle: exploration → evidence → decision → hardening
+
+% Figure placeholder: F5 - R&D lifecycle diagram (Explore → Decide → Ship → Observe)
+% \begin{figure}[htbp]
+%   \centering
+%   % \includegraphics[width=0.9\textwidth]{Figures/rd-lifecycle.pdf}
+%   \caption{R\&D lifecycle showing the iterative flow from exploration through decision to production hardening.}
+%   \label{fig:rd_lifecycle}
+% \end{figure}
+
+
+%=============================================================================
+\section{Decision Documentation Practice (ADR Mini)}
+\label{sec:ADRPractice}
+%=============================================================================
+
+% 1 page
+% Standard template used throughout report:
+% - Context
+% - Options considered  
+% - Criteria
+% - Evidence
+% - Decision
+% - Trade-offs + mitigations
+%
+% Emphasize trade-offs + mitigations
+
+% Table placeholder: T3 - Decision criteria (latency, cost, maintainability, correctness, security, operability)
+% \begin{table}[htbp]
+%   \centering
+%   \caption{Decision criteria used across all engineering decisions.}
+%   \label{tab:DecisionCriteria}
+%   \begin{tabular}{lp{8cm}l}
+%     \toprule
+%     \textbf{Criterion} & \textbf{Definition} & \textbf{Weight} \\
+%     \midrule
+%     Latency & Response time for user-facing operations & High \\
+%     Cost & Infrastructure and API costs & Medium \\
+%     Maintainability & Ease of future changes and debugging & High \\
+%     Correctness & Accuracy and reliability of outputs & Critical \\
+%     Security & Protection of data and access control & Critical \\
+%     Operability & Ease of monitoring, deployment, and recovery & High \\
+%     \bottomrule
+%   \end{tabular}
+% \end{table}
+
+
+%=============================================================================
+\section{Workflow Systems vs Agent Systems}
+\label{sec:WorkflowVsAgent}
+%=============================================================================
+
+% 0.5 page - HIGHLY IMPORTANT for differentiation
+% This section shows maturity in understanding different system paradigms
+
+% Workflow automation characteristics:
+% - Deterministic orchestration
+% - Integrations
+% - Retries and idempotency
+% - Audit logs
+
+% Agent systems characteristics:
+% - Stateful reasoning
+% - Tool use
+% - Uncertainty
+% - Evaluation/guardrails
+% - Why the architectures differ
+
+% Figure placeholder: F4 - Workflow vs Agent comparison diagram (side-by-side)
+% \begin{figure}[htbp]
+%   \centering
+%   % \includegraphics[width=\textwidth]{Figures/workflow-vs-agent.pdf}
+%   \caption{Comparison of workflow automation systems and agent systems, highlighting key architectural differences.}
+%   \label{fig:workflow_vs_agent}
+% \end{figure}
 

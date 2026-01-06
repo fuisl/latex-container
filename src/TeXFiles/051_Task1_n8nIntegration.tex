@@ -1,0 +1,107 @@
+\chapter{ERP Integration via n8n}
+\label{ch:Task1_n8n}
+
+% Page budget: 5 pages (Pages 13-17)
+
+%=============================================================================
+\section{Problem Statement and Requirements}
+\label{sec:Task1_Problem}
+%=============================================================================
+
+% 1 page
+% What business problem needed solving
+% Integration requirements and constraints
+
+
+
+%=============================================================================
+\section{Workflow Design}
+\label{sec:Task1_WorkflowDesign}
+%=============================================================================
+
+% 2 pages
+% Triggers, nodes, branching, retries, compensation logic
+% Auditability and failure recovery patterns
+
+% Figure placeholder: F7 - n8n workflow diagram (happy path)
+% \begin{figure}[htbp]
+%   \centering
+%   % \includegraphics[width=\textwidth]{Figures/n8n-workflow-happy-path.pdf}
+%   \caption{n8n workflow diagram showing the main happy path for ERP integration.}
+%   \label{fig:n8n_workflow_happy}
+% \end{figure}
+
+% Figure placeholder: F8 - Failure handling branches (retry/abort/replay)
+% \begin{figure}[htbp]
+%   \centering
+%   % \includegraphics[width=\textwidth]{Figures/n8n-failure-branches.pdf}
+%   \caption{Failure handling branches showing retry, abort, and replay strategies.}
+%   \label{fig:n8n_failure_branches}
+% \end{figure}
+
+% Figure placeholder: F9 - Sequence diagram (ERP event → n8n → action → ERP)
+% \begin{figure}[htbp]
+%   \centering
+%   % \includegraphics[width=\textwidth]{Figures/erp-sequence-diagram.pdf}
+%   \caption{Sequence diagram showing the flow from ERP event through n8n processing back to ERP.}
+%   \label{fig:erp_sequence}
+% \end{figure}
+
+
+%=============================================================================
+\section{Operational Considerations}
+\label{sec:Task1_Operations}
+%=============================================================================
+
+% 1 page
+% Secrets, environment separation, rate limiting, idempotency
+
+% Table placeholder: T5 - Failure modes and mitigations
+% \begin{table}[htbp]
+%   \centering
+%   \caption{Failure modes and corresponding mitigation strategies.}
+%   \label{tab:Task1_FailureModes}
+%   \begin{tabular}{lp{5cm}p{5cm}}
+%     \toprule
+%     \textbf{Failure Mode} & \textbf{Impact} & \textbf{Mitigation} \\
+%     \midrule
+%     Network timeout & ... & Retry with backoff \\
+%     Invalid payload & ... & Validation + DLQ \\
+%     Rate limit exceeded & ... & Queue with throttling \\
+%     \bottomrule
+%   \end{tabular}
+% \end{table}
+
+
+%=============================================================================
+\section{Results and Learning Points}
+\label{sec:Task1_Results}
+%=============================================================================
+
+% 1 page
+% What worked, what didn't, and why
+
+% Table placeholder: T4 - ADR: Why n8n, alternatives, trade-offs
+% \begin{table}[htbp]
+%   \centering
+%   \caption{Architecture Decision Record: n8n selection.}
+%   \label{tab:Task1_ADR}
+%   \begin{tabular}{lp{10cm}}
+%     \toprule
+%     \textbf{Aspect} & \textbf{Details} \\
+%     \midrule
+%     Context & Need for workflow automation between ERP and AI services \\
+%     Options & n8n, Temporal, custom scripts, Apache Airflow \\
+%     Decision & n8n selected \\
+%     Trade-offs & ... \\
+%     \bottomrule
+%   \end{tabular}
+% \end{table}
+
+% Learning Highlight Box:
+% - What you assumed
+% - What you observed  
+% - What you changed
+% - Principle for next time
+
+
