@@ -5,38 +5,36 @@
 % Page budget: 5 pages (Pages 13--17)
 %=============================================================================
 
-This chapter describes the design and implementation of an
-\gls{erp} integration using \gls{n8n}
-as a workflow automation platform~\cite{n8nDocs}. The work focuses on
-introducing AI-assisted processing into
+This chapter describes the design and implementation of an \gls{erp}
+integration using \gls{n8n} as a workflow automation
+platform~\cite{n8nDocs}. The work introduces AI-assisted processing into
 existing enterprise workflows while preserving deterministic execution,
 operational safety, and auditability.
 
 Unlike agent-based systems explored later in the internship, this integration
-intentionally follows a workflow-oriented model. Control flow, branching, and
-failure handling are explicitly defined, in line with established distinctions
-between deterministic workflows and agent-based systems~\cite{anthropicAgents2024}.
+follows a workflow-oriented model. Control flow, branching, and failure
+handling are explicitly defined, following established distinctions between
+deterministic workflows and agent-based systems~\cite{anthropicAgents2024}.
 
 %=============================================================================
 \section{Problem Statement and Requirements}
 \label{sec:Task1_Problem}
 %=============================================================================
 
-Enterprise Resource Planning systems typically operate at the core of business
-processes and are therefore highly sensitive to integration errors, unexpected
-behavior, or partial failures. While AI-assisted capabilities can add
-significant value—such as decision support or automated analysis—directly
-embedding non-deterministic logic into ERP systems introduces unacceptable
-operational risk in production environments~\cite{googleSRE}.
+Enterprise Resource Planning systems operate at the core of business processes
+and are highly sensitive to integration errors, unexpected behavior, or partial
+failures. While AI-assisted capabilities can add significant value---such as
+decision support or automated analysis---directly embedding non-deterministic
+logic into ERP systems introduces unacceptable operational risk in production
+environments~\cite{googleSRE}.
 
-The problem addressed in this task was to enable AI-assisted functionality as
-part of ERP-related processes without compromising the stability or
-predictability of the underlying system. In practice, the integration needed
-to respond to ERP-triggered events, perform AI-assisted computation when
-appropriate, and apply the resulting actions back to the ERP system in a
-controlled and observable manner.
+The problem addressed was to enable AI-assisted functionality within
+ERP-related processes without compromising stability or predictability. The
+integration needed to respond to ERP-triggered events, perform AI-assisted
+computation when appropriate, and apply resulting actions back to the ERP
+system in a controlled and observable manner.
 
-The design was guided by a set of explicit constraints:
+The design was guided by explicit constraints:
 
 \begin{itemize}
     \item \textbf{Deterministic execution:} workflow paths must be reproducible
@@ -50,8 +48,8 @@ The design was guided by a set of explicit constraints:
 \end{itemize}
 
 Advanced agent behaviors such as autonomous decision-making or cross-run
-learning were explicitly considered out of scope. These concerns were deferred
-to later work on agent-oriented architectures, where additional governance and
+learning were considered out of scope. These concerns were deferred to later
+work on agent-oriented architectures, where additional governance and
 evaluation mechanisms are required~\cite{anthropicAgents2024}.
 
 %=============================================================================
@@ -62,37 +60,35 @@ evaluation mechanisms are required~\cite{anthropicAgents2024}.
 The integration was implemented using n8n, which provides a visual and
 programmatic model for deterministic workflow orchestration~\cite{n8nDocs}.
 This choice enabled explicit control over execution order, branching logic,
-and failure handling—capabilities that are essential when integrating with
-critical enterprise systems.
+and failure handling---capabilities essential when integrating with critical
+enterprise systems.
 
 The workflow is initiated by a well-defined trigger, such as an event emitted
-by the ERP system or a scheduled invocation. From this trigger, execution
-proceeds through a sequence of nodes, each responsible for a single,
-well-scoped operation. Early stages of the workflow perform input validation
-and basic sanity checks to ensure that downstream processing operates on
-well-formed data.
+by the ERP system or a scheduled invocation. Execution proceeds through a
+sequence of nodes, each responsible for a single, well-scoped operation. Early
+stages perform input validation and sanity checks to ensure downstream
+processing operates on well-formed data.
 
 AI-assisted processing is encapsulated within dedicated workflow nodes. These
 nodes receive validated inputs, invoke external large language models via
-well-defined application programming interfaces, and return structured outputs
-that downstream nodes can interpret deterministically. By constraining AI
-interactions to clearly bounded steps, the workflow avoids uncontrolled
-propagation of uncertainty and preserves predictable behavior across
-executions.
+well-defined APIs, and return structured outputs that downstream nodes can
+interpret deterministically. Constraining AI interactions to bounded steps
+avoids uncontrolled propagation of uncertainty and preserves predictable
+behavior across executions.
 
-Conditional branching is used to route execution based on both business rules
-and AI-generated outputs. Each branch represents an explicitly modeled decision
-path, making the workflow easier to reason about and review. This design also
-simplifies debugging, as operators can trace exactly which branch was taken and
-why.
+Conditional branching routes execution based on both business rules and
+AI-generated outputs. Each branch represents an explicitly modeled decision
+path, making the workflow easier to reason about and review. This design
+simplifies debugging, as operators can trace exactly which branch was taken
+and why.
 
 Failure handling is treated as a first-class concern. Transient failures, such
 as network timeouts, are handled through retries with backoff, while
-unrecoverable errors result in controlled abort paths. In cases where partial
-side effects may have occurred, compensation logic is applied to restore or
-neutralize ERP state before termination. The workflow design also supports safe
-replay, allowing failed executions to be retried after issues are resolved
-without introducing duplicate effects~\cite{googleSRE}.
+unrecoverable errors result in controlled abort paths. When partial side
+effects may have occurred, compensation logic restores or neutralizes ERP state
+before termination. The workflow also supports safe replay, allowing failed
+executions to be retried after issues are resolved without introducing
+duplicate effects~\cite{googleSRE}.
 
 \begin{figure}[htbp]
     \centering
@@ -123,43 +119,41 @@ without introducing duplicate effects~\cite{googleSRE}.
 \label{sec:Task1_Operations}
 %=============================================================================
 
-Operational robustness was a central design consideration for this integration.
-All secrets and credentials are managed outside of the workflow definition,
-allowing the same workflow logic to be deployed across development, staging,
-and production environments without modification. This separation aligns with
-established best practices in workflow automation and cloud-based integration
+Operational robustness was a central design consideration. All secrets and
+credentials are managed outside the workflow definition, allowing the same
+workflow logic to be deployed across development, staging, and production
+environments without modification. This separation aligns with best practices
+in workflow automation and cloud-based integration
 systems~\cite{googleSRE,microsoftWellArchitected}.
 
 To support safe retries and replays, interactions with ERP systems are designed
-to be idempotent wherever possible. This ensures that repeated execution of a
-workflow step does not result in duplicate or inconsistent updates, even under
-failure conditions~\cite{googleSRE}.
+to be idempotent wherever possible. Repeated execution of a workflow step does
+not result in duplicate or inconsistent updates, even under failure
+conditions~\cite{googleSRE}.
 
 Rate limiting and throttling mechanisms are applied at integration boundaries
-to protect both the ERP system and external AI services. These controls help
-prevent cascading failures during periods of elevated load or abnormal
-behavior and provide a degree of back-pressure when downstream systems are
-under stress~\cite{googleSRE}.
+to protect both the ERP system and external AI services. These controls prevent
+cascading failures during elevated load or abnormal behavior and provide
+back-pressure when downstream systems are under stress~\cite{googleSRE}.
 
 %=============================================================================
 \section{Results and Learning Points}
 \label{sec:Task1_Results}
 %=============================================================================
 
-The n8n-based integration successfully demonstrated that AI-assisted processing
-can be introduced into ERP workflows without sacrificing determinism or
-operational safety. Explicit modeling of control flow and failure handling
-proved effective in maintaining system stability and simplifying debugging.
+The n8n-based integration demonstrated that AI-assisted processing can be
+introduced into ERP workflows without sacrificing determinism or operational
+safety. Explicit modeling of control flow and failure handling proved effective
+for maintaining system stability and simplifying debugging.
 
-At the same time, the work revealed limitations inherent to workflow-based
-approaches. As the complexity of AI-driven logic increased, workflows became
-progressively harder to maintain and reason about. Expressing iterative or
-adaptive behavior required additional branching and manual control
-structures, leading to increased maintenance overhead.
+The work also revealed limitations inherent to workflow-based approaches. As
+AI-driven logic complexity increased, workflows became harder to maintain and
+reason about. Expressing iterative or adaptive behavior required additional
+branching and manual control structures, increasing maintenance overhead.
 
-A key learning from this task was the importance of clearly separating
-deterministic workflow automation from agent-based systems. Workflow tools are
-well suited for control, safety, and auditability, but they become increasingly
-strained when used to model adaptive or iterative reasoning. This realization
-directly informed the architectural direction taken in later work on
-agent-oriented systems~\cite{anthropicAgents2024}.
+A key learning was the importance of separating deterministic workflow
+automation from agent-based systems. Workflow tools are well suited for
+control, safety, and auditability, but become strained when modeling adaptive
+or iterative reasoning. This realization directly informed the architectural
+direction taken in later work on agent-oriented
+systems~\cite{anthropicAgents2024}.

@@ -5,145 +5,160 @@
 % Page budget: 4--5 pages
 %=============================================================================
 
-This chapter documents the exploration and evaluation of local large language
-model (LLM) serving as part of the early research and development phase of the
-internship. The objective of this work was not to deliver a production-ready
-serving stack, but to understand the feasibility, trade-offs, and limitations
-of running LLMs locally for rapid experimentation, cost control, and early
-agent prototyping.
+This chapter presents the exploration and evaluation of local large language
+model (LLM) serving conducted during the early and intermediate research phases
+of the internship. The objective was not to build a production-ready serving
+platform, but to understand the practical feasibility, performance boundaries,
+and operational trade-offs of running LLMs on self-managed infrastructure.
 
-The findings from this track informed later architectural decisions, including
-the transition toward managed and production-oriented serving solutions in
-subsequent work.
+The work progressed from lightweight local prototyping to a more structured
+serving setup using vLLM, enabling realistic evaluation of latency,
+throughput, and hardware utilization. The findings from this chapter directly
+informed the subsequent transition toward managed, production-oriented serving
+solutions.
 
 %=============================================================================
 \section{Objectives and Scope}
 \label{sec:LocalServing_Objectives}
 %=============================================================================
 
-Local model serving was explored with three primary objectives:
+Local model serving was investigated with the following objectives:
 
 \begin{itemize}
-    \item To enable low-cost experimentation with LLM-based features during
-          early development.
-    \item To gain hands-on understanding of model inference behavior, latency,
-          and resource utilization.
-    \item To evaluate whether locally hosted models could reasonably support
-          interactive AI-assisted workflows.
+    \item to enable low-cost experimentation during early development without
+          dependence on hosted APIs,
+    \item to develop an empirical understanding of inference latency,
+          throughput, and GPU resource constraints,
+    \item to assess whether locally hosted models could support interactive
+          and human-in-the-loop workflows under moderate concurrency.
 \end{itemize}
 
-This work explicitly focused on development and experimentation scenarios.
-Concerns such as multi-tenant isolation, high availability, and horizontal
-scaling were considered out of scope at this stage.
+The scope of this work was intentionally limited to single-node deployments.
+Concerns such as multi-tenant isolation, high availability, autoscaling, and
+global traffic management were treated as out of scope and deferred to later
+phases.
 
 %=============================================================================
 \section{Model Selection}
 \label{sec:LocalServing_ModelSelection}
 %=============================================================================
 
-For initial prototyping, an open-source large language model was selected to
-balance development flexibility with computational feasibility. The chosen
-model was \texttt{gpt-oss:20b}, an open-weight model documented by OpenAI as
-providing reasoning-oriented capabilities comparable to smaller hosted
-reasoning models~\cite{openai2025gptoss}.
+For generation tasks, the open-weight model \texttt{gpt-oss:20b} was selected
+as the primary experimental baseline. According to its model card, this model
+exhibits reasoning-oriented behavior comparable to smaller hosted reasoning
+models, while remaining inspectable and self-hostable~\cite{openai2025gptoss}.
+The choice emphasized transparency and controllability over raw performance.
 
-The primary motivation for this choice was not absolute performance, but
-transparency and controllability. Using an open-weight model enabled direct
-inspection of inference behavior and avoided dependency on external API costs
-or rate limits during early experimentation.
-
-For retrieval-augmented generation (RAG) experiments, an open-source embedding
-model, \texttt{nomic-embed-text}, was used to generate vector representations
-of textual content~\cite{nomic2025embed}. This pairing allowed the full RAG
-pipeline to operate locally without reliance on third-party embedding services.
+For retrieval-augmented generation (RAG) experiments, the embedding model
+\texttt{nomic-embed-text} was used to generate vector representations of
+documentation content~\cite{nomic2025embed}. This allowed the entire RAG
+pipeline to operate locally without reliance on external embedding services,
+facilitating rapid iteration and debugging.
 
 %=============================================================================
-\section{Serving Architecture}
+\section{Serving Architecture Evolution}
 \label{sec:LocalServing_Architecture}
 %=============================================================================
 
-Models were served locally using \texttt{Ollama}, a lightweight runtime designed
-to simplify execution of open-source LLMs on local hardware~\cite{ollama}.
-Ollama provides a uniform HTTP-based interface for inference, abstracting away
-many low-level concerns related to model loading and runtime configuration.
+\subsection{Initial Prototyping with Ollama}
 
-The local serving setup followed a simple architecture:
+Early experiments used \texttt{Ollama}, a lightweight runtime for executing
+open-source LLMs on local hardware~\cite{ollama}. Ollama provided a convenient
+HTTP-based interface and minimal configuration overhead, making it suitable
+for early-stage prototyping and functional validation.
+
+This setup enabled fast iteration on prompts, tool interfaces, and agent logic.
+However, performance quickly became constrained under concurrent requests, and
+the serving stack provided limited visibility into GPU utilization and memory
+pressure.
+
+\subsection{Transition to vLLM}
+
+To better evaluate realistic serving behavior, the serving stack was migrated
+to \texttt{vLLM}, an inference engine designed for high-throughput LLM
+serving~\cite{kwon2023efficient}. vLLM introduces two key mechanisms:
+\textit{PagedAttention}, which reduces KV-cache fragmentation, and continuous
+batching, which maximizes GPU utilization across concurrent requests.
+
+As illustrated in Figure, the vLLM serving architecture consisted of:
 
 \begin{itemize}
-    \item The LLM runtime was hosted on a development machine using Ollama.
-    \item Client applications issued HTTP requests to the local inference
-          endpoint.
-    \item Responses were integrated into downstream components such as agent
-          prototypes and RAG pipelines.
+    \item containerized vLLM instances deployed via Docker and Docker Compose,
+    \item multiple model endpoints exposed on separate ports,
+    \item an \texttt{Nginx} reverse proxy for per-model request routing,
+    \item secure external access provided through \texttt{Tailscale Funnel}.
 \end{itemize}
 
-This architecture minimized operational overhead and enabled rapid iteration.
-However, it also tightly coupled model performance to local hardware
-capabilities, which became a significant limiting factor during evaluation.
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{Figures/model-serving.png}
+    \caption{vLLM serving architecture diagram illustrating the main components and their interactions.}
+    \label{fig:vllm-serving}
+\end{figure}
+
+This setup enabled controlled experiments with concurrency, batching, and
+model co-location on a single GPU, while remaining operationally simple.
 
 %=============================================================================
-\section{Development Experience and Limitations}
-\label{sec:LocalServing_Limitations}
+\section{Hardware Experiments and Constraints}
+\label{sec:LocalServing_Hardware}
 %=============================================================================
 
-From a development perspective, local model serving proved valuable for
-experimentation and debugging. The ability to run inference without network
-latency or external dependencies simplified early prototyping and allowed
-frequent iteration on prompts, tool interfaces, and agent logic.
+Local serving was evaluated across multiple hardware environments.
 
-At the same time, several limitations became apparent. Inference latency was
-significantly higher than that of hosted models, particularly for longer
-contexts or multi-step reasoning tasks. This latency directly impacted the
-usability of interactive workflows, making real-time human-in-the-loop
-scenarios impractical in some cases.
+On a development laptop with an RTX 3060 GPU, vLLM could not run within
+practical constraints, and Ollama frequently spilled computation to the CPU
+due to memory pressure. This resulted in high latency and unstable performance,
+confirming that consumer-grade GPUs are unsuitable for sustained interactive
+workloads.
 
-Resource utilization was another constraint. Running a 20B-parameter model
-locally required substantial memory and compute resources, limiting parallel
-requests and reducing system responsiveness under load. These characteristics
-highlighted the difficulty of scaling local serving beyond single-user or
-low-concurrency scenarios.
+On a dedicated server with an RTX 4090 (24~GB VRAM), vLLM hosted
+\texttt{gpt-oss:20b} with acceptable latency under moderate concurrency.
+Empirical observation showed that KV-cache allocation consumed several
+gigabytes of GPU memory, making KV-cache capacity a first-order constraint on
+both context length and parallel request handling~\cite{pope2022efficiently}.
 
-An additional consideration was API compatibility. While Ollama provides a
-convenient inference interface, it does not fully support emerging unified
-response abstractions such as OpenAI’s Response API. This divergence introduces
-integration friction when attempting to share tooling or abstractions across
-local and hosted environments.
+These experiments demonstrated that careful tuning of batching parameters,
+worker counts, and KV-cache limits is required to co-locate multiple models on
+a single GPU without degrading responsiveness.
 
 %=============================================================================
 \section{Evaluation and Outcomes}
 \label{sec:LocalServing_Evaluation}
 %=============================================================================
 
-The evaluation of local model serving was primarily qualitative, based on
-developer experience, responsiveness, and suitability for iterative
-development. No formal benchmarking against hosted models was conducted, as
-the primary goal was architectural exploration rather than performance
-optimization.
+Evaluation was primarily qualitative and experience-driven, focusing on
+responsiveness, stability under load, and suitability for iterative
+development. No formal benchmark suite was used, as the goal was architectural
+understanding rather than peak performance measurement.
 
-The key outcome of this work was a clear understanding of the role local model
-serving can play in an industrial AI development workflow. Local serving is
-well suited for early-stage research, experimentation, and cost-sensitive
-prototyping. However, it is poorly aligned with production requirements such
-as low latency, scalability, and operational reliability.
+The experiments showed that local model serving is effective for early
+research, debugging, and cost-sensitive prototyping. However, even with vLLM,
+local deployments remain constrained by hardware limits and operational
+complexity, making them unsuitable as a long-term solution for production
+systems requiring low latency, elasticity, and strong reliability guarantees.
 
-These findings directly influenced subsequent architectural decisions,
-including the move toward managed serving platforms and more structured
-orchestration frameworks in later phases of the internship.
+These findings directly motivated the transition toward managed serving
+platforms and more structured orchestration frameworks in later stages of the
+internship.
 
 %=============================================================================
 \section{Key Learning Points}
 \label{sec:LocalServing_Learnings}
 %=============================================================================
 
-Several important lessons emerged from this exploration:
+Several lessons emerged from this exploration:
 
 \begin{itemize}
-    \item Local model serving lowers the barrier to experimentation but does
-          not eliminate fundamental performance constraints.
-    \item Open-weight models provide transparency and control, but at the cost
-          of increased operational complexity.
-    \item Serving architecture choices strongly influence downstream design,
-          particularly for interactive and human-in-the-loop systems.
+    \item Local serving lowers the barrier to experimentation but does not
+          remove fundamental performance and scaling constraints.
+    \item vLLM provides substantial improvement over lightweight runtimes by
+          enabling efficient batching and KV-cache management, making realistic
+          concurrency experiments possible.
+    \item Serving architecture choices strongly influence downstream system
+          design, particularly for interactive and human-in-the-loop agents.
 \end{itemize}
 
-From this experiment, it became clear that local serving was useful only in early exploration, which directly influenced the later decision to move toward managed serving.
+Local model serving proved valuable as an exploratory and evaluative tool,
+shaping informed decisions about production architecture rather than serving as
+a production endpoint itself.
