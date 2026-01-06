@@ -1,27 +1,73 @@
+%=============================================================================
 \chapter{Engineering Method}
 \label{ch:EngineeringMethod}
+%=============================================================================
+% Page budget: ~3 pages (Pages 8--10)
+%=============================================================================
 
-% Page budget: 3 pages (Pages 8-10)
-% This replaces the old "end-to-end system overview" with a method-first view that applies to both tracks
+This chapter describes the engineering methodology applied throughout the
+internship. The method emphasizes structured exploration, evidence-based
+decision making, and incremental hardening toward production readiness.
+It was applied consistently across independent initiatives, including
+workflow automation, infrastructure experimentation, and agent platform
+development.
 
 %=============================================================================
 \section{R\&D Method: Exploration to Production}
 \label{sec:RDMethod}
 %=============================================================================
 
-% 1.5 pages
-% How you explore options
-% How you validate (benchmarks, prototypes, operational signals)
-% What counts as evidence
-% Iterative cycle: exploration → evidence → decision → hardening
+Engineering work during the internship followed an iterative
+\gls{rd} lifecycle designed to reduce technical risk while
+maintaining delivery velocity. Each task progressed through four recurring
+phases as described in figure \ref{fig:rd_lifecycle}:
 
-% Figure placeholder: F5 - R&D lifecycle diagram (Explore → Decide → Ship → Observe)
-% \begin{figure}[htbp]
-%   \centering
-%   % \includegraphics[width=0.9\textwidth]{Figures/rd-lifecycle.pdf}
-%   \caption{R\&D lifecycle showing the iterative flow from exploration through decision to production hardening.}
-%   \label{fig:rd_lifecycle}
-% \end{figure}
+\begin{itemize}
+    \item \textbf{Exploration}: Clarifying objectives and desired outcomes,
+          surveying the ecosystem, and studying official documentation to understand
+          intended usage patterns, constraints, and common failure modes
+          \cite{googleTechWriting,diataxis}.
+
+    \item \textbf{Prototyping and Evidence Gathering}: Implementing minimal,
+          focused prototypes to validate feasibility, followed by lightweight
+          benchmarking or operational observation to assess performance, cost, and
+          correctness.
+
+    \item \textbf{Decision and Commitment}: Selecting a primary approach once it
+          satisfied baseline requirements, and committing to it early in order to
+          enable deeper iteration and architectural refinement.
+
+    \item \textbf{Hardening and Validation}: Improving reliability,
+          configurability, and operational safety to reach a
+          \gls{mvp} state suitable for production use
+          \cite{googleSRE,microsoftWellArchitected}.
+\end{itemize}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.5\textwidth]{Figures/rd_lifecycle_diagram.png}
+    \caption{\gls{rd} lifecycle illustrating the iterative progression from
+        exploration through decision to production hardening.}
+    \label{fig:rd_lifecycle}
+\end{figure}
+
+Exploration was intentionally time-bounded. Once an approach was deemed viable
+and aligned with the task objective, further comparison was deprioritized in
+favor of iterative improvement following an agile development model.
+
+Validation criteria were task-specific rather than benchmark-driven. Evidence
+used to validate solutions included:
+\begin{itemize}
+    \item correctness of execution flow and explicit state transitions,
+    \item human evaluation of generated artifacts,
+    \item runtime behavior observed in staging environments (e.g., latency,
+          execution time, and cost),
+    \item and review or approval by senior engineers.
+\end{itemize}
+
+A task was considered ready to progress when it satisfied its definition of
+done, achieved an \gls{mvp} suitable for a production environment, and passed
+peer or supervisor review.
 
 
 %=============================================================================
@@ -29,63 +75,91 @@
 \label{sec:ADRPractice}
 %=============================================================================
 
-% 1 page
-% Standard template used throughout report:
-% - Context
-% - Options considered  
-% - Criteria
-% - Evidence
-% - Decision
-% - Trade-offs + mitigations
-%
-% Emphasize trade-offs + mitigations
+To maintain consistency and traceability, major engineering decisions were
+evaluated using a lightweight \gls{adr} format
+\cite{nygard2011adr}. This format was applied informally during development
+and later formalized through pull request descriptions, code comments, and
+internal documentation.
 
-% Table placeholder: T3 - Decision criteria (latency, cost, maintainability, correctness, security, operability)
-% \begin{table}[htbp]
-%   \centering
-%   \caption{Decision criteria used across all engineering decisions.}
-%   \label{tab:DecisionCriteria}
-%   \begin{tabular}{lp{8cm}l}
-%     \toprule
-%     \textbf{Criterion} & \textbf{Definition} & \textbf{Weight} \\
-%     \midrule
-%     Latency & Response time for user-facing operations & High \\
-%     Cost & Infrastructure and API costs & Medium \\
-%     Maintainability & Ease of future changes and debugging & High \\
-%     Correctness & Accuracy and reliability of outputs & Critical \\
-%     Security & Protection of data and access control & Critical \\
-%     Operability & Ease of monitoring, deployment, and recovery & High \\
-%     \bottomrule
-%   \end{tabular}
-% \end{table}
+Each decision followed the same structure:
+\begin{itemize}
+    \item \textbf{Context}: The problem and constraints motivating the decision.
+    \item \textbf{Options}: Viable alternatives considered.
+    \item \textbf{Criteria}: Factors used to compare options.
+    \item \textbf{Evidence}: Prototypes, observations, or feedback.
+    \item \textbf{Decision}: The selected approach.
+    \item \textbf{Trade-offs and Mitigations}: Known limitations and how they are
+          addressed.
+\end{itemize}
 
+This practice ensured that decisions prioritized long-term extensibility,
+operational predictability, and simplicity, rather than short-term
+implementation convenience.
+
+\begin{table}[htbp]
+    \centering
+    \captionsetup{font=normalsize}
+    \footnotesize
+    \caption{Decision criteria applied across engineering tasks.}
+    \label{tab:DecisionCriteria}
+    \begin{tabularx}{\textwidth}{|p{2.6cm}|X|p{1.8cm}|}
+        \hline
+        \textbf{Criterion} & \textbf{Definition}                                 & \textbf{Priority} \\
+        \hline
+        Extensibility      & Ability to evolve the system without major redesign & High              \\
+        \hline
+        Performance        & Latency and cost under realistic workloads          & High              \\
+        \hline
+        Maintainability    & Ease of debugging and future changes                & High              \\
+        \hline
+        Correctness        & Reliability and accuracy of system outputs          & Critical          \\
+        \hline
+        Security           & Protection of data and access boundaries            & Critical          \\
+        \hline
+        Operability        & Monitoring, deployment, and recovery capability     & High              \\
+        \hline
+    \end{tabularx}
+\end{table}
 
 %=============================================================================
 \section{Workflow Systems vs Agent Systems}
 \label{sec:WorkflowVsAgent}
 %=============================================================================
 
-% 0.5 page - HIGHLY IMPORTANT for differentiation
-% This section shows maturity in understanding different system paradigms
+A clear conceptual distinction was maintained between
+\textbf{workflow automation systems} and \textbf{agent systems}, as the two
+paradigms (figure \ref{fig:workflow_vs_agent}) address fundamentally different problem classes
+\cite{googleSRE,openaiPrompting}.
 
-% Workflow automation characteristics:
-% - Deterministic orchestration
-% - Integrations
-% - Retries and idempotency
-% - Audit logs
+\textbf{Workflow systems} are characterized by:
+\begin{itemize}
+    \item deterministic orchestration with predefined execution paths,
+    \item explicit retries and idempotency guarantees,
+    \item strong auditability and traceability,
+    \item suitability for integration-heavy and compliance-sensitive tasks.
+\end{itemize}
 
-% Agent systems characteristics:
-% - Stateful reasoning
-% - Tool use
-% - Uncertainty
-% - Evaluation/guardrails
-% - Why the architectures differ
+\textbf{Agent systems}, by contrast, emphasize:
+\begin{itemize}
+    \item stateful reasoning across multiple steps,
+    \item tool invocation under uncertainty,
+    \item non-deterministic behavior driven by \glspl{llm},
+    \item the need for explicit evaluation, guardrails, and governance mechanisms.
+\end{itemize}
 
-% Figure placeholder: F4 - Workflow vs Agent comparison diagram (side-by-side)
-% \begin{figure}[htbp]
-%   \centering
-%   % \includegraphics[width=\textwidth]{Figures/workflow-vs-agent.pdf}
-%   \caption{Comparison of workflow automation systems and agent systems, highlighting key architectural differences.}
-%   \label{fig:workflow_vs_agent}
-% \end{figure}
+Rather than a binary distinction, these approaches form a spectrum. As systems
+become more agentic, flexibility increases, but so do risks related to
+correctness, observability, and control. This distinction informed
+architectural choices throughout the internship and justified the use of
+different systems for different tasks.
 
+\begin{figure}[htbp]
+    \centering
+    % Side-by-side diagram:
+    % Left: Workflow system (boxes, arrows, retries, logs)
+    % Right: Agent system (state container, decision nodes, tool calls, loops)
+    \includegraphics[width=\textwidth]{Figures/workflow-agent-figure.png}
+    \caption{Conceptual comparison of workflow automation systems and agent
+        systems, highlighting architectural and operational differences.}
+    \label{fig:workflow_vs_agent}
+\end{figure}

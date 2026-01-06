@@ -162,23 +162,22 @@ The internship was a fixed-duration engagement, requiring disciplined scope cont
 The following mitigations were applied to reduce risk and maintain delivery quality:
 
 \begin{table}[htbp]
-    \begingroup
     \centering
-    \footnotesize % make table text smaller
+    \captionsetup{font=normalsize}
+    \footnotesize
     \caption{Key constraints and mitigation strategies applied during the internship.}
     \label{tab:Constraints}
-    \begin{tabularx}{\textwidth}{|X|X|X|}
-        \toprule
+    \begin{tabularx}{\textwidth}{|p{2.5cm}|X|X|}
+        \hline
         \textbf{Constraint}                       & \textbf{Primary Impact}                                             & \textbf{Mitigation Strategy}                                                             \\
-        \midrule
+        \hline
         Fixed internship timeline                 & Limited bandwidth for parallel exploration and production hardening & Phased delivery; explicit milestones; decision records to avoid rework                   \\
-        \midrule
+        \hline
         Shared production-adjacent infrastructure & Higher risk when testing and rolling out changes                    & Environment separation; feature flags; conservative rollout; runbook validation          \\
-        \midrule
+        \hline
         Third-party model providers               & Cost and latency variability; rate limiting                         & Cost budgets; usage tracking; retry/backoff policies; provider failure handling          \\
-        \midrule
+        \hline
         Data sensitivity                          & Compliance and privacy risk if mishandled in logs or traces         & Minimize sensitive payloads; redact identifiers; access control reviews; least-privilege \\
-        \bottomrule
+        \hline
     \end{tabularx}
-    \endgroup
 \end{table}
