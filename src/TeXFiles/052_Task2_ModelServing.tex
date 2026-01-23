@@ -5,55 +5,42 @@
 % Page budget: 4--5 pages
 %=============================================================================
 
-This chapter presents the exploration and evaluation of local large language
-model (LLM) serving conducted during the early and intermediate research phases
-of the internship. The objective was not to build a production-ready serving
-platform, but to understand the practical feasibility, performance boundaries,
-and operational trade-offs of running LLMs on self-managed infrastructure.
-
-The work progressed from lightweight local prototyping to a more structured
-serving setup using vLLM, enabling realistic evaluation of latency,
-throughput, and hardware utilization. The findings from this chapter directly
-informed the subsequent transition toward managed, production-oriented serving
-solutions.
+This chapter describes the exploration of running large language models (LLMs)
+locally to understand performance limits and trade-offs. The goal was not to build
+a production system, but rather to understand feasibility, speed, and hardware
+constraints. The exploration progressed from simple tools like Ollama to vLLM for
+more realistic testing, informing decisions about using managed services.
 
 %=============================================================================
 \section{Objectives and Scope}
 \label{sec:LocalServing_Objectives}
 %=============================================================================
 
-Local model serving was investigated with the following objectives:
+Local model serving was investigated to answer three questions:
 
 \begin{itemize}
-      \item to enable low-cost experimentation during early development without
-            dependence on hosted APIs,
-      \item to develop an empirical understanding of inference latency,
-            throughput, and GPU resource constraints,
-      \item to assess whether locally hosted models could support interactive
-            and human-in-the-loop workflows under moderate concurrency.
+      \item Can LLM inference run cheaply without cloud APIs?
+      \item How fast is local inference, and how much GPU memory does it use?
+      \item Can one affordable GPU handle interactive workflows with multiple users?
 \end{itemize}
 
-The scope of this work was intentionally limited to single-node deployments.
-Concerns such as multi-tenant isolation, high availability, autoscaling, and
-global traffic management were treated as out of scope and deferred to later
-phases.
+The scope was limited to single machines. High availability, autoscaling, and
+multi-region support were not addressed.
 
 %=============================================================================
 \section{Model Selection}
 \label{sec:LocalServing_ModelSelection}
 %=============================================================================
 
-For generation tasks, the open-weight model \texttt{gpt-oss:20b} was selected
-as the primary experimental baseline. According to its model card, this model
-exhibits reasoning-oriented behavior comparable to smaller hosted reasoning
-models, while remaining inspectable and self-hostable~\cite{openai2025gptoss}.
-The choice emphasized transparency and controllability over raw performance.
+Two categories of models were used:
 
-For retrieval-augmented generation (RAG) experiments, the embedding model
-\texttt{nomic-embed-text} was used to generate vector representations of
-documentation content~\cite{nomic2025embed}. This allowed the entire RAG
-pipeline to operate locally without reliance on external embedding services,
-facilitating rapid iteration and debugging.
+\begin{itemize}
+      \item \texttt{gpt-oss:20b} and \texttt{qwen2.5-7b-instruct} for generation: a
+            reasoning and a non-reasoning model, both transparent and self-hosted~\cite{openai2025gptoss,qwen2.5}.
+      \item \texttt{nomic-embed-text} and \texttt{bge-m3} for RAG: embedding models that convert
+            documentation into vectors, keeping the entire pipeline
+            local~\cite{nomic2025embed,bgem3}.
+\end{itemize}
 
 %=============================================================================
 \section{Serving Architecture Evolution}
@@ -62,25 +49,26 @@ facilitating rapid iteration and debugging.
 
 \subsection{Initial Prototyping with Ollama}
 
-Early experiments used \texttt{Ollama}, a lightweight runtime for executing
-open-source LLMs on local hardware~\cite{ollama}. Ollama provided a convenient
-HTTP-based interface and minimal configuration overhead, making it suitable
-for early-stage prototyping and functional validation.
+\texttt{Ollama}, a simple runtime for running open-source LLMs on local
+hardware, was initially used~\cite{ollama}. It provided an easy HTTP API and
+quick setup, making it suitable for testing prompts and agent logic.
 
-This setup enabled fast iteration on prompts, tool interfaces, and agent logic.
-However, performance quickly became constrained under concurrent requests, and
-the serving stack provided limited visibility into GPU utilization and memory
-pressure.
+However, Ollama's performance degraded with multiple concurrent users and
+provided limited visibility into GPU memory and compute usage.
 
 \subsection{Transition to vLLM}
 
-To better evaluate realistic serving behavior, the serving stack was migrated
-to \texttt{vLLM}, an inference engine designed for high-throughput LLM
-serving~\cite{kwon2023efficient}. vLLM introduces two key mechanisms:
-\textit{PagedAttention}, which reduces KV-cache fragmentation, and continuous
-batching, which maximizes GPU utilization across concurrent requests.
+The exploration transitioned to \texttt{vLLM}, a high-throughput inference
+engine, to evaluate realistic performance~\cite{kwon2023efficient}. vLLM
+incorporates two key techniques:
 
-As illustrated in Figure, the vLLM serving architecture consisted of:
+\begin{itemize}
+      \item \textit{PagedAttention}: Reduces GPU memory waste from KV caches.
+      \item Continuous batching: Runs multiple requests in parallel to use GPU
+            fully.
+\end{itemize}
+
+As shown in Figure, the vLLM setup included:
 
 \begin{itemize}
       \item containerized vLLM instances deployed via Docker and Docker Compose,
@@ -96,8 +84,8 @@ As illustrated in Figure, the vLLM serving architecture consisted of:
       \label{fig:vllm-serving}
 \end{figure}
 
-This setup enabled controlled experiments with concurrency, batching, and
-model co-location on a single GPU, while remaining operationally simple.
+This setup allowed controlled tests of concurrent users, batching, and multiple
+models on one GPU, while staying operationally simple.
 
 %=============================================================================
 \section{Hardware Experiments and Constraints}
@@ -106,9 +94,9 @@ model co-location on a single GPU, while remaining operationally simple.
 
 Observations:
 \begin{itemize}
-      \item RTX 3060 laptop: vLLM impractical; Ollama spilled to CPU under memory pressure → high latency.
-      \item RTX 4090 (24~GB): vLLM served \texttt{gpt-oss:20b} with acceptable latency; KV-cache usage (several GB) is a first-order constraint on context and concurrency~\cite{pope2022efficiently}.
-      \item Co-locating models requires tuning: batching, worker counts, and KV-cache limits to avoid responsiveness drops.
+      \item RTX 3060 laptop: Not enough memory. Both tools ran slowly and crashed.
+      \item RTX 4090 (24~GB): vLLM worked well. GPU memory for KV caches is the main limit on context length and how many users can run at once~\cite{pope2022efficiently}.
+      \item Multiple models on one GPU need careful tuning of batching and cache limits to stay responsive.
 \end{itemize}
 
 %=============================================================================
@@ -116,9 +104,14 @@ Observations:
 \label{sec:LocalServing_Evaluation}
 %=============================================================================
 
-Evaluation was qualitative, centered on responsiveness, stability, and iteration speed. Local serving is effective for early prototyping but, even with vLLM, is ill-suited for production workloads demanding low latency, elasticity, and strong reliability. Findings motivated a move to managed serving and structured orchestration.
+Evaluation focused on speed, stability, and iteration velocity. Local serving
+proved suitable for early testing, but vLLM alone is not production-ready. It
+lacks elasticity, built-in failover, and latency guarantees required by
+production workloads, motivating a transition to managed services.
 
-The figure belows show empirical throughput and latency is superior compare to Ollama with average Token-Per-Second (TPS) around around 3400 for input and 300 TPS for output with vLLM
+vLLM is much faster than Ollama: roughly 3400 tokens per second for input and
+300 for output. This matches similar benchmarks from RedHat's team (see figures
+below).
 
 \begin{figure}[htbp]
       \centering
@@ -128,7 +121,9 @@ The figure belows show empirical throughput and latency is superior compare to O
       \label{fig:throughput_latency}
 \end{figure}
 
-According to RedHat AI Team, the results are similiar~\cite{redhatOllamaVsVLLM} as demonstrated in figure below, where vLLM outperforms Ollama in both throughput and latency across different concurrency levels.
+According to benchmarks from RedHat's AI team (figure below), vLLM outperforms
+Ollama in both speed and responsiveness across different numbers of concurrent
+users~\cite{redhatOllamaVsVLLM}.
 
 \begin{figure}[htbp]
       \centering
