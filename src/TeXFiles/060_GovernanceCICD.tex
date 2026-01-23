@@ -99,6 +99,13 @@ The platform integrates with Langfuse to collect traces and usage metrics for
 graph execution. Traces capture high-level execution structure, latency, and
 selected metadata such as user identifiers.
 
+\begin{figure}[htbp]
+      \centering
+      \includegraphics[width=0.7\textwidth]{Figures/langgraph-langfuse.png}
+      \caption{Deployment of Observability Platform (Langfuse) on Google Cloud Platform}
+      \label{fig:langfuse}
+\end{figure}
+
 Tracing is initialized at service startup only if authentication with the
 observability backend succeeds. If initialization fails, tracing is disabled
 for that runtime instance, and execution continues without instrumentation.
@@ -113,11 +120,11 @@ Rather than attempting to monitor every internal detail, the platform focuses
 on a small set of actionable operational signals:
 
 \begin{itemize}
-    \item Graph-level error rates and exception counts.
-    \item Latency percentiles for graph invocation and resume operations.
-    \item Model provider error and timeout rates.
-    \item Redis connectivity and command error rates.
-    \item Token usage per organization and per model.
+      \item Graph-level error rates and exception counts.
+      \item Latency percentiles for graph invocation and resume operations.
+      \item Model provider error and timeout rates.
+      \item Redis connectivity and command error rates.
+      \item Token usage per organization and per model.
 \end{itemize}
 
 These signals provide sufficient visibility to detect regressions, capacity
@@ -154,12 +161,12 @@ The platform distinguishes between different classes of failure and applies
 appropriate recovery strategies:
 
 \begin{itemize}
-    \item \textbf{Model failures}, such as timeouts or transient errors, are
-          handled through retries with backoff.
-    \item \textbf{Validation failures} result in controlled regeneration or
-          explicit error states.
-    \item \textbf{Infrastructure failures}, such as Redis or observability
-          outages, degrade functionality but do not halt execution.
+      \item \textbf{Model failures}, such as timeouts or transient errors, are
+            handled through retries with backoff.
+      \item \textbf{Validation failures} result in controlled regeneration or
+            explicit error states.
+      \item \textbf{Infrastructure failures}, such as Redis or observability
+            outages, degrade functionality but do not halt execution.
 \end{itemize}
 
 By separating these concerns, the system avoids treating all failures as
@@ -217,12 +224,12 @@ in failure diagnosis.
 At a high level, the pipeline performs the following actions:
 
 \begin{itemize}
-    \item Build a container image for the LangGraph API service using the
-          LangGraph CLI.
-    \item Run basic validation checks to ensure that graph definitions compile
-          correctly and required configuration is present.
-    \item Push the resulting image to a container registry.
-    \item Deploy the image to Google Cloud Run.
+      \item Build a container image for the LangGraph API service using the
+            LangGraph CLI.
+      \item Run basic validation checks to ensure that graph definitions compile
+            correctly and required configuration is present.
+      \item Push the resulting image to a container registry.
+      \item Deploy the image to Google Cloud Run.
 \end{itemize}
 
 This structure prioritizes reproducibility and traceability over aggressive
@@ -258,10 +265,10 @@ while still allowing fine-grained control over concurrency and resource limits.
 Two services are deployed independently:
 
 \begin{itemize}
-    \item The \textbf{LangGraph API service}, which handles all graph execution,
-          interrupts, and resume operations.
-    \item A \textbf{maintenance service}, responsible for scheduled cleanup of
-          operational data such as token usage counters.
+      \item The \textbf{LangGraph API service}, which handles all graph execution,
+            interrupts, and resume operations.
+      \item A \textbf{maintenance service}, responsible for scheduled cleanup of
+            operational data such as token usage counters.
 \end{itemize}
 
 Separating these services prevents background maintenance tasks from impacting
@@ -280,10 +287,10 @@ acceptable for a staging and early production environment, especially given
 the reduced operational complexity.
 
 \begin{figure}[htbp]
-    \centering
-    % \includegraphics[width=\textwidth]{Figures/cicd-deployment-flow.pdf}
-    \caption{CI/CD and deployment flow from source code to Cloud Run services.}
-    \label{fig:cicd_flow}
+      \centering
+      % \includegraphics[width=\textwidth]{Figures/cicd-deployment-flow.pdf}
+      \caption{CI/CD and deployment flow from source code to Cloud Run services.}
+      \label{fig:cicd_flow}
 \end{figure}
 
 %=============================================================================
@@ -323,9 +330,9 @@ isolated from end users.
 Evaluation focuses on:
 
 \begin{itemize}
-    \item Correctness and completeness of generated test cases and steps.
-    \item Stability of interrupt and resume behavior.
-    \item Responsiveness under iterative editing and regeneration.
+      \item Correctness and completeness of generated test cases and steps.
+      \item Stability of interrupt and resume behavior.
+      \item Responsiveness under iterative editing and regeneration.
 \end{itemize}
 
 Human feedback collected during this phase is used to refine prompts, schema
@@ -357,11 +364,11 @@ intensive evaluation in a staging environment.
 Several limitations are acknowledged:
 
 \begin{itemize}
-    \item Model performance and output quality remain dependent on user input
-          quality and prompt design.
-    \item Cold start latency may impact user experience under sporadic load.
-    \item Automated benchmarks for this class of task remain limited, making
-          human evaluation essential.
+      \item Model performance and output quality remain dependent on user input
+            quality and prompt design.
+      \item Cold start latency may impact user experience under sporadic load.
+      \item Automated benchmarks for this class of task remain limited, making
+            human evaluation essential.
 \end{itemize}
 
 These limitations are not treated as failures but as inherent characteristics

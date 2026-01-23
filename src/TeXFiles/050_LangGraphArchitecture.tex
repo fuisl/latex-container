@@ -1,5 +1,5 @@
 %=============================================================================
-\chapter{LangGraph Industrial Architecture}
+\chapter{LangGraph Architecture}
 \label{ch:LangGraphArchitecture}
 \section{Key Architectural Decisions}
 \label{sec:KeyArchDecisions}
@@ -27,32 +27,17 @@ principles \cite{googleSRE,microsoftWellArchitected}.
 \label{sec:ComponentArchitecture}
 %=============================================================================
 
-The LangGraph platform has five primary components: the LangGraph API service,
-persistence and governance services, language model provider, observability
-tooling, and external clients.
+The LangGraph platform comprises five components:
 
-The LangGraph API service is the core execution engine. It exposes HTTP
-endpoints for graph invocation, interrupt handling, and resume operations.
-Graph definitions are loaded from a registry and executed as state machines
-rather than ad-hoc control flows \cite{langgraphOverview}.
+\begin{itemize}
+    \item \textbf{LangGraph API service}: Core execution engine exposing HTTP endpoints for invocation, interrupt handling, and resume operations. Graph definitions load from a registry and execute as state machines.\smallskip
+    \item \textbf{Persistence}: PostgreSQL stores graph threads and checkpoints (pause-and-resume); Redis handles operational state (token counters, consumption limits).\smallskip
+    \item \textbf{Language model provider}: Abstracted interface enabling model substitution without graph redesign.\smallskip
+    \item \textbf{Observability}: Langfuse callbacks record traces, latency, and metrics via best-effort tracing that does not interrupt execution.\smallskip
+    \item \textbf{External clients}: Web applications and services interact only via the API layer.
+\end{itemize}
 
-Persistence is split by concern. PostgreSQL stores graph threads and
-checkpoints, enabling pause-and-resume across failures or restarts. Redis
-handles operational state: token usage counters and per-organization
-consumption limits. This follows common practice of using relational storage
-for durable state and in-memory stores for operational metadata
-\cite{postgresDocs,redisDocs}.
-
-Language model access is abstracted behind a provider interface, so graph
-logic is not coupled to a specific vendor. This supports model substitution
-without graph redesign \cite{langchain}.
-
-Observability uses Langfuse callbacks for traces, latency, and usage metrics.
-Observability is best-effort: tracing failures must not interrupt core
-execution \cite{langfuseDocs,googleSRE}.
-
-External clients (web applications, internal services) interact only through
-the API layer and never manipulate graph state directly.
+This separation enables independent scaling, governance, and observability following cloud-native design principles.
 
 \begin{figure}[htbp]
     \centering
@@ -67,25 +52,7 @@ the API layer and never manipulate graph state directly.
 \label{sec:DeploymentArchitecture}
 %=============================================================================
 
-The platform is deployed on Google Cloud Run, a fully managed container runtime
-that supports automatic scaling and request-based billing
-\cite{cloudRunOverview}. Cloud Run was selected to reduce operational overhead
-while maintaining fine-grained control over service boundaries.
-
-Two services are deployed independently. The primary service hosts the
-LangGraph API and handles all request execution. A secondary cron service is
-responsible for scheduled maintenance tasks, such as cleaning up Redis usage
-keys. Separating these concerns avoids introducing background workloads into
-the request path.
-
-Cloud Run’s concurrency model allows multiple graph executions to be handled by
-a single container instance. This makes connection pooling, particularly for
-Redis, a critical consideration to avoid resource exhaustion under load.
-
-Secrets such as API keys are injected via the platform’s secret management
-mechanism rather than baked into images. Network access to persistence services
-is restricted to minimize blast radius in case of compromise, aligning with
-zero-trust deployment principles \cite{microsoftWellArchitected}.
+The platform is deployed on Google Cloud Run for automatic scaling and request-based billing. Two services run independently: primary LangGraph API for request execution, and secondary cron service for maintenance. Connection pooling to Redis is critical under concurrent load. Secrets injected via platform; network access restricted. Langfuse observability on GCP behind VPN.
 
 \begin{figure}[htbp]
     \centering
@@ -95,46 +62,12 @@ zero-trust deployment principles \cite{microsoftWellArchitected}.
     \label{fig:deployment_topology}
 \end{figure}
 
-Besides, Langfuse also being hosted on GCP and being protected behind a VPN as in Figure~\ref{fig:langfuse}
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.7\textwidth]{Figures/langgraph-langfuse.png}
-    \caption{Deployment of Observability Platform (Langfuse) on Google Cloud Platform}
-    \label{fig:langfuse}
-\end{figure}
-
 %=============================================================================
 \section{Runtime Request Lifecycle}
 \label{sec:RuntimeLifecycle}
 %=============================================================================
 
-A request begins when a client invokes a graph through the API service. Each
-request is associated with a thread identifier representing the execution
-context across invocations.
-
-When the graph reaches an interrupt point, state is checkpointed to persistent
-storage and execution pauses. The API returns a response indicating that human
-input is needed. On resume, execution continues from the checkpoint rather
-than restarting \cite{langgraphInterrupts}.
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=\textwidth]{Figures/langgraph-interrupt.png}
-    \caption{Invoke, interrupt, and resume phases of graph execution.}
-    \label{fig:invoke_resume_sequence}
-\end{figure}
-
-Callbacks record usage metrics and traces throughout execution. Governance
-checks (token limit enforcement) are applied before model calls to prevent
-uncontrolled consumption.
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.9\textwidth]{Figures/langgraph-redis.png}
-    \caption{Control points where validation and governance checks are applied.}
-    \label{fig:control_points}
-\end{figure}
+Requests are associated with a thread identifier representing execution context. At interrupt points, state is checkpointed and the API signals human input is needed. On resume, execution continues from the checkpoint. Callbacks record metrics and traces; governance checks enforce token limits before model calls. See component and control-point diagrams above.
 
 %=============================================================================
 \section{Key Architectural Decisions}
@@ -178,17 +111,7 @@ behavior over unconstrained autonomy.
 \label{sec:StateSchemaDesign}
 %=============================================================================
 
-Each graph operates over a strongly typed state object that represents the
-entire execution context. Reducers define how state is updated across node
-transitions, ensuring that updates are explicit and auditable.
-
-All language model outputs are constrained using structured output schemas.
-This approach reduces ambiguity, simplifies validation, and enables reliable
-downstream processing \cite{langchainStructuredOutput}.
-
-Schema validation failures are treated as recoverable errors. When validation
-fails, execution can retry with stricter prompts or fall back to a safe abort
-path, rather than propagating invalid state.
+Each graph operates over a strongly typed state object. Reducers define explicit state updates across node transitions. Language model outputs are constrained using structured schemas (Figures~\ref{fig:state_schema} and~\ref{fig:structured_output}), reducing ambiguity and enabling reliable downstream processing. Schema validation failures trigger retries with stricter prompts or safe abort paths rather than propagating invalid state.
 
 \begin{figure}[htbp]
     \centering
@@ -209,13 +132,7 @@ path, rather than propagating invalid state.
 \label{sec:GraphA}
 %=============================================================================
 
-Graph A transforms a natural-language requirement into candidate test cases.
-Execution begins in a generation state, transitions to a human review gate,
-and may loop back for regeneration based on feedback.
-
-This design models iteration as a state transition rather than embedding it in
-prompt logic, making the system easier to reason about and debug
-\cite{langgraphOverview}.
+Graph A (Figure~\ref{fig:graph_a_state_machine}) transforms a natural-language requirement into test cases. Execution moves from generation through a human review gate and may loop back for regeneration. This models iteration as explicit state transitions, making the system easier to reason about and debug.
 
 \begin{figure}[htbp]
     \centering
@@ -229,13 +146,7 @@ prompt logic, making the system easier to reason about and debug
 \label{sec:GraphB}
 %=============================================================================
 
-Graph B refines a single test case into a sequence of executable steps. Beyond
-generation, this graph supports explicit edit commands: add, delete, and update
-operations.
-
-Edits are validated against schema constraints before being applied, ensuring
-partial updates cannot corrupt state. Rejection with feedback transitions the
-graph back into a regeneration state.
+Graph B (Figure~\ref{fig:graph_b_state_machine}) refines a test case into executable steps and supports edit commands (add, delete, update). Edits are validated against schema constraints before application, preventing state corruption. Rejected edits transition the graph back to regeneration.
 
 \begin{figure}[htbp]
     \centering
@@ -249,17 +160,7 @@ graph back into a regeneration state.
 \label{sec:HITLLifecycle}
 %=============================================================================
 
-When a graph reaches a human-in-the-loop interrupt, execution state is
-checkpointed and associated with a thread identifier. Only validated state is
-persisted, ensuring resumption begins from a consistent snapshot.
-
-Upon resume, user input is validated before being merged into state. Execution
-then continues deterministically from the interrupt point rather than replaying
-earlier nodes.
-
-This lifecycle enables reliable collaboration between humans and agents while
-preserving strong execution guarantees
-\cite{langgraphInterrupts,anthropicAgents2024}.
+At human-in-the-loop interrupts (Figure~\ref{fig:hitl_timeline}), execution state is checkpointed with a thread identifier. Only validated state persists. On resume, user input is validated before merging into state, then execution continues deterministically from the interrupt point. This enables reliable human-agent collaboration while preserving execution guarantees.
 
 \begin{figure}[htbp]
     \centering
