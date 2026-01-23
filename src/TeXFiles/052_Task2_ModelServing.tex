@@ -25,12 +25,12 @@ solutions.
 Local model serving was investigated with the following objectives:
 
 \begin{itemize}
-    \item to enable low-cost experimentation during early development without
-          dependence on hosted APIs,
-    \item to develop an empirical understanding of inference latency,
-          throughput, and GPU resource constraints,
-    \item to assess whether locally hosted models could support interactive
-          and human-in-the-loop workflows under moderate concurrency.
+      \item to enable low-cost experimentation during early development without
+            dependence on hosted APIs,
+      \item to develop an empirical understanding of inference latency,
+            throughput, and GPU resource constraints,
+      \item to assess whether locally hosted models could support interactive
+            and human-in-the-loop workflows under moderate concurrency.
 \end{itemize}
 
 The scope of this work was intentionally limited to single-node deployments.
@@ -83,17 +83,17 @@ batching, which maximizes GPU utilization across concurrent requests.
 As illustrated in Figure, the vLLM serving architecture consisted of:
 
 \begin{itemize}
-    \item containerized vLLM instances deployed via Docker and Docker Compose,
-    \item multiple model endpoints exposed on separate ports,
-    \item an \texttt{Nginx} reverse proxy for per-model request routing,
-    \item secure external access provided through \texttt{Tailscale Funnel}.
+      \item containerized vLLM instances deployed via Docker and Docker Compose,
+      \item multiple model endpoints exposed on separate ports,
+      \item an \texttt{Nginx} reverse proxy for per-model request routing,
+      \item secure external access provided through \texttt{Tailscale Funnel}.
 \end{itemize}
 
 \begin{figure}[htbp]
-    \centering
-    \includegraphics[width=\textwidth]{Figures/model-serving.png}
-    \caption{vLLM serving architecture diagram illustrating the main components and their interactions.}
-    \label{fig:vllm-serving}
+      \centering
+      \includegraphics[width=\textwidth]{Figures/model-serving.png}
+      \caption{vLLM serving architecture diagram illustrating the main components and their interactions.}
+      \label{fig:vllm-serving}
 \end{figure}
 
 This setup enabled controlled experiments with concurrency, batching, and
@@ -104,43 +104,38 @@ model co-location on a single GPU, while remaining operationally simple.
 \label{sec:LocalServing_Hardware}
 %=============================================================================
 
-Local serving was evaluated across multiple hardware environments.
-
-On a development laptop with an RTX 3060 GPU, vLLM could not run within
-practical constraints, and Ollama frequently spilled computation to the CPU
-due to memory pressure. This resulted in high latency and unstable performance,
-confirming that consumer-grade GPUs are unsuitable for sustained interactive
-workloads.
-
-On a dedicated server with an RTX 4090 (24~GB VRAM), vLLM hosted
-\texttt{gpt-oss:20b} with acceptable latency under moderate concurrency.
-Empirical observation showed that KV-cache allocation consumed several
-gigabytes of GPU memory, making KV-cache capacity a first-order constraint on
-both context length and parallel request handling~\cite{pope2022efficiently}.
-
-These experiments demonstrated that careful tuning of batching parameters,
-worker counts, and KV-cache limits is required to co-locate multiple models on
-a single GPU without degrading responsiveness.
+Observations:
+\begin{itemize}
+      \item RTX 3060 laptop: vLLM impractical; Ollama spilled to CPU under memory pressure → high latency.
+      \item RTX 4090 (24~GB): vLLM served \texttt{gpt-oss:20b} with acceptable latency; KV-cache usage (several GB) is a first-order constraint on context and concurrency~\cite{pope2022efficiently}.
+      \item Co-locating models requires tuning: batching, worker counts, and KV-cache limits to avoid responsiveness drops.
+\end{itemize}
 
 %=============================================================================
 \section{Evaluation and Outcomes}
 \label{sec:LocalServing_Evaluation}
 %=============================================================================
 
-Evaluation was primarily qualitative and experience-driven, focusing on
-responsiveness, stability under load, and suitability for iterative
-development. No formal benchmark suite was used, as the goal was architectural
-understanding rather than peak performance measurement.
+Evaluation was qualitative, centered on responsiveness, stability, and iteration speed. Local serving is effective for early prototyping but, even with vLLM, is ill-suited for production workloads demanding low latency, elasticity, and strong reliability. Findings motivated a move to managed serving and structured orchestration.
 
-The experiments showed that local model serving is effective for early
-research, debugging, and cost-sensitive prototyping. However, even with vLLM,
-local deployments remain constrained by hardware limits and operational
-complexity, making them unsuitable as a long-term solution for production
-systems requiring low latency, elasticity, and strong reliability guarantees.
+The figure belows show empirical throughput and latency is superior compare to Ollama with average Token-Per-Second (TPS) around around 3400 for input and 300 TPS for output with vLLM
 
-These findings directly motivated the transition toward managed serving
-platforms and more structured orchestration frameworks in later stages of the
-internship.
+\begin{figure}[htbp]
+      \centering
+      \includegraphics[width=0.8\textwidth]{Figures/model-serving-performance.jpg}
+      \caption{Throughput and latency comparison between Ollama and vLLM for
+            \texttt{gpt-oss:20b} model under varying concurrency levels.}
+      \label{fig:throughput_latency}
+\end{figure}
+
+According to RedHat AI Team, the results are similiar~\cite{redhatOllamaVsVLLM} as demonstrated in figure below, where vLLM outperforms Ollama in both throughput and latency across different concurrency levels.
+
+\begin{figure}[htbp]
+      \centering
+      \includegraphics[width=0.7\textwidth]{Figures/vllm-vs-ollama.png}
+      \caption{Throughput and latency comparison between Ollama and vLLM conducted by RedHat AI Team~\cite{redhatOllamaVsVLLM}.}
+      \label{fig:throughput_latency}
+\end{figure}
 
 %=============================================================================
 \section{Key Learning Points}
@@ -150,13 +145,13 @@ internship.
 Several lessons emerged from this exploration:
 
 \begin{itemize}
-    \item Local serving lowers the barrier to experimentation but does not
-          remove fundamental performance and scaling constraints.
-    \item vLLM provides substantial improvement over lightweight runtimes by
-          enabling efficient batching and KV-cache management, making realistic
-          concurrency experiments possible.
-    \item Serving architecture choices strongly influence downstream system
-          design, particularly for interactive and human-in-the-loop agents.
+      \item Local serving lowers the barrier to experimentation but does not
+            remove fundamental performance and scaling constraints.
+      \item vLLM provides substantial improvement over lightweight runtimes by
+            enabling efficient batching and KV-cache management, making realistic
+            concurrency experiments possible.
+      \item Serving architecture choices strongly influence downstream system
+            design, particularly for interactive and human-in-the-loop agents.
 \end{itemize}
 
 Local model serving proved valuable as an exploratory and evaluative tool,

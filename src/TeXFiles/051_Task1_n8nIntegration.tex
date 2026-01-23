@@ -5,113 +5,42 @@
 % Page budget: 5 pages (Pages 13--17)
 %=============================================================================
 
-This chapter describes the design and implementation of an \gls{erp}
-integration using \gls{n8n} as a workflow automation
-platform~\cite{n8nDocs}. The work introduces AI-assisted processing into
-existing enterprise workflows while preserving deterministic execution,
-operational safety, and auditability.
-
-Unlike agent-based systems explored later in the internship, this integration
-follows a workflow-oriented model. Control flow, branching, and failure
-handling are explicitly defined, following established distinctions between
-deterministic workflows and agent-based systems~\cite{anthropicAgents2024}.
+This chapter describes an \gls{erp} integration built with \gls{n8n} to add
+AI-assisted steps while keeping the workflow control plane deterministic,
+observable, and safe for production~\cite{n8nDocs}. The focus is on
+principles: explicit control flow, bounded AI calls (where the model selects
+tools), and recoverable failure paths.
 
 %=============================================================================
 \section{Problem Statement and Requirements}
 \label{sec:Task1_Problem}
 %=============================================================================
 
-Enterprise Resource Planning systems operate at the core of business processes
-and are highly sensitive to integration errors, unexpected behavior, or partial
-failures. While AI-assisted capabilities can add significant value---such as
-decision support or automated analysis---directly embedding non-deterministic
-logic into ERP systems introduces unacceptable operational risk in production
-environments~\cite{googleSRE}.
-
-The problem addressed was to enable AI-assisted functionality within
-ERP-related processes without compromising stability or predictability. The
-integration needed to respond to ERP-triggered events, perform AI-assisted
-computation when appropriate, and apply resulting actions back to the ERP
-system in a controlled and observable manner.
-
-The design was guided by explicit constraints:
-
-\begin{itemize}
-    \item \textbf{Deterministic execution:} workflow paths must be reproducible
-          and understandable by operators.
-    \item \textbf{Failure isolation:} errors in AI-assisted steps must not
-          corrupt ERP state or block critical workflows.
-    \item \textbf{Traceability:} all executions must be observable and auditable
-          for debugging and review~\cite{googleSRE}.
-    \item \textbf{Extensibility:} workflows should support future changes
-          without requiring a complete redesign.
-\end{itemize}
-
-Advanced agent behaviors such as autonomous decision-making or cross-run
-learning were considered out of scope. These concerns were deferred to later
-work on agent-oriented architectures, where additional governance and
-evaluation mechanisms are required~\cite{anthropicAgents2024}.
+ERP integrations are sensitive to errors and partial failures. The goal was to
+insert AI-assisted steps without sacrificing stability: react to ERP events,
+invoke AI in a bounded node (the model may choose tools), and apply actions
+back with full traceability. Key constraints: deterministic workflow control,
+failure isolation, auditability, and future extensibility. Agent-style
+autonomy and cross-run learning were explicitly out of scope.
 
 %=============================================================================
 \section{Workflow Design}
 \label{sec:Task1_WorkflowDesign}
 %=============================================================================
 
-The integration was implemented using n8n, which provides a visual and
-programmatic model for deterministic workflow orchestration~\cite{n8nDocs}.
-This choice enabled explicit control over execution order, branching logic,
-and failure handling---capabilities essential when integrating with critical
-enterprise systems.
-
-The workflow is initiated by a well-defined trigger, such as an event emitted
-by the ERP system or a scheduled invocation. Execution proceeds through a
-sequence of nodes, each responsible for a single, well-scoped operation. Early
-stages perform input validation and sanity checks to ensure downstream
-processing operates on well-formed data.
-
-AI-assisted processing is encapsulated within dedicated workflow nodes. These
-nodes receive validated inputs, invoke external large language models via
-well-defined APIs, and return structured outputs that downstream nodes can
-interpret deterministically. Constraining AI interactions to bounded steps
-avoids uncontrolled propagation of uncertainty and preserves predictable
-behavior across executions.
-
-Conditional branching routes execution based on both business rules and
-AI-generated outputs. Each branch represents an explicitly modeled decision
-path, making the workflow easier to reason about and review. This design
-simplifies debugging, as operators can trace exactly which branch was taken
-and why.
-
-Failure handling is treated as a first-class concern. Transient failures, such
-as network timeouts, are handled through retries with backoff, while
-unrecoverable errors result in controlled abort paths. When partial side
-effects may have occurred, compensation logic restores or neutralizes ERP state
-before termination. The workflow also supports safe replay, allowing failed
-executions to be retried after issues are resolved without introducing
-duplicate effects~\cite{googleSRE}.
+Workflow design (n8n): event trigger → validation → bounded AI call →
+deterministic branching → ERP update. The AI node can choose which tool to
+invoke, but is constrained by structured output contracts and validation to
+contain non-determinism. Failure handling is first-class: retries with backoff
+for transients, abort/compensate for hard errors, and safe replay to prevent
+duplicates~\cite{googleSRE}.
 
 \begin{figure}[htbp]
     \centering
-    % \includegraphics[width=\textwidth]{Figures/n8n-workflow-happy-path.pdf}
-    \caption{n8n workflow diagram illustrating the main execution path for ERP
+    \includegraphics[width=0.8\textwidth]{Figures/triage.png}
+    \caption{n8n agent flow illustrating the main execution path for ERP
         integration.}
     \label{fig:n8n_workflow_happy}
-\end{figure}
-
-\begin{figure}[htbp]
-    \centering
-    % \includegraphics[width=\textwidth]{Figures/n8n-failure-branches.pdf}
-    \caption{Failure handling branches showing retry, abort, and replay
-        strategies used in the workflow.}
-    \label{fig:n8n_failure_branches}
-\end{figure}
-
-\begin{figure}[htbp]
-    \centering
-    % \includegraphics[width=\textwidth]{Figures/erp-sequence-diagram.pdf}
-    \caption{Sequence diagram showing the interaction between the ERP system
-        and the n8n workflow during execution.}
-    \label{fig:erp_sequence}
 \end{figure}
 
 %=============================================================================
@@ -119,41 +48,22 @@ duplicate effects~\cite{googleSRE}.
 \label{sec:Task1_Operations}
 %=============================================================================
 
-Operational robustness was a central design consideration. All secrets and
-credentials are managed outside the workflow definition, allowing the same
-workflow logic to be deployed across development, staging, and production
-environments without modification. This separation aligns with best practices
-in workflow automation and cloud-based integration
-systems~\cite{googleSRE,microsoftWellArchitected}.
-
-To support safe retries and replays, interactions with ERP systems are designed
-to be idempotent wherever possible. Repeated execution of a workflow step does
-not result in duplicate or inconsistent updates, even under failure
-conditions~\cite{googleSRE}.
-
-Rate limiting and throttling mechanisms are applied at integration boundaries
-to protect both the ERP system and external AI services. These controls prevent
-cascading failures during elevated load or abnormal behavior and provide
-back-pressure when downstream systems are under stress~\cite{googleSRE}.
+Operational principles: externalized secrets for environment portability;
+idempotent ERP interactions for safe retries/replays; and rate limits/throttles
+at boundaries to protect both ERP and AI services~\cite{googleSRE,microsoftWellArchitected}.
 
 %=============================================================================
 \section{Results and Learning Points}
 \label{sec:Task1_Results}
 %=============================================================================
 
-The n8n-based integration demonstrated that AI-assisted processing can be
-introduced into ERP workflows without sacrificing determinism or operational
-safety. Explicit modeling of control flow and failure handling proved effective
-for maintaining system stability and simplifying debugging.
+Results: AI steps can be added without losing determinism or safety when the
+control plane stays explicit. Limitations: complex AI logic strains workflow
+maintainability; adaptive behavior becomes cumbersome with branching.
 
-The work also revealed limitations inherent to workflow-based approaches. As
-AI-driven logic complexity increased, workflows became harder to maintain and
-reason about. Expressing iterative or adaptive behavior required additional
-branching and manual control structures, increasing maintenance overhead.
-
-A key learning was the importance of separating deterministic workflow
-automation from agent-based systems. Workflow tools are well suited for
-control, safety, and auditability, but become strained when modeling adaptive
-or iterative reasoning. This realization directly informed the architectural
-direction taken in later work on agent-oriented
-systems~\cite{anthropicAgents2024}.
+Key learning points:
+\begin{itemize}
+    \item Keep AI calls bounded and typed; let workflows own control and recovery.
+    \item Design for retries/replay with idempotent side effects and compensation paths.
+    \item Use workflow tools for safety and auditability; move adaptive logic to agents when complexity grows.
+\end{itemize}

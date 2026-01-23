@@ -6,137 +6,67 @@
 % This is the "industrial core" - the LangGraph Agent Platform
 %=============================================================================
 
-This chapter introduces Track~B: the transition from exploratory research to
-building a production-oriented \gls{ai} agent platform. Where earlier work
-focused on workflow automation, local experimentation, or protocol-level
-abstractions, Track~B centers on a stateful, human-in-the-loop agent system
-using \gls{langgraph} for orchestration.~\cite{langgraphOverview,langgraphProduct}
-
-The objective was to design and implement an agent platform that integrates
-into engineering workflows with attention to correctness, governance, and
-operational reliability.~\cite{googleSRE,microsoftWellArchitected}
+Track B moves from exploration to a production-oriented agent platform. It
+delivers a stateful, human-in-the-loop system using \gls{langgraph}, focused on
+correctness, governance, and operational reliability.
 
 %=============================================================================
-\section{Business Capability and User Journeys}
+\section{Business Capability and Journeys}
 \label{sec:TrackB_BusinessCapability}
 %=============================================================================
 
-The agent platform generates and refines \gls{qa} artifacts from
-natural-language inputs. It transforms requirements into test cases and test
-steps while preserving human oversight at critical decision
-points.~\cite{langgraphHITL,langgraphInterrupts,anthropicAgents2024}
+The platform turns natural-language requirements into \gls{qa} artifacts with
+explicit human review gates.
 
-Three user groups are targeted:
+Target users:
+\begin{itemize}
+    \item QA engineers: accelerate test creation with review/edit control.
+    \item Product engineers/managers: translate requirements into structured outputs.
+    \item Platform/ops: operate a multi-tenant, governed, observable service.
+\end{itemize}
 
-\textbf{QA / Test Engineers} use the system to accelerate test creation while
-retaining control over correctness through review and edits. Human review
-gates are modeled as explicit pauses that require input before
-continuing.~\cite{langgraphHITL,langgraphInterrupts}
-
-\textbf{Product Engineers and Product Managers} translate feature requirements
-into QA artifacts. This follows a common pattern where LLM-assisted systems
-act as ``translation layers'' between intent and structured
-outputs.~\cite{langchainStructuredOutput,anthropicAgents2024}
-
-\textbf{Platform and Operations teams} run the agent as a multi-tenant service
-where governance, cost control, and observability are first-class
-requirements.~\cite{googleSRE,microsoftWellArchitected,langfuseDocs}
-
-Two primary user journeys are supported, both built around human-in-the-loop
-interaction.~\cite{anthropicAgents2024,langgraphHITL}
-
-\textbf{Journey 1: Requirement $\rightarrow$ Test Cases.}
-A user submits a requirement and requests $N$ candidate test cases. The system
-generates candidates, then pauses for review. The user may approve, edit,
-regenerate, or request more cases before
-continuing.~\cite{langgraphHITL,langgraphInterrupts}
-
-\textbf{Journey 2: Test Case $\rightarrow$ Test Steps.}
-A user selects a test case and requests steps. The system generates an ordered
-set (5--10 steps), then pauses for editing. The user may edit, add, delete,
-approve, or reject with feedback.~\cite{langgraphHITL,langgraphInterrupts}
+Journeys (human-in-the-loop):
+\begin{itemize}
+    \item Requirement $\rightarrow$ Test cases: generate $N$ candidates, pause for review; approve/edit/regenerate.
+    \item Test case $\rightarrow$ Test steps: generate ordered steps, pause for edits; approve/reject with feedback.
+\end{itemize}
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=\textwidth]{Figures/swimlane.png}
+    \includegraphics[width=0.75\textwidth]{Figures/swimlane.png}
     \caption{User journey swimlane showing human-in-the-loop gates. Interrupt
         and resume mechanisms pause execution for human review.}
     \label{fig:user_journey_swimlane}
 \end{figure}
 
-%=============================================================================
-\section{Requirements Specification}
-\label{sec:TrackB_Requirements}
-%=============================================================================
-
-Platform design separated functional requirements (what the system does) from
-non-functional requirements (how it behaves in production). This separation
-prevents feature work from eroding reliability.~\cite{googleSRE,microsoftWellArchitected}
-
-\subsection{Functional Requirements}
-\label{sec:TrackB_FunctionalReqs}
-
-The core functional requirement is iterative, stateful workflows rather than
-one-shot generation:
-
-\begin{itemize}
-    \item \textbf{Pause and resume:} execution supports explicit interruption
-          for human review, with state persisted across
-          pauses.~\cite{langgraphInterrupts,langgraphHITL}
-
-    \item \textbf{Editable artifacts:} generated test artifacts are editable
-          at a granular level (approve, edit, delete, update) rather than
-          immutable.~\cite{langchainStructuredOutput,anthropicAgents2024}
-
-    \item \textbf{Selective regeneration:} users can regenerate subsets
-          (specific cases or steps) without restarting, requiring explicit
-          state management.~\cite{langgraphOverview,langgraphHITL}
-\end{itemize}
-
-These requirements reflect that QA correctness emerges through iteration, not
-a single LLM call, and motivate state-machine
-orchestration.~\cite{langgraphOverview,anthropicAgents2024}
-
-\subsection{Non-Functional Requirements}
-\label{sec:TrackB_NFRs}
-
-Non-functional requirements were decisive since the system is operated as a
-service, not a prototype.
-
-\textbf{Governance and multi-tenancy.} Requests are scoped to user and
-organization context with enforceable usage controls (token limits). This
-aligns with service governance patterns: quotas, budget controls, and
-isolation.~\cite{googleSRE,microsoftWellArchitected}
-
-\textbf{Observability (best-effort).} Tracing and metrics support debugging
-and monitoring, but observability failures must not break core execution. This
-prevents auxiliary dependencies from degrading
-availability.~\cite{googleSRE,langfuseDocs}
-
-\textbf{Reliability and deployability.} Automated build and deployment to a
-managed runtime is supported. Cloud Run was selected as the deployment target
-for its managed container execution.~\cite{cloudRunDocs,cloudRunOverview,microsoftWellArchitected}
-
-\textbf{Persistence.} Resumable execution requires persistence. Redis handles
-counters and operational keys; PostgreSQL provides durable storage for service
-state.~\cite{redisDocs,postgresDocs}
-
-\textbf{Configuration discipline.} Hydra and OmegaConf provide composable
-configuration with interpolation; python-dotenv loads environment variables
-from \texttt{.env} files for local development.~\cite{hydraIntro,omegaconfUsage,pythonDotenv}
-
-\begin{figure}[htbp]
+\begin{table}[htbp]
     \centering
-    % \includegraphics[width=\textwidth]{Figures/requirements-mechanisms-map.pdf}
-    \caption{Requirements mapped to implementation mechanisms: interrupts for
-        review, structured outputs for contracts, tracing for observability,
-        governance for multi-tenancy.}
-    \label{fig:requirements_mechanisms}
-\end{figure}
+    \small
+    \renewcommand{\arraystretch}{1.15}
+    \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{0.48\textwidth}>{\raggedright\arraybackslash}X@{}}
+        \toprule
+        \textbf{Functional (what it does)}              & \textbf{Non-functional (how it runs)}                                   \\
+        \midrule
+        Pause/resume with persisted state               & Governance/multi-tenancy: quotas, usage limits, isolation               \\
+        Editable artifacts (approve/edit/delete/update) & Observability: tracing/metrics are best-effort (do not break execution) \\
+        Selective regeneration of cases/steps           & Reliability/deployability: automated CI/CD to Cloud Run                 \\
+                                                        & Persistence: Redis for counters/ops keys; Postgres for durable state    \\
+                                                        & Configuration: Hydra/OmegaConf; dotenv for local env                    \\
+        \bottomrule
+    \end{tabularx}
+    \caption{Functional vs non-functional requirements (side-by-side).}
+    \label{tab:requirements_side_by_side}
+\end{table}
+
+% \begin{figure}[htbp]
+%     \centering
+%     % \includegraphics[width=\textwidth]{Figures/requirements-mechanisms-map.pdf}
+%     \caption{Requirements mapped to mechanisms: interrupts, structured outputs, tracing, governance.}
+%     \label{fig:requirements_mechanisms}
+% \end{figure}
 
 \begin{table}[htbp]
     \centering
-    \caption{User journeys mapped to graphs, interrupts, and outputs.}
     \label{tab:JourneyGraphMapping}
     \begin{tabular}{llll}
         \toprule
@@ -146,9 +76,17 @@ from \texttt{.env} files for local development.~\cite{hydraIntro,omegaconfUsage,
         Case $\rightarrow$ Steps        & Step generation graph & Edit gate           & Test steps       \\
         \bottomrule
     \end{tabular}
+    \caption{User journeys mapped to graphs, interrupts, and outputs.}
 \end{table}
 
-These requirements define a controlled, stateful system that prioritizes
-correctness, transparency, and human agency over full autonomy. This framing
-sets the foundation for subsequent architectural
-choices.~\cite{anthropicAgents2024,langgraphOverview}
+\section{Key Learning Points}
+\label{sec:TrackB_Learnings}
+
+\begin{itemize}
+    \item Human-in-the-loop gates materially improve correctness versus one-shot generation.
+    \item State-machine orchestration yields predictable behavior and easier recovery.
+    \item Governance and observability must be designed upfront to avoid rework.
+    \item Managed deployment (Cloud Run) reduces ops overhead at the cost of fine-grained control.
+\end{itemize}
+
+These learnings informed design choices across the platform and guided trade-offs between flexibility and control.

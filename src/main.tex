@@ -388,9 +388,9 @@
 %nicht so
 
 \ifdefined\ThesisLanguageIsEnglish
-  \selectlanguage{american}
+      \selectlanguage{american}
 \else
-  \selectlanguage{ngerman} % ngerman, american
+      \selectlanguage{ngerman} % ngerman, american
 \fi
 %Deutsch nach neuer Rechtschreibung als
 %Standardsprache fuer das Dokument einstellen
@@ -494,9 +494,8 @@
 % Conclusion + References
 \input{TeXFiles/080_Conclusion}
 
-\begin{appendix}
-  \input{TeXFiles/090_Appendix}
-\end{appendix}
+\appendix
+\input{TeXFiles/090_Appendix}
 
 \clearpage
 
@@ -505,9 +504,9 @@
 % \glsaddall
 
 \ifdefined\ThesisLanguageIsEnglish
-  \printglossary[type=\acronymtype, title=List of Abbreviations, toctitle=List of Abbreviations]
+      \printglossary[type=\acronymtype, title=List of Abbreviations, toctitle=List of Abbreviations]
 \else
-  \printglossary[type=\acronymtype, title=Abkürzungsverzeichnis, toctitle=Abkürzungsverzeichnis]
+      \printglossary[type=\acronymtype, title=Abkürzungsverzeichnis, toctitle=Abkürzungsverzeichnis]
 \fi
 %\printglossary[type=acronym,title=Abbreviations]
 %\addcontentsline{toc}{section}{Abbreviations} 
@@ -515,10 +514,10 @@
 \clearpage
 
 \ifdefined\ThesisLanguageIsEnglish
-  \printglossary[title=Glossary, toctitle=Glossary]
+      \printglossary[title=Glossary, toctitle=Glossary]
 \else
-  % Ensure all glossary entries are included even if not referenced in text
-  \printglossary[title=Glossar, toctitle=Glossar]
+      % Ensure all glossary entries are included even if not referenced in text
+      \printglossary[title=Glossar, toctitle=Glossar]
 \fi
 
 %Falls man die Überschrift des Literaturverzeichnisses
