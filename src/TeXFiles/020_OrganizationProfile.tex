@@ -72,7 +72,7 @@ Within agreed boundaries, responsibilities included:
 
 \begin{itemize}
     \item Designing and implementing AI system prototypes (workflow automation, serving experiments, agent platform development).
-    \item Documenting decisions in ADR-style records, supported by evidence such as benchmarks, evaluation results, and operational metrics.
+    \item Documenting decisions, supported by evidence such as benchmarks, evaluation results, and operational metrics.
     \item Delivering production-ready artifacts: code, configuration, infrastructure definitions, CI/CD pipelines, and deployment manifests.
     \item Producing operational documentation: runbooks, monitoring signal definitions, and deployment hardening checklists.
 \end{itemize}
@@ -134,32 +134,9 @@ A deliverable was considered ready for handoff when:
 \label{sec:OrgProfile_Challenges}
 %=============================================================================
 
-Technical priorities and design decisions were shaped by practical constraints common in production environments.
+Technical priorities were shaped by practical constraints: fixed timeline (prioritized high-impact deliverables, disciplined scope control), shared infrastructure (required environment separation and conservative rollout), external AI dependencies (required cost budgets and retry policies), and data sensitivity (required strict access controls and logging redaction).
 
-\subsection{Time Constraints}
-\label{subsec:OrgProfile_TimeConstraints}
-
-The internship was a fixed-duration engagement, which required disciplined scope control:
-
-\begin{itemize}
-    \item High-impact deliverables were prioritized over broad exploration.
-    \item Risk drivers (reliability, cost, integration complexity) were identified early.
-    \item Scope was kept tight to prevent uncontrolled expansion.
-\end{itemize}
-
-\subsection{Operational and Platform Constraints}
-\label{subsec:OrgProfile_OperationalConstraints}
-
-\begin{itemize}
-    \item \textbf{Shared infrastructure}: Deployment targets (managed compute, Postgres, Redis) were shared resources, making safe rollout and isolation more important.
-    \item \textbf{Data sensitivity}: Access to product and customer-adjacent data required careful logging and strict access controls.
-    \item \textbf{External AI dependencies}: Third-party model providers introduced variability in latency, rate limits, and cost.
-\end{itemize}
-
-\subsection{Mitigation Strategies}
-\label{subsec:OrgProfile_Mitigations}
-
-The following mitigations were applied to reduce risk and maintain delivery quality:
+The following mitigations were applied:
 
 \begin{table}[htbp]
     \centering
