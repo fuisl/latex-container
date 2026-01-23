@@ -46,6 +46,13 @@ read/write characteristics and suitability for ephemeral operational data
 \cite{redisDocs}. Counters are maintained separately for input tokens, output
 tokens, and total tokens, enabling fine-grained monitoring and enforcement.
 
+\begin{figure}[htbp]
+      \centering
+      \includegraphics[width=0.75\textwidth]{Figures/langgraph-redis-2.png}
+      \caption{Redis usage counters for token tracking by organization and model type.}
+      \label{fig:langgraph_redis}
+\end{figure}
+
 This design enables near real-time visibility into resource consumption while
 avoiding the overhead of persistent database writes on the critical request
 path.
@@ -216,25 +223,23 @@ engineering process rather than post-development concerns
 \label{sec:CICDPipeline}
 %=============================================================================
 
-The CI/CD pipeline is designed to automate build, validation, and deployment
-steps while enforcing basic quality gates. The pipeline is triggered on changes
-to the main branch and follows a linear sequence of stages to reduce ambiguity
-in failure diagnosis.
+The CI/CD pipeline automates build, validation, and deployment with basic quality
+gates. It is triggered on changes to the main branch and follows a linear set of
+stages for clearer failure diagnosis as demonstrated in Figure~\ref{fig:cicd_pipeline}. In short: build, validate, push, deploy.
 
-At a high level, the pipeline performs the following actions:
-
+Key learning points:
 \begin{itemize}
-      \item Build a container image for the LangGraph API service using the
-            LangGraph CLI.
-      \item Run basic validation checks to ensure that graph definitions compile
-            correctly and required configuration is present.
-      \item Push the resulting image to a container registry.
-      \item Deploy the image to Google Cloud Run.
+      \item Compile and validate graphs during CI to catch schema/config errors early, not at runtime.
+      \item Use immutable container images to enable reproducible rollbacks and auditability.
+      \item Keep pipeline stages simple and linear to make failures easy to trace.
 \end{itemize}
 
-This structure prioritizes reproducibility and traceability over aggressive
-optimization. Each deployment corresponds to an immutable container image,
-allowing rollbacks to be performed by redeploying a known artifact.
+\begin{figure}[htbp]
+      \centering
+      \includegraphics[width=0.75\textwidth]{Figures/pipeline.png}
+      \caption{CI/CD Pipeline in development and staging environment.}
+      \label{fig:cicd_pipeline}
+\end{figure}
 
 \subsection{Graph Build and Validation}
 \label{sec:GraphBuild}
@@ -258,6 +263,13 @@ The platform is deployed on Google Cloud Run, which provides a managed runtime
 for containerized services with automatic scaling and request-based billing
 \cite{cloudRunOverview}. Cloud Run was selected to minimize operational overhead
 while still allowing fine-grained control over concurrency and resource limits.
+
+Key learning points:
+\begin{itemize}
+      \item Separate maintenance tasks from the request path to avoid latency regressions.
+      \item Concurrency requires connection pooling for Redis and database access to prevent exhaustion.
+      \item Serverless cold starts are acceptable for staging/early production given reduced operational burden.
+\end{itemize}
 
 \subsection{Service Separation}
 \label{sec:ServiceSeparation}
@@ -286,13 +298,6 @@ introduce some latency for infrequent traffic, this trade-off was deemed
 acceptable for a staging and early production environment, especially given
 the reduced operational complexity.
 
-\begin{figure}[htbp]
-      \centering
-      % \includegraphics[width=\textwidth]{Figures/cicd-deployment-flow.pdf}
-      \caption{CI/CD and deployment flow from source code to Cloud Run services.}
-      \label{fig:cicd_flow}
-\end{figure}
-
 %=============================================================================
 \section{Configuration and Environment Management}
 \label{sec:ConfigManagement}
@@ -308,8 +313,12 @@ before higher-level configuration resolution. This ensures that runtime
 overrides take precedence over default values and allows the same artifact to
 be deployed across multiple environments without modification.
 
-This approach reduces configuration drift and aligns with recommended
-practices for cloud-native services \cite{microsoftWellArchitected}.
+Key learning points:
+\begin{itemize}
+      \item Inject environment-specific secrets at deploy time; avoid baking credentials into images.
+      \item Load environment variables before higher-level configs so runtime overrides take precedence.
+      \item Use one artifact across environments to reduce drift and simplify promotion.
+\end{itemize}
 
 %=============================================================================
 \section{Production Evaluation and Testing}
@@ -341,16 +350,12 @@ constraints, and graph transitions rather than to retrain models.
 \subsection{Observability-Driven Evaluation}
 \label{sec:ObservabilityEvaluation}
 
-Langfuse traces and metrics are used to support evaluation rather than to
-replace human judgment. Traces provide visibility into execution paths,
-latencies, and failure modes, enabling engineers to identify bottlenecks and
-unexpected behaviors.
-
-Importantly, observability data is interpreted in context. For example,
-increased latency may be acceptable for complex generation steps but not for
-resume operations. This nuanced interpretation reflects the limitations of
-purely quantitative evaluation for agent systems
-\cite{anthropicAgents2024}.
+Key learning points:
+\begin{itemize}
+      \item Human-in-the-loop evaluation remains essential; automated metrics cannot judge output utility alone.
+      \item Use traces for visibility into latency and failure modes, but interpret signals in task context.
+      \item Focus evaluation on correctness, stability of interrupts/resumes, and responsiveness under edits.
+\end{itemize}
 
 %=============================================================================
 \section{Operational Readiness and Limitations}
