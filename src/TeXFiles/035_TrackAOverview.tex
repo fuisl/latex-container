@@ -8,107 +8,34 @@
 % research. No architectural or runtime dependency on LangGraph is assumed.
 %=============================================================================
 
-This chapter provides an overview of Track A - workflow automation and
-infrastructure R\&D. This track should be seen as an independent engineering effort
-with its own objectives, scope, and architecture. The focus was on integrating
-AI-enabled capabilities into existing systems through deterministic workflows
-and evaluating infrastructure patterns for serving and operating such systems.
+This chapter outlines Track A: workflow automation and infrastructure R\&D. Track A is an independent engineering effort focused on integrating AI agent capabilities into existing systems and evaluating serving patterns.
 
 %=============================================================================
-\section{Track A Goals and Scope}
+\section{Goals and Scope}
 \label{sec:TrackA_Goals}
 %=============================================================================
 
-The primary goal of Track A was to explore practical approaches for integrating
-AI-assisted functionality into existing enterprise systems while maintaining
-operational safety, traceability, and predictability.
-
-Track A addressed three problem areas:
-
-\begin{itemize}
-      \item \textbf{Workflow automation for enterprise systems}: integrating
-            AI-assisted steps into ERP-related processes using deterministic
-            orchestration.
-      \item \textbf{Infrastructure experimentation for model serving}: evaluating
-            local deployment patterns and comparing serving approaches from an
-            operational perspective.
-      \item \textbf{Tooling interoperability research}: experimenting with MCP
-            as a standardized interface for exposing tools, resources, and
-            prompts to AI systems.
-\end{itemize}
-
-The intent was exploratory and evaluative. The emphasis was on understanding
-trade-offs, constraints, and failure modes rather than building a complete
-production system.
-
-\subsection{Scope}
-\label{subsec:TrackA_ExplicitScope}
-
-Track A covered the following activities:
-\begin{itemize}
-      \item AI-enabled workflow automation using \texttt{n8n}, integrated with
-            ERP processes.
-      \item Evaluation of local model serving and deployment options, including
-            performance and operational considerations.
-      \item Experimental investigation of MCP for tool and context
-            interoperability across AI systems.
-\end{itemize}
-
-\subsection{Out-of-Scope}
-\label{subsec:TrackA_OutOfScope}
-
-The following were out of scope for Track A:
-\begin{itemize}
-      \item Agent orchestration, stateful reasoning, or human-in-the-loop
-            control via LangGraph.
-      \item Agent lifecycle management, governance, or observability mechanisms
-            from Track B.
-      \item Tight coupling between workflow automation and agent-based systems.
-\end{itemize}
-
-This separation keeps Track A conclusions applicable to workflow and
-infrastructure design without assuming an agent-based execution model.
+Track A addressed four areas: (i) AI agent integration for ERP processes using n8n, (ii) evaluation of local and enterprise model serving approaches, (iii) RAG deployment for product question answering, and (iv) investigation of MCP as a standardized interface for tools and context interoperability.
 
 %=============================================================================
-\section{Track A Architecture Overview}
-\label{sec:TrackA_Architecture}
+\section{Components}
+\label{sec:TrackA_Components}
 %=============================================================================
 
-Track A used a modular, loosely coupled architecture that allowed components
-to be evaluated in isolation. The design supported experimentation while
-minimizing unintended side effects on existing systems.
-
-The architecture consists of four conceptual layers:
+Track A components interact as follows:
 
 \begin{enumerate}
-      \item \textbf{Enterprise system layer}: existing ERP systems and business
-            processes that act as event sources or consumers of automated actions.
-      \item \textbf{Workflow orchestration layer}: implemented using \texttt{n8n},
-            handling deterministic execution, conditional branching, retries,
-            and error handling.
-      \item \textbf{Infrastructure and serving sandbox}: used to evaluate local
-            and enterprise model serving patterns under controlled conditions.
-      \item \textbf{Interoperability research sandbox}: where MCP was explored
-            as an interface for exposing tools and context to AI components.
+      \item \textbf{Enterprise System Layer}: ERP systems act as event sources, triggering workflows through API calls or event notifications.
+      \item \textbf{n8n Orchestration}: Receives events from enterprise systems, invokes AI agents via MCP or direct API calls, handles retries and error recovery.
+      \item \textbf{AI Layer}: vLLM instances process requests, with MCP Client handling tool invocation and context management.
+      \item \textbf{Model Context Protocol}: Exposes standardized interfaces for tools and resources, enabling loose coupling between n8n and AI services.
 \end{enumerate}
-
-These layers were kept independent to allow focused evaluation. Workflow
-orchestration was treated as a deterministic control plane, while
-infrastructure and interoperability experiments ran in isolation from
-production workflows.
 
 \begin{figure}[htbp]
       \centering
-      \includegraphics[width=0.6\textwidth]{Figures/overviewA.png}
-      \caption{Track A main components}
+      \includegraphics[width=0.8\textwidth]{Figures/overviewA.png}
+      \caption{Track A component interactions: enterprise systems $\rightarrow$ n8n workflows $\rightarrow$ AI layer via MCP}
       \label{fig:track_a_context}
 \end{figure}
 
-This separation enabled:
-\begin{itemize}
-      \item clear reasoning about failure modes and recovery in automated
-            workflows,
-      \item controlled evaluation of serving options without production risk,
-      \item exploratory investigation of interoperability without constraining
-            later decisions.
-\end{itemize}
+This separation enabled independent evaluation of model serving options, investigation of MCP interoperability, and controlled experimentation without production risk.

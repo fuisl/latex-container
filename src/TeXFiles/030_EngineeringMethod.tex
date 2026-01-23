@@ -113,6 +113,8 @@ predictability, and simplicity over short-term convenience.
     \caption{Decision criteria applied across engineering tasks.}
 \end{table}
 
+\clearpage
+
 %=============================================================================
 \section{Workflow Systems vs Agent Systems}
 \label{sec:WorkflowVsAgent}
@@ -122,21 +124,20 @@ A clear distinction was maintained between \textbf{workflow automation systems}
 and \textbf{agent systems}. These paradigms address different problem classes
 (see Figure~\ref{fig:workflow_vs_agent}) \cite{googleSRE,openaiPrompting}.
 
-\textbf{Workflow systems} are characterized by:
-\begin{itemize}
-    \item deterministic orchestration with predefined execution paths,
-    \item explicit retries and idempotency guarantees,
-    \item strong auditability and traceability,
-    \item suitability for integration and compliance tasks.
-\end{itemize}
-
-\textbf{Agent systems} emphasize:
-\begin{itemize}
-    \item stateful reasoning across multiple steps,
-    \item tool invocation under uncertainty,
-    \item non-deterministic behavior driven by \glspl{llm},
-    \item the need for evaluation, guardrails, and governance.
-\end{itemize}
+\begin{table}[htbp]
+    \centering
+    \small
+    \label{tab:WorkflowVsAgent}
+    \begin{tabularx}{\textwidth}{X|X}
+        \textbf{Workflow Systems}            & \textbf{Agent Systems}               \\
+        \hline
+        Deterministic orchestration          & Stateful reasoning across steps      \\
+        Explicit retries and idempotency     & Tool invocation under uncertainty    \\
+        Strong auditability and traceability & Non-deterministic (\gls{llm}-driven) \\
+        Compliance and integration focus     & Evaluation, guardrails, governance   \\
+    \end{tabularx}
+    \caption{Workflow systems vs agent systems: key characteristics.}
+\end{table}
 
 \begin{figure}[htbp]
     \centering
