@@ -101,7 +101,7 @@ decisions were documented using lightweight Architecture Decision Records
 % Page budget: 7 pages (Pages 37--43)
 %=============================================================================
 
-This chapter covers the internal design of LangGraph graphs used by the
+This chapter covers the internal components of LangGraph graphs used by the
 AgileTest Agent. Unlike traditional workflows, these graphs explicitly model
 state, transitions, and validation boundaries, enabling controlled agent
 behavior over unconstrained autonomy.
@@ -111,48 +111,16 @@ behavior over unconstrained autonomy.
 \label{sec:StateSchemaDesign}
 %=============================================================================
 
-Each graph operates over a strongly typed state object. Reducers define explicit state updates across node transitions. Language model outputs are constrained using structured schemas (Figures~\ref{fig:state_schema} and~\ref{fig:structured_output}), reducing ambiguity and enabling reliable downstream processing. Schema validation failures trigger retries with stricter prompts or safe abort paths rather than propagating invalid state.
+Each graph operates over a strongly typed state object. Reducers define explicit state updates across node transitions~\cite{langgraphReducers}. Language model outputs are constrained using structured schemas, reducing ambiguity and enabling reliable downstream processing. Schema validation failures trigger retries with stricter prompts or safe abort paths rather than propagating invalid state.
+A concrete example of state definition used for test case generation and structured output is provided in Appendix~\ref{app:code:testcases}.
+
+The nodes and edges are combined to execute the flow from calling generation to add human-in-the-loop review.
 
 \begin{figure}[htbp]
     \centering
-    % \includegraphics[width=0.9\textwidth]{Figures/state-schema-reducers.pdf}
-    \caption{State schema and reducer ownership across graph nodes.}
-    \label{fig:state_schema}
-\end{figure}
-
-\begin{figure}[htbp]
-    \centering
-    % \includegraphics[width=0.8\textwidth]{Figures/structured-output-boundary.pdf}
-    \caption{Structured output boundaries showing schema validation points.}
-    \label{fig:structured_output}
-\end{figure}
-
-%=============================================================================
-\section{Graph A: Requirement to Test Cases}
-\label{sec:GraphA}
-%=============================================================================
-
-Graph A (Figure~\ref{fig:graph_a_state_machine}) transforms a natural-language requirement into test cases. Execution moves from generation through a human review gate and may loop back for regeneration. This models iteration as explicit state transitions, making the system easier to reason about and debug.
-
-\begin{figure}[htbp]
-    \centering
-    % \includegraphics[width=\textwidth]{Figures/graph-a-state-machine.pdf}
-    \caption{State machine for Graph A: Requirement $\rightarrow$ Test Cases.}
-    \label{fig:graph_a_state_machine}
-\end{figure}
-
-%=============================================================================
-\section{Graph B: Test Case to Test Steps}
-\label{sec:GraphB}
-%=============================================================================
-
-Graph B (Figure~\ref{fig:graph_b_state_machine}) refines a test case into executable steps and supports edit commands (add, delete, update). Edits are validated against schema constraints before application, preventing state corruption. Rejected edits transition the graph back to regeneration.
-
-\begin{figure}[htbp]
-    \centering
-    % \includegraphics[width=\textwidth]{Figures/graph-b-state-machine.pdf}
-    \caption{State machine for Graph B: Test Case $\rightarrow$ Test Steps.}
-    \label{fig:graph_b_state_machine}
+    \includegraphics[width=0.75\textwidth]{Figures/general-flow.png}
+    \caption{General generation flow for AI workflow.}
+    \label{fig:hitl_timeline}
 \end{figure}
 
 %=============================================================================
@@ -164,7 +132,7 @@ At human-in-the-loop interrupts (Figure~\ref{fig:hitl_timeline}), execution stat
 
 \begin{figure}[htbp]
     \centering
-    % \includegraphics[width=\textwidth]{Figures/hitl-lifecycle-timeline.pdf}
+    \includegraphics[width=0.75\textwidth]{Figures/Checkpoint.png}
     \caption{HITL interrupt and resume lifecycle with checkpoint storage.}
     \label{fig:hitl_timeline}
 \end{figure}

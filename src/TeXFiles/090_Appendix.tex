@@ -10,6 +10,41 @@
 
 % Key code snippets that support the report
 
+\subsection{Test Cases Generation State}
+\label{app:code:testcases}
+
+\begin{lstlisting}[language=Python,caption={TestCasesGenerationState definition.}]
+class TestCasesGenerationState(AgileTestState):
+	"""State for test cases generation."""
+
+	linked_requirements: List[Requirement]
+	linked_requirement_summary: str
+	# test cases generation
+	requirement: Required[Requirement]
+	n_cases: Required[int]
+	existing_test_cases: Annotated[Dict[str, TestCase], merge_flat_dict]
+	test_cases: Annotated[Dict[str, TestCase], merge_flat_dict]
+
+	next_case_id: int
+	last_batch_ids: List[str]
+	ids_to_regen: List[str]
+	approved_ids: List[str]
+	feedback: str
+	test_type: str
+\end{lstlisting}
+
+\begin{lstlisting}[language=Python,caption={TestCase definition and structured output invocation.}]
+class TestCase(TypedDict):
+"""Test case representation."""
+    summary: str
+    description: str
+
+llm_with_structured_output = llm.with_structured_output(TestCase)
+response = llm_with_structured_output.invoke(prompt)
+
+# response: TestCase(summary="...", description="...")
+\end{lstlisting}
+
 
 %=============================================================================
 \section{Additional Diagrams}
