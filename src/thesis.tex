@@ -75,21 +75,17 @@
 %\multicolumn{number cols}{align}{text} % align: l,c,r
 %\multirow{number rows}{width}{text}
 
-%%%% Serifenloser Textstil fuer das ganze Dokument: 
-
-\RequirePackage[sfdefault,lf]{carlito}
-\usepackage{lmodern}
-% \RequirePackage[T1]{fontenc}
-% to imitate Calibri:
-\renewcommand*\familydefault{\sfdefault} %% Base font of the document is to be sans serif
+%%%% Font setup: use Libertinus for text and New Computer Modern for math
+\PassOptionsToPackage{fleqn,reqno}{amsmath}
+\usepackage[nomath]{libertinus}
+\usepackage{unicode-math}
+\setmathfont{NewCMMath-Book.otf}
+\setmathfont{NewCMMath-Bold.otf}[version=bold]
+\setmathfont[range={\mathscr,\mathbfscr},StylisticSet=1]{NewCMMath-Book.otf}
 
 %%%%%% Grafiken einbinden
 \usepackage{graphicx}
 % https://golatex.de//wiki/%5cincludegraphics
-
-%%%%%% Mathematik-Paket AMSMath:
-\usepackage[fleqn,reqno]{amsmath}
-
 
 %%%%%% Seitengeometrie einstellen:
 % https://tex.stackexchange.com/questions/344241/logo-as-header-using-fancyhdr-package
@@ -279,9 +275,9 @@
 %nicht so
 
 \ifdefined\ThesisLanguageIsEnglish
-  \selectlanguage{american}
+    \selectlanguage{american}
 \else
-  \selectlanguage{ngerman} % ngerman, american
+    \selectlanguage{ngerman} % ngerman, american
 \fi
 %Deutsch nach neuer Rechtschreibung als
 %Standardsprache fuer das Dokument einstellen
@@ -342,15 +338,15 @@
 \input{TeXFiles/080_Zusammenfassung}
 
 \begin{appendix}
-  \input{TeXFiles/090_Anhang}
+    \input{TeXFiles/090_Anhang}
 \end{appendix}
 
 \clearpage
 
 \ifdefined\ThesisLanguageIsEnglish
-  \printglossary[type=\acronymtype, title=List of Abbreviations, toctitle=List of Abbreviations]
+    \printglossary[type=\acronymtype, title=List of Abbreviations, toctitle=List of Abbreviations]
 \else
-  \printglossary[type=\acronymtype, title=Abkürzungsverzeichnis, toctitle=Abkürzungsverzeichnis]
+    \printglossary[type=\acronymtype, title=Abkürzungsverzeichnis, toctitle=Abkürzungsverzeichnis]
 \fi
 %\printglossary[type=acronym,title=Abbreviations]
 %\addcontentsline{toc}{section}{Abbreviations} 
@@ -358,9 +354,9 @@
 \clearpage
 
 \ifdefined\ThesisLanguageIsEnglish
-  \printglossary[title=Glossary, toctitle=Glossary]
+    \printglossary[title=Glossary, toctitle=Glossary]
 \else
-  \printglossary[title=Glossar, toctitle=Glossar]
+    \printglossary[title=Glossar, toctitle=Glossar]
 \fi
 
 %Falls man die Überschrift des Literaturverzeichnisses

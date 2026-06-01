@@ -44,8 +44,10 @@
                         "name": "latexmk",
                         "command": "latexmk",
                         "args": [
+                            "-f",
                             "-interaction=nonstopmode",
                             "-pdf",
+                            "-xelatex",
                             "-synctex=1",
                             "-file-line-error",
                             "-outdir=%OUTDIR%",
