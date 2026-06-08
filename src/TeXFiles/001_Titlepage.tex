@@ -50,11 +50,13 @@
 
   \begin{minipage}{0.75\textwidth}
     \centering
-    \ifdefined\ThesisLanguageIsEnglish
-      \ThesisCoverStatementEnglish
-    \else
-      \ThesisCoverStatementGerman
-    \fi
+    \textit{%
+      \ifdefined\ThesisLanguageIsEnglish
+        \ThesisCoverStatementEnglish
+      \else
+        \ThesisCoverStatementGerman
+      \fi
+    }%
   \end{minipage}
 
   \vfill
