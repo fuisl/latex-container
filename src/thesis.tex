@@ -212,7 +212,7 @@
     linkcolor=black,
     filecolor=black,      
     urlcolor=black,
-    pdftitle={Thesis},
+    pdftitle={Multi-Agent Reinforcement Learning Framework for Graph-Aware Traffic Signal Control for German Traffic Scenarios},
     pdfpagemode=FullScreen,
     citecolor=black,
     }
@@ -297,10 +297,11 @@
 
 
 
-% hier wird die Titelseite eingebunden:
+% Title page and front matter:
 \input{TeXFiles/001_Titlepage}
-\input{TeXFiles/002_NDNotice}
+\input{TeXFiles/002_NonDisclosureNotice}
 \input{TeXFiles/003_Declaration}
+\input{TeXFiles/010_Abstract}
 \newpage
 
 % da wir den Titel haendisch erstellt haben entfaellt der folgende Befehl:
@@ -317,6 +318,12 @@
 
 \tableofcontents
 \clearpage
+\listoffigures
+\addcontentsline{toc}{chapter}{List of Figures}
+\clearpage
+\listoftables
+\addcontentsline{toc}{chapter}{List of Tables}
+\clearpage
 \pagenumbering{arabic}  % Umschalten auf Seitenzahlen in arabischer Darstellung
 %%%%% Einbinden der Dateien für die einzelnen Sektionen:
 % Verwendet man hier \include statt \input, beginnen
@@ -327,18 +334,17 @@
 
 
 %\myName
-\input{TeXFiles/010_Kurzfassung}
-\input{TeXFiles/004_LaTeXHowTo}      %%%%%% <<<<<< nach dem ersten Ansehen, bitte diese Zeile auskommentieren
-\input{TeXFiles/020_Einfuehrung}
-\input{TeXFiles/030_Hintergrund}
-\input{TeXFiles/040_StandDerTechnik}
-\input{TeXFiles/050_EntwickelteMethode}
-\input{TeXFiles/060_EvaluationDerMethode}
-\input{TeXFiles/070_Ergebnisse}
-\input{TeXFiles/080_Zusammenfassung}
+\input{TeXFiles/020_Introduction}
+%\input{TeXFiles/004_ThesisFormattingGuide}      % Uncomment only while editing the template guide.
+\input{TeXFiles/030_Background}
+\input{TeXFiles/040_StateOfTheArt}
+\input{TeXFiles/050_Methodology}
+\input{TeXFiles/060_Evaluation}
+\input{TeXFiles/070_Results}
+\input{TeXFiles/080_Conclusions}
 
 \begin{appendix}
-    \input{TeXFiles/090_Anhang}
+    \input{TeXFiles/090_Appendix}
 \end{appendix}
 
 \clearpage

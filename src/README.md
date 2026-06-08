@@ -1,18 +1,18 @@
 #### First thing to do:
 
-Please edit first the file TeXFiles/000_Settings.tex
+Please edit the file TeXFiles/000_Settings.tex first.
 
 
-## Table of contents
-
-
-
+## Table of Contents
 
 
 
-#### Umlauts/Umlaute
 
-This template supports German umlauts in the main text. However, if you need umlauts on the title page, eg. in the document title, ... and your you may have to use the native LaTeX way of writing;
+
+
+#### Umlauts
+
+This template supports German umlauts in the main text. If you need umlauts on the title page, for example in the document title, you may have to use the native LaTeX way of writing:
 
 | Umlaut | LaTeX way |
 |--------|-----------|

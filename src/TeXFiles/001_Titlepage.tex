@@ -5,88 +5,62 @@
 % Titlepage
 %*******************************************************
 %%%
-%%% title page (german)
+%%% title page
 %%%
 \thispagestyle{empty}
-\pdfbookmark[0]{Titelblatt}{title}
+\pdfbookmark[0]{Title Page}{title}
 \begin{titlepage}
 
+  \begin{tikzpicture}[remember picture,overlay]
+    \draw[line width=2pt]
+    ([xshift=1.2cm,yshift=-1.2cm]current page.north west)
+    rectangle
+      ([xshift=-1.2cm,yshift=1.2cm]current page.south east);
+  \end{tikzpicture}
 
-  \vspace*{-3,5cm}
-  \begin{center}
-    \includegraphics[width=7.7cm]{Figures/fra-uas_logo} \\ 
-  \end{center}
+  \centering
 
-  \begin{center}
-    \vspace{0.1cm}
-    \LARGE \textbf{Frankfurt University\\ of Applied Sciences}\\
-    \vspace{0.4cm}
-    \Large -- Faculty of Computer Science and Engineering --
-  \end{center}
+  \vspace*{1.6cm}
 
-  \vfill
+  {\Large\bfseries \MakeUppercase{\University}\par}
+  \vspace{0.8cm}
+  {\large\bfseries \Faculty\par}
+  \vspace{0.35cm}
+  {\large\bfseries \ThesisProgram\par}
 
-  \begin{center}
-    \huge \textbf{\ThesisTitle}   %%%%% >>>>> Bitte in TeXFiles/000_Settings eintragen 
-  \end{center} 
+  \vspace{2.6cm}
 
-  \vfill
+  {\large \ThesisTitle\par}
 
-  \ifdefined\ThesisLanguageIsEnglish 
-  \begin{center}
-    \Large Thesis submitted in order to obtain the academic degree\\
-    \vspace{0.3cm}
-    \Large \ThesisDegree   %%%%% >>>>> Bitte in TeXFiles/000_Settings eintragen 
-  \end{center}
-  \else
-  \begin{center}
-    \Large Abschlussarbeit zur Erlangung des akademischen Grades\\
-    \vspace{0.3cm}
-    \Large \ThesisDegree   %%%%% >>>>> Bitte in TeXFiles/000_Settings eintragen 
-  \end{center}
-  \fi
+  \vspace{1.6cm}
 
-  \vfill
+  {\large Full name: \myName\par}
+  \vspace{0.25cm}
+  {\large Student ID: \myStudentId\par}
+  \vspace{0.25cm}
+  {\large First supervisor: \Supervisor\par}
+  \vspace{0.25cm}
+  {\large Second supervisor: \CoSupervisor\par}
 
-  \ifdefined\ThesisLanguageIsEnglish 
-  \begin{center}
-    \Large submitted on \ThesisDeliveryDate\ on\\   %%%%% >>>>> Bitte in TeXFiles/000_Settings eintragen
-    \vspace{0.3cm}
-    \Large \textbf{\myName}\\
-    \vspace{0.3cm}
-    \normalsize Student ID: \myStudentId   %%%%% >>>>> Bitte in TeXFiles/000_Settings eintragen
-  \end{center}
-  \else
-  \begin{center}
-    \Large vorgelegt am \ThesisDeliveryDate\ von\\   %%%%% >>>>> Bitte in TeXFiles/000_Settings eintragen
-    \vspace{0.3cm}
-    \Large \textbf{\myName}\\
-    \vspace{0.3cm}
-    \normalsize Matrikelnummer: \myStudentId   %%%%% >>>>> Bitte in TeXFiles/000_Settings eintragen
-  \end{center}
-  \fi
+  \vspace{2.4cm}
+
+  {\Large\bfseries \ThesisCoverLabel\par}
 
   \vfill
 
-  \ifdefined\ThesisLanguageIsEnglish 
-  \begin{center}
-    \begin{tabular}{lll}
-      First Supervisor    & : & \Supervisor \\     %%%%% >>>>> Bitte in TeXFiles/000_Settings eintragen
-      Second Supervisor & : & \CoSupervisor\\    %%%%% >>>>> Bitte in TeXFiles/000_Settings eintragen
-    \end{tabular}
-  \end{center} 
-  \else
-  \begin{center}
-    \begin{tabular}{lll}
-      Referent    & : & \Supervisor \\     %%%%% >>>>> Bitte in TeXFiles/000_Settings eintragen
-      Korreferent & : & \CoSupervisor\\    %%%%% >>>>> Bitte in TeXFiles/000_Settings eintragen
-    \end{tabular}
-  \end{center} 
-  \fi
+  \begin{minipage}{0.75\textwidth}
+    \centering
+    \ifdefined\ThesisLanguageIsEnglish
+      \ThesisCoverStatementEnglish
+    \else
+      \ThesisCoverStatementGerman
+    \fi
+  \end{minipage}
 
-\newpage
+  \vfill
 
-
-  
+  {\large \ThesisCoverLocation\par}
+  \vspace{0.25cm}
+  {\large \ThesisDeliveryDate\par}
 
 \end{titlepage}
