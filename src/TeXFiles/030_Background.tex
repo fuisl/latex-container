@@ -1,56 +1,290 @@
 \chapter{Theoretical Background and Preliminaries}
 \label{ch:TheoreticalBackground}
 
-\section{Key Concepts and Problem Formulation}
-\label{sec:TheoreticalBackground_KeyConcepts}
+This chapter builds the mathematical and conceptual foundations on which the FGS framework rests. Section~\ref{sec:TheoreticalBackground_KeyConcepts} formalises the sequential decision-making problem as a Markov Decision Process and extends it to the partially observable, multi-agent setting that characterises real traffic networks. Section~\ref{sec:TheoreticalBackground_TechnicalFoundations} traces the development from dynamic programming to modern deep reinforcement learning, covering the key algorithmic ideas that motivate the SAC algorithm used in this thesis. Section~\ref{sec:TheoreticalBackground_GNN} introduces graph neural networks and explains why attention-based message passing is a natural fit for inter-intersection communication. Section~\ref{sec:TheoreticalBackground_TrafficControlTheory} defines the traffic engineering concepts required to interpret the experimental scenarios and the FRAP encoder.
 
-\subsection{Markov Decision Processes}
+%──────────────────────────────────────────────────────────────────────────────
+\section{Markov Decision Processes}
+\label{sec:TheoreticalBackground_KeyConcepts}
+%──────────────────────────────────────────────────────────────────────────────
+
+\subsection{The Sequential Decision-Making Problem}
 \label{sec:TheoreticalBackground_MDP}
 
-% TODO: Define MDPs and their components.
+A reinforcement learning agent is an entity that repeatedly selects actions and receives feedback from an environment. The agent's objective is to accumulate as much reward as possible over time, but it cannot see the consequences of an action before taking it. This tension between exploration (gathering information) and exploitation (acting on current knowledge) is the defining characteristic of the reinforcement learning problem \citep{sutton2018reinforcement}.
 
-\subsection{Partially Observable Markov Decision Processes}
+The standard mathematical framework for this interaction is the \emph{Markov Decision Process} (MDP), defined by the tuple $\langle \mathcal{S}, \mathcal{A}, T, R, \gamma \rangle$:
+\begin{itemize}
+  \item $\mathcal{S}$: the \emph{state space}, representing all possible configurations of the environment.
+  \item $\mathcal{A}$: the \emph{action space}, the set of choices available to the agent.
+  \item $T: \mathcal{S} \times \mathcal{A} \times \mathcal{S} \rightarrow [0,1]$: the \emph{transition function}, where $T(s'\,|\,s,a)$ is the probability of moving to state $s'$ after taking action $a$ in state $s$.
+  \item $R: \mathcal{S} \times \mathcal{A} \rightarrow \mathbb{R}$: the \emph{reward function}, specifying the immediate payoff for each state-action pair.
+  \item $\gamma \in [0,1)$: the \emph{discount factor}, which controls how much the agent values future rewards relative to immediate ones.
+\end{itemize}
+
+The Markov property — the requirement that $T(s'\,|\,s,a)$ depends only on the current state and action, not on the history — is what makes this framework tractable. It guarantees that the current state contains all information needed to make an optimal decision.
+
+\paragraph{Returns and value functions.}
+At each time step $t$ the agent selects action $a_t$ according to a policy $\pi$, receives reward $r_t$, and transitions to $s_{t+1}$. The \emph{discounted return} from step $t$ onward is
+\begin{equation}
+  G_t = \sum_{k=0}^{\infty} \gamma^k r_{t+k+1}.
+  \label{eq:return}
+\end{equation}
+The discount factor $\gamma < 1$ ensures $G_t$ is finite for bounded rewards and encodes a preference for sooner rewards over later ones.
+
+Two value functions characterise how good a given situation is under policy $\pi$:
+\begin{align}
+  V^{\pi}(s)    & = \mathbb{E}_{\pi}\bigl[G_t \mid s_t = s\bigr], \label{eq:vfunction}            \\
+  Q^{\pi}(s, a) & = \mathbb{E}_{\pi}\bigl[G_t \mid s_t = s,\, a_t = a\bigr]. \label{eq:qfunction}
+\end{align}
+$V^{\pi}(s)$ is the expected return when starting in state $s$ and following $\pi$ thereafter; $Q^{\pi}(s,a)$ additionally conditions on taking action $a$ first. The two are related by $V^{\pi}(s) = \sum_a \pi(a|s)\, Q^{\pi}(s,a)$.
+
+\paragraph{Bellman equations.}
+The recursive structure of the return gives rise to the Bellman equations, which express the value of a state in terms of the values of its successors:
+\begin{align}
+  V^{\pi}(s)   & = \sum_a \pi(a|s) \sum_{s'} T(s'|s,a)\bigl[R(s,a) + \gamma V^{\pi}(s')\bigr], \label{eq:bellman_v}         \\
+  Q^{\pi}(s,a) & = \sum_{s'} T(s'|s,a)\bigl[R(s,a) + \gamma \sum_{a'} \pi(a'|s') Q^{\pi}(s',a')\bigr]. \label{eq:bellman_q}
+\end{align}
+These equations hold because the Markov property allows the expected future return to be factored at the transition boundary. The optimal value functions $V^*$ and $Q^*$ satisfy the Bellman \emph{optimality} equations, obtained by replacing $\pi$ with the greedy maximisation over actions:
+\begin{equation}
+  Q^*(s,a) = \sum_{s'} T(s'|s,a)\bigl[R(s,a) + \gamma \max_{a'} Q^*(s',a')\bigr].
+  \label{eq:bellman_opt}
+\end{equation}
+The optimal policy is then $\pi^*(s) = \arg\max_a Q^*(s,a)$: always select the action with the highest long-term value.
+
+\subsection{Partial Observability and Multi-Agent Extensions}
 \label{sec:TheoreticalBackground_POMDP}
 
-% TODO: Define POMDPs and explain their relevance to traffic signal control.
+The MDP framework assumes the agent observes the full state $s_t$. In most real systems, including traffic networks, the agent can only access a partial, noisy view of the world. A traffic signal controller at one intersection sees its own lane queues and phase state but has no direct knowledge of vehicle positions elsewhere in the network. This motivates the \emph{Partially Observable MDP} (POMDP).
 
-\section{Technical Foundations}
+A POMDP extends the MDP tuple with an observation space $\Omega$ and an observation function $\mathcal{O}: \mathcal{S} \times \mathcal{A} \rightarrow \Delta(\Omega)$, where $\Delta(\Omega)$ is the set of distributions over observations. At each step the agent receives observation $o_t \sim \mathcal{O}(\cdot\,|\,s_t, a_{t-1})$ rather than $s_t$ directly. Because $o_t$ does not satisfy the Markov property, the agent must in principle maintain a \emph{belief state} $b_t \in \Delta(\mathcal{S})$ — a probability distribution over all possible world states — and update it via Bayes' rule at each step. Exact belief-state computation is intractable for large state spaces, so practical approaches either use recurrent architectures to implicitly summarise history or rely on the assumption that observations are informative enough to approximate the state.
+
+\paragraph{Decentralised multi-agent setting.}
+When $N > 1$ agents operate simultaneously in the same environment, each with its own partial observation, the problem becomes a \emph{Decentralised Partially Observable MDP} (Dec-POMDP), defined by the tuple $\langle \mathcal{N}, \mathcal{S}, \{\mathcal{O}_i\}, \{\mathcal{A}_i\}, T, \{r_i\}, \gamma \rangle$ where $\mathcal{N} = \{1,\ldots,N\}$ is the set of agents. Agents act simultaneously; the transition depends on the joint action $(a_1,\ldots,a_N) \in \prod_i \mathcal{A}_i$; each agent $i$ receives its own observation $o_i \sim \mathcal{O}_i(\cdot\,|\,s)$ and reward $r_i$.
+
+Finding the optimal joint policy for a Dec-POMDP is NEXP-complete in general \citep{bernstein2002complexity}, because the space of joint policies grows exponentially in the number of agents. Two practical approaches have emerged:
+\begin{enumerate}
+  \item \emph{Fully decentralised execution}: each agent conditions its policy only on its own observation history, making the problem tractable but potentially limiting coordination.
+  \item \emph{Centralised Training with Decentralised Execution} (CTDE): during training, agents have access to the global state or joint observations, enabling a centralised critic to guide learning. At execution, each agent acts solely on its local observation. This separates the hard coordination problem (handled offline during training) from the real-time execution problem (where full state is unavailable).
+\end{enumerate}
+FGS adopts CTDE: a centralised joint-action critic is trained with access to all agents' graph embeddings, while the decentralised actor uses only the ego agent's observation.
+
+%──────────────────────────────────────────────────────────────────────────────
+\section{From Dynamic Programming to Deep Reinforcement Learning}
 \label{sec:TheoreticalBackground_TechnicalFoundations}
+%──────────────────────────────────────────────────────────────────────────────
 
-\subsection{Dynamic Programming and Reinforcement Learning}
+\subsection{Dynamic Programming}
 \label{sec:TheoreticalBackground_DPAndRL}
 
-% TODO: Explain dynamic programming as a foundation for solving MDPs and connect it to RL.
+When the model $(T, R)$ is known, the Bellman optimality equation~(\ref{eq:bellman_opt}) can be solved directly by \emph{dynamic programming}. Value iteration repeatedly applies the Bellman operator
+\begin{equation}
+  \mathcal{T} Q(s,a) = \sum_{s'} T(s'|s,a)\bigl[R(s,a) + \gamma \max_{a'} Q(s',a')\bigr],
+\end{equation}
+initialising $Q_0$ arbitrarily and iterating $Q_{k+1} = \mathcal{T} Q_k$. Since $\mathcal{T}$ is a $\gamma$-contraction in the $\ell_\infty$ norm, this sequence converges to $Q^*$ regardless of the initialisation \citep{sutton2018reinforcement}.
+
+Dynamic programming is exact but impractical for large problems. A traffic network with hundreds of intersections, each with dozens of vehicles in different states, has a state space too large to enumerate. Two problems arise: \emph{intractable transition models} (the physics of traffic is complex and non-stationary) and \emph{the curse of dimensionality} (the number of states grows exponentially with the number of intersections). Reinforcement learning addresses both by replacing model knowledge with experience.
+
+\subsection{Temporal-Difference Learning and Q-Learning}
+\label{sec:TheoreticalBackground_TDLearning}
+
+Reinforcement learning removes the requirement that $T$ and $R$ be known. Instead of computing expectations over the full transition model, the agent updates estimates using \emph{samples} of experience $(s_t, a_t, r_t, s_{t+1})$.
+
+\emph{Temporal-difference} (TD) learning updates value estimates incrementally:
+\begin{equation}
+  V(s_t) \leftarrow V(s_t) + \alpha\bigl[\underbrace{r_t + \gamma V(s_{t+1})}_{\text{TD target}} - V(s_t)\bigr],
+\end{equation}
+where $\alpha$ is the learning rate. The quantity in brackets is the \emph{TD error}: the difference between the current estimate and a better estimate formed using one step of real experience. Unlike Monte Carlo methods, which require a full episode to compute $G_t$, TD learning updates after every step, enabling online learning in continuing tasks.
+
+\emph{Q-learning} \citep{watkins1989learning} extends TD learning to action values without requiring knowledge of $T$:
+\begin{equation}
+  Q(s_t, a_t) \leftarrow Q(s_t, a_t) + \alpha\bigl[r_t + \gamma \max_{a'} Q(s_{t+1}, a') - Q(s_t, a_t)\bigr].
+  \label{eq:qlearning}
+\end{equation}
+The crucial property of Q-learning is \emph{off-policy} convergence: because the update uses $\max_{a'}$ rather than the current policy, Q-learning converges to $Q^*$ even when the behaviour policy used to collect experience differs from the greedy policy being learned. This makes it compatible with experience replay, where past transitions are reused for multiple updates.
+
+\paragraph{Deep Q-Networks.}
+Tabular Q-learning is infeasible when $|\mathcal{S}|$ is large. DQN \citep{mnih2015humanlevel} approximates the Q-function with a neural network $Q_\theta(s, a)$ trained by minimising the mean-squared Bellman error:
+\begin{equation}
+  \mathcal{L}(\theta) = \mathbb{E}_{(s,a,r,s')\sim\mathcal{D}}\!\left[\bigl(r + \gamma \max_{a'} Q_{\bar\theta}(s', a') - Q_\theta(s,a)\bigr)^2\right].
+\end{equation}
+Two stabilisation techniques are essential. First, a \emph{replay buffer} $\mathcal{D}$ stores past transitions and samples mini-batches uniformly, breaking the temporal correlations in sequential experience that would otherwise cause divergence. Second, a \emph{target network} $Q_{\bar\theta}$ with parameters $\bar\theta$ periodically copied from $\theta$ provides stable regression targets; without it, both the prediction and the target shift simultaneously, causing the loss landscape to be non-stationary and training to oscillate.
 
 \subsection{Policy Gradient Methods}
 \label{sec:TheoreticalBackground_PolicyGradient}
 
-% TODO: Introduce policy gradient methods.
+Value-based methods such as DQN derive a policy implicitly by acting greedily with respect to the learned Q-function. This works well for discrete action spaces but is less natural for stochastic or continuous policies. \emph{Policy gradient} methods instead parameterise the policy $\pi_\theta$ directly and optimise the expected return:
+\begin{equation}
+  J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}\bigl[G_0\bigr],
+\end{equation}
+where $\tau = (s_0, a_0, s_1, a_1, \ldots)$ is a trajectory sampled under $\pi_\theta$. The policy gradient theorem \citep{sutton2018reinforcement} provides an analytical expression for the gradient:
+\begin{equation}
+  \nabla_\theta J(\theta) = \mathbb{E}_{\pi_\theta}\!\left[\nabla_\theta \log \pi_\theta(a_t|s_t)\cdot G_t\right].
+  \label{eq:policy_gradient}
+\end{equation}
+The term $\nabla_\theta \log \pi_\theta(a_t|s_t)$ is the \emph{score function}: it indicates the direction in parameter space that increases the log-probability of the action taken. Multiplying by $G_t$ scales this direction by how good the trajectory was, so good actions become more likely and bad actions less likely over time.
 
-\subsection{Advantage Approximation and A2C}
+The simplest estimator of this gradient — the REINFORCE algorithm \citep{williams1992simple} — substitutes the full Monte Carlo return for $G_t$. This is unbiased but suffers from high variance: the return depends on all future random actions and transitions, so different runs of the same policy produce very different gradient estimates. High variance slows learning and can cause instability.
+
+\subsection{Actor-Critic Methods and the Advantage Function}
 \label{sec:TheoreticalBackground_A2C}
 
-% TODO: Explain advantage approximation and the Advantage Actor-Critic method.
+Variance in policy gradient estimates can be reduced by subtracting a \emph{baseline} $b(s_t)$ from the return. Any function that depends only on the state (not on the action) can serve as a baseline without introducing bias, because
+\begin{equation}
+  \mathbb{E}_{\pi_\theta}\!\left[\nabla_\theta \log \pi_\theta(a_t|s_t)\cdot b(s_t)\right] = 0.
+  \label{eq:baseline_zero}
+\end{equation}
+The optimal baseline in terms of variance reduction is the state value $V^{\pi}(s_t)$. Substituting it gives the \emph{advantage function}:
+\begin{equation}
+  A^{\pi}(s_t, a_t) = Q^{\pi}(s_t, a_t) - V^{\pi}(s_t),
+  \label{eq:advantage}
+\end{equation}
+which measures how much better action $a_t$ is compared to the average action at state $s_t$ under the current policy. The advantage is zero-centred: positive values indicate actions better than average, negative values indicate actions worse than average. Using $A^{\pi}$ in place of $G_t$ gives the gradient estimator:
+\begin{equation}
+  \nabla_\theta J(\theta) = \mathbb{E}_{\pi_\theta}\!\left[\nabla_\theta \log \pi_\theta(a_t|s_t)\cdot A^{\pi}(s_t, a_t)\right].
+\end{equation}
 
-\subsection{Entropy-Regularized Approximation}
+In practice, both $Q^{\pi}$ and $V^{\pi}$ are unknown and must be estimated. The \emph{actor-critic} architecture addresses this by maintaining two components: an \emph{actor} $\pi_\theta$ that selects actions, and a \emph{critic} $V_\phi$ that estimates the state value. The advantage is approximated using the one-step TD error of the critic:
+\begin{equation}
+  \hat{A}(s_t, a_t) = r_t + \gamma V_\phi(s_{t+1}) - V_\phi(s_t),
+  \label{eq:td_advantage}
+\end{equation}
+which trades a small amount of bias (from the bootstrapped value estimate) for a large reduction in variance compared to the full Monte Carlo return.
+
+The Advantage Actor-Critic (A2C) \citep{mnih2016asynchronous} collects $n$-step rollouts from a batch of parallel environments before performing synchronised gradient updates to both the actor and critic. Parallel environments decorrelate the training data without requiring a replay buffer, which is important because A2C is an on-policy method: the policy must have generated the data being used for the update.
+
+\subsection{Entropy-Regularized Reinforcement Learning}
 \label{sec:TheoreticalBackground_EntropyRegularized}
 
-% TODO: Introduce entropy-regularized objectives as a precursor to SAC.
+Standard RL optimises the expected return $J(\theta) = \mathbb{E}[G_t]$. This objective is purely exploitative: the optimal policy is deterministic, and stochasticity in the learned policy reflects only irreducible uncertainty. In practice, deterministic greedy policies tend to converge prematurely to suboptimal solutions, particularly in environments where the reward landscape has many local optima or where the initial exploration is insufficient.
 
-\section{Traffic Control Theory}
+The \emph{maximum entropy} framework augments the objective with the policy's entropy:
+\begin{equation}
+  J_{\mathrm{MaxEnt}}(\theta) = \mathbb{E}\!\left[\sum_{t=0}^{T} \gamma^t \bigl(r_t + \alpha\,\mathcal{H}(\pi_\theta(\cdot|s_t))\bigr)\right],
+  \label{eq:maxent_objective}
+\end{equation}
+where $\mathcal{H}(\pi(\cdot|s)) = -\sum_a \pi(a|s) \log \pi(a|s)$ is the Shannon entropy and $\alpha > 0$ is a temperature coefficient controlling the trade-off between reward maximisation and entropy maximisation \citep{ziebart2010modeling}.
+
+The effect of this term is to penalise overconfident policies. A policy that assigns all probability to one action has zero entropy; a uniform policy has maximum entropy. By rewarding high-entropy behaviour, the agent is encouraged to keep exploring even after it has found a reasonably good strategy, remaining robust to reward misspecification and better able to discover alternative high-reward trajectories.
+
+Three concrete benefits follow:
+\begin{enumerate}
+  \item \emph{Exploration}: the entropy bonus prevents the policy from collapsing to a single action prematurely, maintaining diversity in the experience collected.
+  \item \emph{Robustness}: a stochastic policy is harder for the environment to exploit; in multi-agent settings, an unpredictable policy is also harder for other agents to counter-exploit.
+  \item \emph{Multi-modality}: when multiple actions achieve similar returns, the maximum entropy policy distributes probability across all of them rather than arbitrarily committing to one, which reflects genuine uncertainty.
+\end{enumerate}
+
+The temperature $\alpha$ determines how much weight the entropy term receives. A large $\alpha$ produces nearly uniform policies; $\alpha \rightarrow 0$ recovers the standard RL objective. Rather than setting $\alpha$ by hand, SAC \citep{haarnoja2018soft} treats it as a Lagrange multiplier and learns it automatically by constraining the expected entropy to a target value $\mathcal{H}_{\mathrm{target}}$, typically set to $-|\mathcal{A}|$ (the negative action-space size). This adaptive scheme maintains a consistent level of exploration throughout training without requiring manual temperature scheduling. The full SAC algorithm and its actor-critic instantiation are described in Section~\ref{sec:Methodology_SAC}.
+
+%──────────────────────────────────────────────────────────────────────────────
+\section{Graph Neural Networks}
+\label{sec:TheoreticalBackground_GNN}
+%──────────────────────────────────────────────────────────────────────────────
+
+\subsection{Why Graphs for Multi-Agent Traffic Control}
+\label{sec:TheoreticalBackground_WhyGNN}
+
+A road network is a directed graph: intersections are nodes and road segments are edges. Traffic dynamics propagate along this graph — congestion at one intersection spills back to upstream intersections and influences downstream demand. A signal controller that acts only on its own local observation ignores this spatial structure. Incorporating neighbour information should, in principle, enable better-coordinated decisions.
+
+Standard multi-layer perceptrons cannot exploit graph structure because they process a fixed-size vector input with no explicit notion of adjacency. A natural alternative is to pass messages along the graph edges so that each node aggregates information from its neighbours before making a decision. Graph neural networks (GNNs) provide a principled framework for doing so in a way that is invariant to the labelling and ordering of nodes — a property critical for sharing parameters across intersections that may have different phases but the same coordination problem.
+
+\subsection{Message Passing Framework}
+\label{sec:TheoreticalBackground_MessagePassing}
+
+All GNN variants can be expressed as instances of the \emph{message passing neural network} (MPNN) framework \citep{gilmer2017neural}. At each layer $\ell$, node $i$ updates its representation $\mathbf{h}_i^{(\ell)}$ by aggregating messages from its neighbours $\mathcal{N}(i)$:
+\begin{equation}
+  \mathbf{m}_{ij}^{(\ell)} = \mathrm{MESSAGE}^{(\ell)}\!\bigl(\mathbf{h}_i^{(\ell)},\, \mathbf{h}_j^{(\ell)},\, e_{ij}\bigr),
+  \label{eq:mpnn_message}
+\end{equation}
+\begin{equation}
+  \mathbf{h}_i^{(\ell+1)} = \mathrm{UPDATE}^{(\ell)}\!\biggl(\mathbf{h}_i^{(\ell)},\; \bigoplus_{j \in \mathcal{N}(i)} \mathbf{m}_{ij}^{(\ell)}\biggr),
+  \label{eq:mpnn_update}
+\end{equation}
+where $e_{ij}$ is an optional edge feature and $\bigoplus$ is a permutation-invariant aggregation (sum, mean, or max). After $L$ layers, each node's representation $\mathbf{h}_i^{(L)}$ encodes information from all nodes within $L$ hops, enabling indirect coordination across the network.
+
+\subsection{Graph Convolutional Networks}
+\label{sec:TheoreticalBackground_GCN}
+
+The Graph Convolutional Network (GCN) \citep{kipf2017semi} is one of the simplest instantiations of the MPNN framework. It aggregates neighbour features with fixed normalised weights:
+\begin{equation}
+  \mathbf{h}_i^{(\ell+1)} = \sigma\!\left(\mathbf{W}^{(\ell)} \sum_{j \in \mathcal{N}(i) \cup \{i\}} \frac{\mathbf{h}_j^{(\ell)}}{\sqrt{d_i\, d_j}}\right),
+  \label{eq:gcn}
+\end{equation}
+where $d_i = |\mathcal{N}(i)| + 1$ is the degree of node $i$ (with self-loop), $\mathbf{W}^{(\ell)}$ is a learnable weight matrix, and $\sigma$ is a non-linearity. The normalisation by $\sqrt{d_i\, d_j}$ prevents features at high-degree nodes from dominating the aggregation. GCN is computationally efficient but treats all neighbours equally, which is a significant limitation: in a traffic network, a heavily congested upstream intersection is more informative than a lightly loaded one, and the relative importance of neighbours changes with traffic conditions throughout the day.
+
+\subsection{Graph Attention Networks}
+\label{sec:TheoreticalBackground_GAT}
+
+The Graph Attention Network (GAT) \citep{velickovic2018graph} replaces the fixed normalisation coefficients of GCN with learnable, content-dependent attention weights. For each directed edge $(j \rightarrow i)$, an attention coefficient $\alpha_{ij}$ is computed:
+\begin{equation}
+  e_{ij} = \mathbf{a}^\top \bigl[\mathbf{W}\mathbf{h}_i \,\Vert\, \mathbf{W}\mathbf{h}_j\bigr],
+  \qquad
+  \alpha_{ij} = \frac{\exp(e_{ij})}{\sum_{k \in \mathcal{N}(i)} \exp(e_{ik})},
+  \label{eq:gat_attention}
+\end{equation}
+where $\mathbf{W}$ is a shared linear transformation, $\mathbf{a}$ is a learnable attention vector, and $\Vert$ denotes concatenation. The aggregation uses these coefficients as weights:
+\begin{equation}
+  \mathbf{h}_i^{(\ell+1)} = \sigma\!\left(\sum_{j \in \mathcal{N}(i)} \alpha_{ij}\, \mathbf{W}\mathbf{h}_j^{(\ell)}\right).
+\end{equation}
+Multi-head attention runs $H$ independent attention heads and concatenates (or averages) their outputs, stabilising training and increasing model capacity.
+
+\paragraph{Limitation: static attention.}
+A subtle but important limitation of GAT was identified by \citet{brody2022how}: the attention score $e_{ij}$ in Equation~(\ref{eq:gat_attention}) is the product of a \emph{fixed} linear transformation of the concatenated features with a fixed vector $\mathbf{a}$. Because the transformation $\mathbf{W}$ is shared across source and target, the ranking of neighbours induced by the attention scores cannot change depending on which node is the target. More precisely, GAT attention is \emph{static}: if $\alpha_{ij} > \alpha_{ik}$ for one target node $i$, the same ordering holds for all target nodes that share the same neighbourhood features. This limits the model's ability to express the situation where intersection $i$ finds neighbour $j$ more informative than $k$, while intersection $i'$ finds the opposite ordering.
+
+\subsection{GATv2: Dynamic Attention}
+\label{sec:TheoreticalBackground_GATv2}
+
+GATv2 \citep{brody2022how} fixes the static-attention problem by applying the linear transformation and the non-linearity \emph{before} the inner product with $\mathbf{a}$:
+\begin{equation}
+  e_{ij}^{\mathrm{v2}} = \mathbf{a}^\top \mathrm{LeakyReLU}\!\bigl(\mathbf{W}\,[\mathbf{h}_i \,\Vert\, \mathbf{h}_j]\bigr).
+  \label{eq:gatv2_attention}
+\end{equation}
+Inserting the non-linearity between the weight matrix and the scoring vector breaks the linearity that caused static attention in the original formulation. The resulting attention is \emph{dynamic}: the ranking of neighbours can differ for different target nodes even with the same neighbour feature sets. \citeauthor{brody2022how} prove that GATv2 is strictly more expressive than GAT — it can represent any attention function that GAT can, plus functions that GAT cannot.
+
+In the context of traffic signal control, dynamic attention allows an intersection agent to weight its neighbours differently depending on its own current state. A saturated intersection may attend heavily to its most congested upstream neighbour to anticipate incoming demand, while an under-loaded intersection may attend more uniformly. FGSv2 uses GATv2 as its communication layer for this reason.
+
+%──────────────────────────────────────────────────────────────────────────────
+\section{Traffic Signal Control Theory}
 \label{sec:TheoreticalBackground_TrafficControlTheory}
+%──────────────────────────────────────────────────────────────────────────────
 
-\subsection{Movements}
+\subsection{Movements and Phases}
 \label{sec:TheoreticalBackground_Movements}
 
-% TODO: Define traffic movements.
+The fundamental unit of signalised intersection control is the \emph{movement}: a directional traffic flow from one approach lane to one or more exit lanes. At a standard four-leg intersection with one lane per approach, up to twelve movements can be identified: three per leg (left turn, through, right turn). Movements are labelled by the leg they originate from and the direction they take.
 
-\subsection{Phases}
+Two movements \emph{conflict} if they cannot proceed simultaneously without risk of collision. For example, a through movement on the east--west axis conflicts with a left-turn movement from the north or south. The set of all conflict relationships forms the \emph{conflict matrix} of the intersection, which encodes the physical geometry of the road.
+
+A \emph{phase} is a set of non-conflicting movements that are served simultaneously under a green signal. The controller selects a sequence of phases, one at a time, cycling through them to serve all movement demands. Because real intersections group compatible movements into phase programmes defined in the signal plan, each phase corresponds to a discrete action in the RL action space: the agent chooses which phase to activate next.
+
+\subsection{Phase Timing and Transitions}
 \label{sec:TheoreticalBackground_Phases}
 
-% TODO: Define signal phases.
+Between two consecutive phases, the intersection must display transitional signals to clear conflicting traffic. The standard transition sequence is:
+\begin{enumerate}
+  \item \emph{Yellow} (typically 3--5 s): warns drivers that the green is ending; crossing vehicles with right-of-way may complete their movement.
+  \item \emph{All-red} (typically 1--2 s): all approaches display red, providing a safety clearance interval before the new phase begins.
+\end{enumerate}
+The SUMO simulator applies these transition intervals automatically based on the signal plan; the RL agent does not control them directly. The \emph{minimum green time} — the shortest duration a phase must remain active before the agent can switch — prevents premature phase changes that would cause vehicles to stop mid-intersection.
 
-\subsection{Additional Traffic Control Concepts}
+Several time quantities characterise the overall signal programme:
+\begin{itemize}
+  \item \emph{Cycle length}: the total time for all phases (and their transitions) to complete one rotation. Webster's formula \citep{webster1958traffic} provides an analytical optimum for fixed-time cycle lengths under stationary demand.
+  \item \emph{Green split}: the fraction of the cycle allocated to each phase, determining how much capacity each movement receives.
+  \item \emph{Offset}: for coordinated signals on an arterial, the offset is the time shift between the start of green phases at consecutive intersections, enabling vehicles travelling at the design speed to encounter consecutive greens (a \emph{green wave}).
+\end{itemize}
+
+\subsection{Classical vs.\ Adaptive Control}
 \label{sec:TheoreticalBackground_AdditionalTrafficConcepts}
 
-% TODO: Add other necessary traffic control concepts.
+\paragraph{Fixed-time control.}
+In fixed-time control, the phase sequence, green splits, and cycle length are pre-computed from historical demand data and applied without feedback. Webster's method minimises average vehicle delay by balancing the green time according to the relative flow on each approach. Fixed-time plans are simple and predictable, but they cannot adapt to non-stationary demand (incidents, events, off-peak anomalies) or to the spatial spillback that occurs when queues at one intersection block upstream approaches.
+
+\paragraph{Actuated and adaptive control.}
+Vehicle-actuated controllers extend green phases when detectors sense approaching vehicles, and terminate phases early if no vehicles are detected. More sophisticated adaptive systems such as SCOOT and SCATS maintain a real-time estimate of occupancy and adjust timing continuously. These systems outperform fixed-time control under variable demand but rely on extensive detector infrastructure and expert-tuned parameters that may not generalise across networks.
+
+\paragraph{Reinforcement learning for TSC.}
+RL-based control recasts phase selection as a sequential decision problem, learning directly from simulation feedback without requiring a hand-crafted model of traffic dynamics. The agent observes sensor measurements (queue length, occupancy, current phase), selects the next phase, and receives a reward that quantifies the quality of that decision. Because RL learns a \emph{policy} rather than a fixed plan, it can in principle adapt to any traffic condition within the distribution seen during training.
+
+\paragraph{Phase competition as an inductive bias.}
+The FRAP encoder \citep{zheng2019learning} exploits a domain insight: at any moment, the controller's decision reduces to selecting the phase whose served movements have the most urgent demand relative to the movements it delays. This is the \emph{phase competition} perspective — phases compete against each other based on the current demand profile. Formalising this competition explicitly in the encoder architecture encodes knowledge of the intersection structure as an inductive bias, reducing the amount of experience the agent needs to learn effective phase selection. The encoder is also permutation-equivariant with respect to phase labelling, so a single set of parameters generalises across intersections with different numbers of phases and movement configurations — a critical property for the heterogeneous German RESCO scenarios where different intersections within the same network support different numbers of phases.
