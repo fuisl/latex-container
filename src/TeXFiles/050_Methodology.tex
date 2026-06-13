@@ -32,7 +32,7 @@ The remaining fields in the observation dictionary are:
   \item \textit{Ego index}: the integer identifying which row of $\mathbf{X}$ corresponds to the acting agent.
   \item \textit{Action mask}: a binary vector of length $A_{\max}$ indicating the phases that are valid for the ego agent.
   \item \textit{Phase-pair mask} $\mathbf{M}_{\mathrm{pair}} \in \{0,1\}^{N \times A_{\max} \times M}$: for each agent and candidate phase, indicates the subset of traffic movements that phase controls.
-  \item \textit{Phase-competition mask} $\mathbf{M}_{\mathrm{comp}} \in \{0,1\}^{N \times A_{\max} \times A_{\max}}$: encodes movement conflicts between pairs of candidate phases for each agent.
+  \item \textit{Phase-competition mask} $\mathbf{M}_{\mathrm{comp}} \in \{0,1\}^{N \times A_{\max} \times (A_{\max}-1)}$: encodes movement conflicts between phase $a$ and each of its $A_{\max}-1$ competitors; the self-competition entry is absent by construction.
   \item \textit{Previous joint action} $\mathbf{a}_{t-1} \in \{0,1\}^{N \times A_{\max}}$: one-hot encoding of all agents' actions at the preceding step.
 \end{itemize}
 
@@ -106,50 +106,143 @@ Soft Actor-Critic (SAC) \citep{haarnoja2018soft} augments the expected return ob
   \right],
   \label{eq:sac_objective}
 \end{equation}
-where $\alpha > 0$ is a temperature parameter balancing exploitation and exploration. In practice $\alpha$ is learned by optimising against a target entropy $\mathcal{H}_{\mathrm{target}}$. Twin Q-networks $Q_{\theta_1}, Q_{\theta_2}$ are maintained to reduce overestimation bias; the target value for each update uses
+where $\alpha > 0$ is a temperature parameter balancing exploitation and exploration. Because traffic signal control admits only discrete phase actions, this work applies the discrete-action SAC formulation \citep{christodoulou2019soft}, which marginalises analytically over all actions rather than relying on the reparameterisation trick. Twin Q-networks $Q_{\theta_1}, Q_{\theta_2}$ are maintained to reduce overestimation bias. The discrete-action soft target value is
 \begin{equation}
-  y = r + \gamma\,\bigl(\min_{k=1,2} Q_{\bar\theta_k}(s', a') - \alpha \log \pi_\phi(a'|s')\bigr),
-  \qquad a' \sim \pi_\phi(\cdot|s').
+  V_{\mathrm{target}}(s') =
+    \sum_{a'} \pi_\phi(a' \mid s')
+    \!\left[
+      \min_{k=1,2} Q_{\bar{\theta}_k}(s', a') - \alpha\log\pi_\phi(a' \mid s')
+    \right],
+  \label{eq:sac_target}
 \end{equation}
-The off-policy design of SAC enables training from a prioritised replay buffer, reducing the number of environment interactions needed to reach convergence—an important property when SUMO simulations are the bottleneck.
+\begin{equation}
+  y = r + \gamma\,(1-d)\,V_{\mathrm{target}}(s'),
+  \label{eq:sac_td_target}
+\end{equation}
+where $d \in \{0,1\}$ is the episode-termination flag. The critic and actor losses are, respectively:
+\begin{align}
+  \mathcal{L}_Q(\theta) &=
+    \mathbb{E}_{(s,a,r,s')\sim\mathcal{D}}\!\left[
+      \bigl(Q_\theta(s,a) - y\bigr)^2
+    \right],
+  \label{eq:sac_critic_loss}\\
+  \mathcal{L}_\pi(\phi) &=
+    \mathbb{E}_{s\sim\mathcal{D}}\!\left[
+      \sum_{a}\pi_\phi(a \mid s)
+      \Bigl(\alpha\log\pi_\phi(a \mid s) - \min_{k} Q_{\theta_k}(s,a)\Bigr)
+    \right].
+  \label{eq:sac_actor_loss}
+\end{align}
+The temperature $\alpha$ is itself optimised by minimising the dual objective
+\begin{equation}
+  \mathcal{L}(\alpha) =
+    \mathbb{E}_{s\sim\mathcal{D}}\!\left[
+      \alpha\,\bigl(\mathcal{H}(\pi(\cdot \mid s)) - \mathcal{H}_{\mathrm{target}}\bigr)
+    \right],
+  \label{eq:sac_alpha_loss}
+\end{equation}
+where $\mathcal{H}_{\mathrm{target}} = -\!\log(1/A_{\mathrm{valid}})$ is the entropy of the uniform policy over valid actions. The off-policy design of SAC enables training from a prioritised replay buffer, reducing the number of environment interactions needed to reach convergence---an important property when SUMO simulations are the bottleneck.
 
-\subsection{Graph Attention Network}
+\subsection{Graph Attention Layer}
 \label{sec:Methodology_GAT}
 
-The graph communication module in FGS is derived from the CoLight attention layer \citep{wei2019colight}. For an edge $(j, i) \in \mathcal{E}$, the attention coefficient weighting the message from neighbour $j$ to ego $i$ is
+Both FGS and FGSv2 use GATv2 \citep{brody2022how} as the graph communication operator. For context, the original CoLight method \citep{wei2019colight} employed a scaled dot-product attention mechanism in which the coefficient weighting the message from neighbour $j$ to ego $i$ is
 \begin{equation}
-  \alpha_{ij} =
+  e_{ij} =
     \frac{
       \exp\!\left(\mathbf{p}_i^\top \mathbf{p}_j / \sqrt{h_d}\right)
     }{
       \sum_{k \in \mathcal{N}(i)} \exp\!\left(\mathbf{p}_i^\top \mathbf{p}_k / \sqrt{h_d}\right)
     },
+  \label{eq:colight_attn}
 \end{equation}
-where $\mathbf{p}_i, \mathbf{p}_j$ are projected representations of dimension $h_d = $ head\_dim, and $\mathcal{N}(i)$ is the neighbourhood of $i$ in $\mathcal{G}$. Multi-head attention is applied with $H$ heads; the outputs are averaged before a linear projection maps the result to the output dimension.
+where $\mathbf{p}_i$ are projected representations of head dimension $h_d$ and $\mathcal{N}(i)$ is the neighbourhood of $i$ in $\mathcal{G}$. This dot-product form cannot vary its attention coefficients based on the query node independently of the key, a limitation identified by \citet{brody2022how}.
 
-FGSv2 employs GATv2 \citep{brody2022how} in place of the original GAT, using an additive attention formulation that is strictly more expressive:
+GATv2 corrects this with an additive attention formulation that is strictly more expressive:
 \begin{equation}
-  \alpha_{ij}^{\mathrm{v2}} =
+  \alpha_{ij} =
     \frac{
       \exp\!\left(\mathbf{a}^\top \mathrm{LeakyReLU}\!\left(\mathbf{W}\,[\mathbf{h}_i \,\Vert\, \mathbf{h}_j]\right)\right)
     }{
       \sum_{k \in \mathcal{N}(i)}
       \exp\!\left(\mathbf{a}^\top \mathrm{LeakyReLU}\!\left(\mathbf{W}\,[\mathbf{h}_i \,\Vert\, \mathbf{h}_k]\right)\right)
     },
+  \label{eq:gatv2_attn}
 \end{equation}
-where $\mathbf{W}$ and $\mathbf{a}$ are learnable parameters and $\Vert$ denotes concatenation.
+where $\mathbf{W}$ and $\mathbf{a}$ are learnable parameters and $\Vert$ denotes concatenation. By applying the non-linearity before the inner product, GATv2 allows attention coefficients to depend jointly on both the query $\mathbf{h}_i$ and the key $\mathbf{h}_j$. Multi-head attention is applied with $H$ heads; outputs are concatenated and projected to the output dimension. All FGS and FGSv2 variants with graph communication use GATv2 as specified by Equation~\eqref{eq:gatv2_attn}.
 
 \subsection{FRAP Encoder}
 \label{sec:Methodology_FRAP}
 
-The FRAP encoder \citep{zheng2019learning} models the competition between candidate signal phases explicitly. For intersection $i$ with $A_i$ candidate phases and $M_i$ traffic movements, the encoder:
-\begin{enumerate}
-  \item Embeds each phase as a binary movement-membership vector and each movement as a demand scalar (density or queue).
-  \item Concatenates phase and demand embeddings and passes them through a lane embedding layer.
-  \item Applies a 2D convolutional layer over phase pairs to compute pairwise competition scores, weighted by a learnable relation embedding.
-  \item Pools valid competition scores across all phase pairs and projects the result to a fixed-dimensional output.
-\end{enumerate}
-The output is a single embedding vector per intersection that encodes relative phase urgency. The design is permutation-equivariant with respect to phase ordering, which improves generalisation across heterogeneous intersection geometries.
+FRAP \citep{zheng2019learning} encodes the competition between candidate signal phases by explicitly comparing each phase against every competing phase and pooling the competition results. The following description adopts the notation used by FGS and FGSv2; specifically, the hidden competition feature $\mathbf{c}_{i,a,b}$ produced in Step~3 is the tensor at which FGSv2 taps the encoder (Section~\ref{sec:Methodology_FGSv2}).
+
+Let intersection $i$ have $M_i$ incoming traffic movements and $A_i$ candidate phases. The phase-pair mask $\mathbf{P}_i \in \{0,1\}^{A_i \times M_i}$ sets $P_{i,a,u}=1$ if movement $u$ is served by phase $a$. The phase-competition mask $\mathbf{M}_{\mathrm{comp}} \in \{0,1,2,3\}^{A_i \times (A_i-1)}$ encodes one of four predefined relation types between each ordered pair $(a, b)$ of distinct phases; type~0 indicates no movement conflict.
+
+\paragraph{Step 1: Movement demand embedding.}
+For each movement $u$, a phase indicator $p_{i,u}\in\{0,1\}$ (whether $u$ is currently green) and a demand scalar $d_{i,u}$ (lane queue length or vehicle density) are embedded separately, then fused through a shared lane-embedding layer:
+\begin{equation}
+  \mathbf{e}_{i,u} =
+    \operatorname{ReLU}\!\Bigl(
+      W_{\text{lane}}\bigl[
+        \sigma\!\bigl(\operatorname{Emb}_{\text{phase}}(p_{i,u})\bigr),\;
+        \sigma(W_d\,d_{i,u})
+      \bigr]
+    \Bigr) \in \mathbb{R}^{C},
+  \label{eq:frap_movement_emb}
+\end{equation}
+where $\operatorname{Emb}_{\text{phase}}$ is a learnable phase embedding, $W_d$ is a demand projection, and $\sigma$ is the sigmoid function.
+
+\paragraph{Step 2: Phase-pair embedding.}
+For each candidate phase $a$, the phase-pair embedding aggregates the movement embeddings of the movements it controls via a scaled sum:
+\begin{equation}
+  \boldsymbol{\phi}_{i,a} = \sum_{u} w_{i,a,u}\,\mathbf{e}_{i,u} \in \mathbb{R}^{C},
+  \label{eq:frap_phase_emb}
+\end{equation}
+where the weight $w_{i,a,u} = P_{i,a,u}\cdot\min(\sum_v P_{i,a,v},\,2)\,/\,\max(\sum_v P_{i,a,v},\,1)$ normalises each phase's contribution to the expected two-movement sum, ensuring that phases controlling different numbers of movements are represented on a comparable scale.
+
+\paragraph{Step 3: Pairwise competition feature.}
+For each ordered competitor pair $(a, b)$ with $b \ne a$, a hidden competition feature $\mathbf{c}_{i,a,b}$ is computed in three sub-steps. First, the concatenated phase-pair embeddings pass through a $1{\times}1$ convolutional layer to produce a latent interaction:
+\begin{equation}
+  \mathbf{h}_{i,a,b} =
+    \operatorname{ReLU}\!\bigl(
+      \operatorname{Conv}_{\text{phase}}\bigl([\boldsymbol{\phi}_{i,a} \;\Vert\; \boldsymbol{\phi}_{i,b}]\bigr)
+    \bigr) \in \mathbb{R}^{C}.
+  \label{eq:frap_h}
+\end{equation}
+Second, the relation type $R_{i,a,b}$ is projected to a relation embedding:
+\begin{equation}
+  \mathbf{r}_{i,a,b} =
+    \operatorname{ReLU}\!\bigl(
+      \operatorname{Conv}_{\text{rel}}\bigl(\operatorname{Emb}_{\text{rel}}(R_{i,a,b})\bigr)
+    \bigr) \in \mathbb{R}^{C}.
+  \label{eq:frap_r}
+\end{equation}
+Third, the interaction and relation are fused element-wise and passed through a second $1{\times}1$ convolution:
+\begin{equation}
+  \mathbf{c}_{i,a,b} =
+    \operatorname{ReLU}\!\bigl(
+      \operatorname{Conv}_{\text{hid}}\bigl(\mathbf{h}_{i,a,b} \odot \mathbf{r}_{i,a,b}\bigr)
+    \bigr) \in \mathbb{R}^{C}.
+  \label{eq:frap_c}
+\end{equation}
+The tensor $\mathbf{c}_{i,a,b}$ is the \emph{phase-competition representation} — a rich, per-competitor feature that captures both the relative demand between two phases and the structural movement-conflict type between them.
+
+\paragraph{Step 4: Phase score (original FRAP output).}
+In the original FRAP, a final $1{\times}1$ convolution projects each competition feature to a scalar:
+\begin{equation}
+  s_{i,a,b} = \operatorname{Conv}_{1\times1}(\mathbf{c}_{i,a,b}) \in \mathbb{R}.
+  \label{eq:frap_scalar}
+\end{equation}
+The phase score for candidate phase $a$ is obtained by summing over all valid competitors $V_{i,a} = \{b \mid b\ne a,\, m_{i,b}=1\}$:
+\begin{equation}
+  f_i(a) = \sum_{b \in V_{i,a}} s_{i,a,b},
+  \label{eq:frap_score}
+\end{equation}
+yielding one scalar per candidate phase that directly serves as a Q-value estimate in the original FRAP policy.
+
+FGSv2 \emph{replaces} Steps 4a--4b entirely: instead of projecting $\mathbf{c}_{i,a,b}$ to a scalar, it mean-pools $\mathbf{c}_{i,a,b}$ across valid competitors to produce a rich action token $\mathbf{z}_{i,a}$, retaining the $C$-dimensional feature vector for downstream graph communication and action-conditioned actor computation (Equation~\ref{eq:fgsv2_token}).
+
+The overall design is permutation-equivariant with respect to phase ordering: reordering the candidate phases produces a correspondingly reordered output vector, which supports generalisation across intersections with heterogeneous phase counts and movement configurations.
 
 \section{Reward Function}
 \label{sec:Methodology_Rewards}
@@ -207,12 +300,15 @@ The graph encoder $f_\psi$ transforms the dictionary observation into an ego emb
 \end{enumerate}
 
 \paragraph{Actor.}
-The actor $\pi_\phi$ maps the ego embedding to a distribution over valid phases:
+The actor $\pi_\phi$ maps the ego embedding to a distribution over valid phases. Raw logits are produced by a linear head, then invalid phases are suppressed by setting their logits to $-\infty$ before the softmax:
 \[
-  \mathbf{l} = \pi_\phi(\mathbf{h}_{\mathrm{ego}}^{\prime}), \qquad
-  \pi(a | o) \propto \exp(l_a)\cdot \mathbf{m}_a,
+  \mathbf{l} = \pi_\phi(\mathbf{h}_{\mathrm{ego}}^{\prime}),
+  \qquad
+  \tilde{l}_a = l_a + (1 - m_a)\cdot(-\infty),
+  \qquad
+  \pi(a \mid o) = \operatorname{softmax}(\tilde{\mathbf{l}}),
 \]
-where $\mathbf{l} \in \mathbb{R}^{A_{\max}}$ are the raw logits and $\mathbf{m} \in \{0,1\}^{A_{\max}}$ is the action mask.
+where $\mathbf{l} \in \mathbb{R}^{A_{\max}}$ are the pre-mask logits and $m_a \in \{0,1\}$ is the per-phase validity flag. In the implementation $-\infty$ is approximated as $-10^9$.
 
 \paragraph{Centralized joint-action critic.}
 The critic operates on the full graph tensor and an estimate of all agents' action probabilities, following the CTDE design. For each candidate ego action $a$, the critic constructs a context vector by concatenating the flattened graph tensor $\mathrm{vec}(\mathbf{H}^{\prime})$, the matrix of all agents' action-probability vectors with the ego's row replaced by the one-hot vector for $a$, the ego embedding $\mathbf{h}_{\mathrm{ego}}^{\prime}$, and a one-hot encoding of the ego index:
@@ -231,16 +327,16 @@ The four FGS variants investigated in this thesis are summarised in Table~\ref{t
 
 \begin{table}[ht]
   \centering
-  \caption{FGS architecture variants evaluated in the ablation study.}
+  \caption{FGS architecture variants evaluated in the ablation study. All graph-communication variants use GATv2 (Eq.~\ref{eq:gatv2_attn}).}
   \label{tab:fgs_variants}
   \begin{tabular}{lcc}
     \hline
-    Variant & Local encoder & Communication \\
+    Variant          & Local encoder & Graph communication \\
     \hline
-    FGS-MLP-none  & MLP   & none   \\
-    FGS-MLP-GAT   & MLP   & GAT    \\
-    FGS-FRAP-none & FRAP  & none   \\
-    FGS-FRAP-GAT  & FRAP  & GAT    \\
+    FGS-MLP-none     & MLP           & none    \\
+    FGS-MLP-GATv2    & MLP           & GATv2   \\
+    FGS-FRAP-none    & FRAP          & none    \\
+    FGS-FRAP-GATv2   & FRAP          & GATv2   \\
     \hline
   \end{tabular}
 \end{table}
@@ -251,31 +347,173 @@ The four FGS variants investigated in this thesis are summarised in Table~\ref{t
 FGSv2 preserves FRAP's phase-competition structure not as a final scalar score but as a set of intermediate \emph{action tokens}, one token per candidate phase. This changes the information topology of the architecture: rather than collapsing phase-level information into a single node embedding before graph communication and actor computation, the action tokens carry phase-specific features through to the actor head.
 
 \paragraph{FRAP action-token encoder.}
-The encoder is tapped at the phase-competition representation block of FRAP, before the final pooling step that would otherwise produce a scalar. For each candidate phase $a \in \{1,\ldots,A_{\max}\}$, the encoder produces a token $\mathbf{t}_{i,a} \in \mathbb{R}^{d_t}$ capturing how that phase's demand and its competitive relationships with other phases are represented at intersection $i$. The full output is a tensor $\mathbf{T}_i \in \mathbb{R}^{A_{\max} \times d_t}$, with invalid phases masked to zero.
-
-A node summary $\mathbf{s}_i \in \mathbb{R}^{d_t}$ is obtained by masked mean-pooling over valid action tokens:
+The encoder is tapped at the phase-competition representation block of FRAP, before the $1{\times}1$ convolution that would otherwise produce a scalar pairwise-competition result. For action $a$ at intersection $i$, let $c_{i,a,b}$ denote the feature vector produced by the hidden competition layer for competitor $b$. The valid competitor set is
 \[
-  \mathbf{s}_i = \frac{\sum_{a} m_{i,a}\,\mathbf{t}_{i,a}}{\sum_{a} m_{i,a}},
+  V_{i,a} = \{b \mid b \neq a,\; m_{i,b} = 1\}.
 \]
-where $m_{i,a} \in \{0,1\}$ is the validity mask for phase $a$ at intersection $i$.
+If $V_{i,a}$ is non-empty, the competition features are pooled and projected into an action token; otherwise (only one valid phase) the token is set to zero:
+\begin{equation}
+  \mathbf{z}_{i,a} =
+  \begin{cases}
+    \operatorname{LayerNorm}\!\Bigl(
+      \operatorname{ReLU}\!\Bigl(
+        \operatorname{Adapter}\!\Bigl(
+          \dfrac{1}{|V_{i,a}|}\sum_{b \in V_{i,a}} c_{i,a,b}
+        \Bigr)
+      \Bigr)
+    \Bigr) & \text{if } m_{i,a}=1 \text{ and } |V_{i,a}|>0, \\[6pt]
+    \mathbf{0} & \text{otherwise.}
+  \end{cases}
+  \label{eq:fgsv2_token}
+\end{equation}
+The full action-token tensor is $\mathbf{Z}_i \in \mathbb{R}^{A_{\max} \times d_z}$, with rows for invalid phases set to zero.
+
+A node summary $\mathbf{s}_i \in \mathbb{R}^{d_z}$ aggregates information across all valid action tokens via masked mean-pooling followed by layer normalisation:
+\begin{equation}
+  \mathbf{s}_i =
+    \operatorname{LayerNorm}\!\left(
+      \frac{\displaystyle\sum_{a} m_{i,a}\,\mathbf{z}_{i,a}}{\displaystyle\max\!\left(\sum_{a} m_{i,a},\;1\right)}
+    \right).
+  \label{eq:fgsv2_summary}
+\end{equation}
+The $\max(\cdot, 1)$ guard prevents division by zero for intersections with no valid phase, which cannot occur during normal operation but ensures numerical safety during graph-padding.
 
 \paragraph{Graph communication and residual gate.}
-GATv2 operates on the node summaries $\mathbf{s}_i$ rather than on the full action-token tensors, keeping the communication overhead independent of the number of candidate phases:
-\[
-  \mathbf{g}_i = \mathrm{GATv2}\!\left(\mathbf{s}_i,\; \{\mathbf{s}_j : j \in \mathcal{N}(i)\}\right).
-\]
-A scalar residual gate $\beta_i \in [0,1]$ (learned, initialised to zero) controls how much the graph context contributes to the final node representation:
-\[
-  \mathbf{c}_i = \beta_i\,\mathbf{g}_i + (1 - \beta_i)\,\mathbf{s}_i.
-\]
-Initialising $\beta$ to zero means the network starts as a purely local policy and gradually learns to incorporate neighbour information only if it reduces the SAC objective.
+GATv2 operates on the node summaries rather than on the full action-token tensors, keeping communication overhead independent of the number of candidate phases. A layer normalisation is applied before the GATv2 input; let $\mathbf{u}_i = \operatorname{LayerNorm}(\mathbf{s}_i)$. The neighbourhood aggregation (self-loops included) is
+\begin{equation}
+  \tilde{\mathbf{g}}_i =
+    \operatorname{ReLU}\!\left(
+      \mathbf{W}_o\,\operatorname{GATv2Conv}\!\left(\{\mathbf{u}_j : j \in \mathcal{N}(i) \cup \{i\}\}\right)
+    \right).
+  \label{eq:fgsv2_gatv2}
+\end{equation}
+A learned scalar gate $\lambda$ (initialised to zero) controls the contribution of the graph context via an additive residual with layer normalisation:
+\begin{equation}
+  \mathbf{g}_i = \operatorname{LayerNorm}\!\left(\mathbf{s}_i + \lambda\,\tilde{\mathbf{g}}_i\right).
+  \label{eq:fgsv2_gate}
+\end{equation}
+Because $\lambda = 0$ at initialisation, the network begins as a purely local policy; the gate learns to incorporate neighbour context only insofar as it reduces the SAC objective. Unlike a bounded gate ($\beta \in [0,1]$), the unconstrained scalar allows the network to amplify communication when it is beneficial.
 
 \paragraph{Action-conditioned actor.}
-For each candidate phase $a$, the actor concatenates the corresponding action token, the graph context broadcast across all phases, and a one-hot encoding of $a$ before mapping through a two-layer MLP to a scalar logit:
-\[
-  l_a = \mathrm{MLP}_\phi\!\bigl[\,\mathbf{t}_{i,a}\;\Vert\;\mathbf{c}_i\;\Vert\;\mathbf{e}_a\,\bigr].
-\]
-Stacking over $a$ gives the full logit vector $\mathbf{l} \in \mathbb{R}^{A_{\max}}$, which is masked and normalised as in FGS.
+For each candidate phase $a$, the actor concatenates the corresponding action token $\mathbf{z}_{i,a}$, the gated graph context $\mathbf{g}_i$ (broadcast across all phases), and a one-hot phase identity $\mathbf{e}_a$, before mapping through a two-layer MLP to a scalar logit:
+\begin{equation}
+  l_a = \operatorname{MLP}_\phi\!\bigl[\,\mathbf{z}_{i,a}\;\Vert\;\mathbf{g}_i\;\Vert\;\mathbf{e}_a\,\bigr].
+  \label{eq:fgsv2_actor}
+\end{equation}
+Stacking over all $a$ gives $\mathbf{l} \in \mathbb{R}^{A_{\max}}$, which is masked and normalised identically to FGS (invalid logits set to $-10^9$, then softmax applied).
 
 \paragraph{Centralized action-token critic.}
-The critic in FGSv2 extends the FGS design by incorporating the action-token tensors of all agents alongside the graph embeddings, providing the critic with phase-level demand information across the network. For each candidate ego action $a$, the critic context includes the flattened node summaries after graph communication, the stacked action-token matrices of all agents, a joint-action context in which the ego's token is replaced by the one-hot for $a$, and the ego index one-hot. Twin critics and $n$-step = 1 are retained from FGS.
+The critic extends the FGS design by incorporating the ego action token alongside the full graph context. For each candidate ego action $a$ of agent $k$, the critic input concatenates: the flattened stack of all agents' gated graph contexts $\operatorname{vec}(\mathbf{g}_1,\ldots,\mathbf{g}_N)$; the joint-action context $\mathbf{J}_k^{(a)}$ (the joint action-probability matrix with agent $k$'s row replaced by the one-hot for $a$, using hard replayed actions during TD updates and soft policy probabilities during the actor loss); the ego action token $\mathbf{z}_{k,a}$; the ego graph context $\mathbf{g}_k$; and a one-hot agent identity $\mathbf{e}_k$:
+\begin{equation}
+  Q_k(a) = f_Q\!\Bigl[\,
+    \operatorname{vec}(\mathbf{g}_1,\ldots,\mathbf{g}_N)\;\Vert\;
+    \operatorname{vec}(\mathbf{J}_k^{(a)})\;\Vert\;
+    \mathbf{z}_{k,a}\;\Vert\;
+    \mathbf{g}_k\;\Vert\;
+    \mathbf{e}_k
+  \,\Bigr].
+  \label{eq:fgsv2_critic}
+\end{equation}
+Twin critics and $n$-step~$=1$ updates are retained from FGS. The use of hard previous actions from the replay buffer during critic updates and soft current policy probabilities during actor updates follows the MADDPG convention \citep{lowe2017multi} and is standard in off-policy CTDE methods.
+
+\subsection{Training Algorithm}
+\label{sec:Methodology_TrainingAlgorithm}
+
+Algorithm~\ref{alg:fgs_training} presents the complete training procedure shared by all FGS and FGSv2 variants. All agents share a single set of actor and critic parameters, so the gradient updates in Lines~\ref{alg:line_critic}--\ref{alg:line_alpha} are computed jointly over all agent--step pairs in the sampled mini-batch. Algorithm~\ref{alg:fgsv2_forward} details the FGSv2 forward pass that maps a graph observation to policy logits and the graph contexts required by the centralised critic during training.
+
+\begin{algorithm}[ht]
+\caption{FGS / FGSv2 Training (shared procedure)}
+\label{alg:fgs_training}
+\begin{algorithmic}[1]
+\Require SUMO scenario with $N$ intersections; episodes $E$; warm-up steps $T_{\text{warm}}$;
+\Statex \quad batch size $B$; soft-update rate $\tau$; discount $\gamma$; target entropy $\mathcal{H}_{\text{target}}$
+\State \textbf{Initialise} shared actor $\pi_\phi$; twin critics $Q_{\theta_1},Q_{\theta_2}$; target critics $\bar{Q}_j \leftarrow Q_{\theta_j}$, $j\in\{1,2\}$
+\State \textbf{Initialise} log-temperature $\log\alpha$; residual gate $\lambda\leftarrow 0$ \textbf{(FGSv2 only)}
+\State \textbf{Initialise} prioritised replay buffer $\mathcal{D}$ with capacity $C$; global step $t\leftarrow 0$
+\For{episode $e = 1,\ldots,E$}
+  \State Reset SUMO via TraCI; receive initial graph observation $o_0$
+  \For{simulation step $t_{\text{ep}} = 1,\ldots,T_{\text{max}}$}
+    \State $t \leftarrow t + 1$
+    \If{$t < T_{\text{warm}}$} \hfill\(\triangleright\) \textit{warm-up: random actions to seed the buffer}
+      \State Sample $a_i \sim \operatorname{Uniform}(\mathcal{A}_i)$ for all $i \in \mathcal{N}$
+    \Else \hfill\(\triangleright\) \textit{on-policy action from learned policy}
+      \State Compute $\pi_\phi(\cdot\mid o_{t-1})$ via Alg.~\ref{alg:fgsv2_forward}; sample $a_i \sim \pi_\phi$ for all $i$
+    \EndIf
+    \State Execute joint action $\mathbf{a} = (a_1,\ldots,a_N)$ in SUMO via TraCI
+    \State Observe per-agent rewards $r_i \leftarrow W_{t-1}^{(i)} - W_t^{(i)}$ and next graph observation $o_t$
+    \State Store transition $\bigl(o_{t-1},\,\mathbf{a},\,\mathbf{r},\,o_t,\,d_t\bigr)$ in $\mathcal{D}$ with maximum priority
+    \If{$t \geq T_{\text{warm}}$} \hfill\(\triangleright\) \textit{one gradient update per environment step}
+      \State Sample mini-batch $\mathcal{B} = \{(o,\mathbf{a},\mathbf{r},o',d)\}$ from $\mathcal{D}$ via PER
+      \State Run forward pass (Alg.~\ref{alg:fgsv2_forward}) on $o$ and $o'$ for all samples in $\mathcal{B}$
+      \State Compute soft target: $y_k \leftarrow r_k + \gamma(1-d)\,V_{\text{target}}(o')$ \hfill (Eqs.~\ref{eq:sac_target}--\ref{eq:sac_td_target})
+      \State $\theta_j \leftarrow \theta_j - \eta_Q\,\nabla_{\!\theta_j}\mathcal{L}_Q(\theta_j)$, $j\in\{1,2\}$ \hfill (Eq.~\ref{eq:sac_critic_loss}) \label{alg:line_critic}
+      \State $\phi \leftarrow \phi - \eta_\pi\,\nabla_\phi\,\mathcal{L}_\pi(\phi)$ \hfill (Eq.~\ref{eq:sac_actor_loss})
+      \State $\log\alpha \leftarrow \log\alpha - \eta_\alpha\,\nabla_{\!\log\alpha}\,\mathcal{L}(\alpha)$ \hfill (Eq.~\ref{eq:sac_alpha_loss}) \label{alg:line_alpha}
+      \State Soft-update targets: $\bar\theta_j \leftarrow \tau\theta_j + (1-\tau)\bar\theta_j$, $j\in\{1,2\}$
+      \State Update PER priorities with TD errors $|Q_{\theta_1}(o,a_k) - y_k|$
+    \EndIf
+  \EndFor
+  \If{$e \bmod 5 = 0$} \hfill\(\triangleright\) \textit{evaluation checkpoint every 5 episodes}
+    \State Run one deterministic episode (greedy; exploration suppressed)
+    \State Log MTT, MWT, MD, TP to Weights \& Biases; save checkpoint
+  \EndIf
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[ht]
+\caption{FGSv2 Forward Pass}
+\label{alg:fgsv2_forward}
+\begin{algorithmic}[1]
+\Require Graph observation $o = \{\mathbf{X},\mathcal{E},\mathbf{W},\mathbf{M}_{\text{pair}},\mathbf{M}_{\text{comp}},\mathbf{m},\mathbf{a}_{t-1}\}$; ego index $k$
+\Ensure Policy distribution $\pi_k(\cdot\mid o)$; graph contexts $\{\mathbf{g}_i\}$ and action tokens $\{\mathbf{z}_{i,a}\}$ (training)
+\Statex \rule{\linewidth}{0.3pt}
+\Statex \textbf{Phase 1 — FRAP action-token encoding}
+\ForAll{intersection $i \in \mathcal{N}$ \textbf{and} movement $u$}
+  \State $e_{i,u} \leftarrow \operatorname{ReLU}\!\bigl(W_{\text{lane}}\bigl[\sigma(\operatorname{Emb}_{\text{phase}}(p_{i,u})),\;\sigma(W_d\,d_{i,u})\bigr]\bigr)$
+  \hfill\(\triangleright\) \textit{lane embedding}
+\EndFor
+\ForAll{$i \in \mathcal{N}$, valid phase $a$ ($m_{i,a}=1$)}
+  \State $\phi_{i,a} \leftarrow \sum_u w_{i,a,u}\,e_{i,u}$
+  \hfill\(\triangleright\) \textit{phase-pair embedding (scaled sum over movements)}
+  \ForAll{competitor $b \in V_{i,a}$}
+    \State $r_{i,a,b} \leftarrow \operatorname{ReLU}(\operatorname{Conv}_{\text{rel}}(\operatorname{Emb}_{\text{rel}}(R_{i,a,b})))$
+    \State $c_{i,a,b} \leftarrow \operatorname{ReLU}\!\bigl(\operatorname{Conv}_{\text{hid}}([\phi_{i,a},\phi_{i,b}] \odot r_{i,a,b})\bigr)$
+    \hfill\(\triangleright\) \textit{competition feature}
+  \EndFor
+  \If{$|V_{i,a}| > 0$}
+    \State $\mathbf{z}_{i,a} \leftarrow \operatorname{LayerNorm}\!\bigl(\operatorname{ReLU}\!\bigl(\operatorname{Adapter}(\tfrac{1}{|V_{i,a}|}\textstyle\sum_{b} c_{i,a,b})\bigr)\bigr)$ \hfill (Eq.~\ref{eq:fgsv2_token})
+  \Else
+    \State $\mathbf{z}_{i,a} \leftarrow \mathbf{0}$ \hfill\(\triangleright\) \textit{no competitors: single valid phase}
+  \EndIf
+\EndFor
+\State Set $\mathbf{z}_{i,a} \leftarrow \mathbf{0}$ for all invalid phases ($m_{i,a}=0$)
+\Statex \rule{\linewidth}{0.3pt}
+\Statex \textbf{Phase 2 — Node summary}
+\ForAll{$i \in \mathcal{N}$}
+  \State $\mathbf{s}_i \leftarrow \operatorname{LayerNorm}\!\bigl(\textstyle\sum_a m_{i,a}\,\mathbf{z}_{i,a} \;/\; \max(\textstyle\sum_a m_{i,a},1)\bigr)$ \hfill (Eq.~\ref{eq:fgsv2_summary})
+\EndFor
+\Statex \rule{\linewidth}{0.3pt}
+\Statex \textbf{Phase 3 — GATv2 communication with residual gate}
+\ForAll{$i \in \mathcal{N}$}
+  \State $\mathbf{u}_i \leftarrow \operatorname{LayerNorm}(\mathbf{s}_i)$
+  \hfill\(\triangleright\) \textit{pre-normalise before attention}
+  \State $\tilde{\mathbf{g}}_i \leftarrow \operatorname{ReLU}\!\bigl(\mathbf{W}_o\;\operatorname{GATv2Conv}(\{\mathbf{u}_j : j \in \mathcal{N}(i)\cup\{i\}\})\bigr)$
+  \hfill (Eq.~\ref{eq:fgsv2_gatv2})
+  \State $\mathbf{g}_i \leftarrow \operatorname{LayerNorm}(\mathbf{s}_i + \lambda\,\tilde{\mathbf{g}}_i)$
+  \hfill (Eq.~\ref{eq:fgsv2_gate})
+\EndFor
+\Statex \rule{\linewidth}{0.3pt}
+\Statex \textbf{Phase 4 — Action-conditioned actor for ego agent $k$}
+\ForAll{phase $a = 1,\ldots,A_{\max}$}
+  \If{$m_{k,a} = 1$}
+    \State $l_a \leftarrow \operatorname{MLP}_\phi[\mathbf{z}_{k,a}\;\Vert\;\mathbf{g}_k\;\Vert\;\mathbf{e}_a]$
+    \hfill (Eq.~\ref{eq:fgsv2_actor})
+  \Else
+    \State $l_a \leftarrow -10^9$
+    \hfill\(\triangleright\) \textit{suppress invalid phases before softmax}
+  \EndIf
+\EndFor
+\State \Return $\pi_k(\cdot\mid o) = \operatorname{softmax}(\mathbf{l}_k)$; also $\{\mathbf{z}_{i,a}\},\{\mathbf{g}_i\}$ for critic (Eq.~\ref{eq:fgsv2_critic})
+\end{algorithmic}
+\end{algorithm}
