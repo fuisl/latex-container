@@ -2,72 +2,280 @@
 \chaptermark{Methodology}
 \label{ch:Methodology}
 
-\section{Proposed Method and Architecture}
-\label{sec:Methodology_ProposedMethod}
+The proposed framework, referred to as \emph{FGS} (Fair Graph-based Signaling), extends the multi-agent Soft Actor-Critic algorithm with graph-based inter-agent communication and phase-aware local encoding. Its second-generation variant, \emph{FGSv2}, replaces the single node embedding produced by the local encoder with a set of per-action tokens, enabling richer action-conditioned reasoning at both the actor and the centralized critic. Both variants follow the \emph{centralised training with decentralised execution} (CTDE) paradigm \citep{lowe2017multi}: at execution time each agent acts solely on its own local observation, while training exploits a centralized critic that has access to the joint state of all agents.
 
-\subsection{Observation Space}
+\section{Problem Formulation}
+\label{sec:Methodology_ProblemFormulation}
+
+A signalised road network with $N$ intersections is modelled as a Decentralized Partially Observable Markov Decision Process (Dec-POMDP) $\langle \mathcal{N}, \mathcal{S}, \{\mathcal{O}_i\}, \{\mathcal{A}_i\}, T, \{r_i\}, \gamma \rangle$, where $\mathcal{N} = \{1, \ldots, N\}$ is the set of agents, $\mathcal{S}$ is the global state of the SUMO environment, $\mathcal{O}_i$ is the local observation space of agent $i$, $\mathcal{A}_i$ is its action space, $T$ is the stochastic transition function determined by the simulator, $r_i$ is the local reward function, and $\gamma \in (0,1)$ is the discount factor. Agents act simultaneously at each decision step; each agent observes only the state of its own intersection and its immediate neighbourhood.
+
+\section{Observation Space}
 \label{sec:Methodology_ObservationSpace}
 
-% TODO: Define the observation space.
+Each agent receives a dictionary observation at every decision step. The dictionary encodes the agent's local traffic state together with the graph structure of the surrounding network, allowing the model to perform graph message passing during the forward pass.
 
-\subsection{Action Space}
+The node feature matrix $\mathbf{X} \in \mathbb{R}^{N \times d}$ stacks the feature vector of every agent in the network. For agent $i$, the feature vector is
+\begin{equation}
+  \mathbf{x}_i =
+    \bigl[\,\mathbf{e}_{\mathrm{phase}}^{(i)},\;
+           t_{\mathrm{green}}^{(i)},\;
+           \boldsymbol{\rho}^{(i)},\;
+           \mathbf{q}^{(i)}\,\bigr] \in \mathbb{R}^{d},
+  \label{eq:node_feature}
+\end{equation}
+where $\mathbf{e}_{\mathrm{phase}}^{(i)}$ is a one-hot vector encoding the current active phase, $t_{\mathrm{green}}^{(i)}$ is the time elapsed since the last phase change normalised by the minimum green time, and $\boldsymbol{\rho}^{(i)}, \mathbf{q}^{(i)}$ are the lane density and lane queue vectors over all incoming lanes of intersection $i$.
+
+The remaining fields in the observation dictionary are:
+\begin{itemize}
+  \item \textit{Edge index} $\mathcal{E} \in \mathbb{Z}^{2 \times |\mathcal{E}|}$: source--target integer pairs that define the agent communication graph.
+  \item \textit{Edge mask} and \textit{edge weight}: a binary validity flag and a scalar weight $w_{ij}$ for each edge (see Section~\ref{sec:Methodology_DataPreprocessing}).
+  \item \textit{Ego index}: the integer identifying which row of $\mathbf{X}$ corresponds to the acting agent.
+  \item \textit{Action mask}: a binary vector of length $A_{\max}$ indicating the phases that are valid for the ego agent.
+  \item \textit{Phase-pair mask} $\mathbf{M}_{\mathrm{pair}} \in \{0,1\}^{N \times A_{\max} \times M}$: for each agent and candidate phase, indicates the subset of traffic movements that phase controls.
+  \item \textit{Phase-competition mask} $\mathbf{M}_{\mathrm{comp}} \in \{0,1\}^{N \times A_{\max} \times A_{\max}}$: encodes movement conflicts between pairs of candidate phases for each agent.
+  \item \textit{Previous joint action} $\mathbf{a}_{t-1} \in \{0,1\}^{N \times A_{\max}}$: one-hot encoding of all agents' actions at the preceding step.
+\end{itemize}
+
+\section{Action Space}
 \label{sec:Methodology_ActionSpace}
 
-% TODO: Define the action space.
+The action space of each agent is discrete: at each step the agent selects a phase index from the set of phases its intersection supports. Because intersections in the German RESCO scenarios have different numbers of phases, the action space is padded to a uniform width $A_{\max} = \max_{i \in \mathcal{N}} |\mathcal{A}_i|$. During the forward pass, the logits of all invalid phases are masked to $-\infty$ before the softmax, ensuring that the sampled action always lies within the agent's valid phase set.
 
-\section{Data Preprocessing}
+Phase transition constraints (minimum green time, yellow interval) are enforced at the SUMO environment level and are not modelled as RL constraints.
+
+\section{Graph Construction}
 \label{sec:Methodology_DataPreprocessing}
 
-% TODO: Describe graph topology preprocessing.
-% TODO: Describe agent communication graph construction.
+The agent communication graph $\mathcal{G} = (\mathcal{V}, \mathcal{E}, \mathbf{W})$ is derived from the SUMO road network file (\texttt{.net.xml}) before training begins and is fixed throughout.
 
-\section{Relevant Models, Algorithms, and Frameworks}
+\paragraph{Node extraction.}
+Every junction that carries a traffic light logic (\texttt{tlLogic}) in the network XML is added to $\mathcal{V}$ as a graph node. Its geographic coordinates are recorded for visualisation but are not used as model inputs.
+
+\paragraph{Super-edge construction.}
+For each outgoing road segment from a traffic light node, a Dijkstra traversal follows legal road transitions until it reaches the nearest downstream traffic light node, accumulating the intermediate edges along the path. This yields a set of \emph{super-edges} that connect pairs of signalised intersections directly, abstracting away unsignalised junctions in between.
+
+\paragraph{Edge weight assignment.}
+The weight of super-edge $(i, j)$ is
+\begin{equation}
+  w_{ij} = \frac{1}{\tau_{ij}},
+  \label{eq:edge_weight}
+\end{equation}
+where $\tau_{ij}$ is the estimated travel time along the path. When multiple parallel routes connect the same signal pair, their weights accumulate additively. All edges are inserted bidirectionally to enable symmetric message passing.
+
+The resulting graph is serialised to disk as a pre-processing artefact and loaded once per training run, adding no per-step overhead.
+
+\section{Baseline Algorithms}
 \label{sec:Methodology_ModelsAlgorithmsFrameworks}
 
-\subsection{DQN}
+The following algorithms serve as baselines or as the algorithmic foundation of the proposed framework.
+
+\subsection{Deep Q-Network}
 \label{sec:Methodology_DQN}
 
-% TODO: Describe DQN as a relevant baseline or algorithm.
+Deep Q-Network (DQN) \citep{mnih2015humanlevel} approximates the action-value function with a neural network $Q_\theta(s, a)$ trained to minimise the temporal-difference loss
+\begin{equation}
+  \mathcal{L}(\theta) =
+    \mathbb{E}_{(s,a,r,s') \sim \mathcal{D}}
+    \!\left[\left(r + \gamma \max_{a'} Q_{\bar\theta}(s', a') - Q_\theta(s, a)\right)^2\right],
+\end{equation}
+where $\mathcal{D}$ is a replay buffer and $\bar\theta$ are the parameters of a periodically updated target network. Each intersection runs an independent DQN with no inter-agent communication, forming a fully decentralised value-based baseline.
 
-\subsection{PPO}
+\subsection{Proximal Policy Optimisation}
 \label{sec:Methodology_PPO}
 
-% TODO: Describe PPO as a relevant baseline or algorithm.
+Proximal Policy Optimisation (PPO) \citep{schulman2017proximal} is an on-policy actor-critic method that limits policy update size through a clipped surrogate objective:
+\begin{equation}
+  \mathcal{L}^{\mathrm{CLIP}}(\theta) =
+    \mathbb{E}_t\!\left[
+      \min\!\left(
+        r_t(\theta)\,\hat{A}_t,\;
+        \mathrm{clip}\!\left(r_t(\theta),\,1-\varepsilon,\,1+\varepsilon\right)\hat{A}_t
+      \right)
+    \right],
+\end{equation}
+where $r_t(\theta) = \pi_\theta(a_t|s_t) / \pi_{\theta_{\mathrm{old}}}(a_t|s_t)$ is the probability ratio and $\hat{A}_t$ is an advantage estimate. PPO is used as an independent-agent on-policy baseline.
 
-\subsection{SAC}
+\subsection{Soft Actor-Critic}
 \label{sec:Methodology_SAC}
 
-% TODO: Describe SAC as a relevant baseline or algorithm.
+Soft Actor-Critic (SAC) \citep{haarnoja2018soft} augments the expected return objective with an entropy regularisation term:
+\begin{equation}
+  \pi^* = \arg\max_\pi \mathbb{E}\!\left[
+    \sum_{t=0}^{T} \gamma^t
+    \bigl(r_t + \alpha\,\mathcal{H}(\pi(\cdot|s_t))\bigr)
+  \right],
+  \label{eq:sac_objective}
+\end{equation}
+where $\alpha > 0$ is a temperature parameter balancing exploitation and exploration. In practice $\alpha$ is learned by optimising against a target entropy $\mathcal{H}_{\mathrm{target}}$. Twin Q-networks $Q_{\theta_1}, Q_{\theta_2}$ are maintained to reduce overestimation bias; the target value for each update uses
+\begin{equation}
+  y = r + \gamma\,\bigl(\min_{k=1,2} Q_{\bar\theta_k}(s', a') - \alpha \log \pi_\phi(a'|s')\bigr),
+  \qquad a' \sim \pi_\phi(\cdot|s').
+\end{equation}
+The off-policy design of SAC enables training from a prioritised replay buffer, reducing the number of environment interactions needed to reach convergence—an important property when SUMO simulations are the bottleneck.
 
-\subsection{CoLight}
-\label{sec:Methodology_CoLight}
+\subsection{Graph Attention Network}
+\label{sec:Methodology_GAT}
 
-% TODO: Describe CoLight.
+The graph communication module in FGS is derived from the CoLight attention layer \citep{wei2019colight}. For an edge $(j, i) \in \mathcal{E}$, the attention coefficient weighting the message from neighbour $j$ to ego $i$ is
+\begin{equation}
+  \alpha_{ij} =
+    \frac{
+      \exp\!\left(\mathbf{p}_i^\top \mathbf{p}_j / \sqrt{h_d}\right)
+    }{
+      \sum_{k \in \mathcal{N}(i)} \exp\!\left(\mathbf{p}_i^\top \mathbf{p}_k / \sqrt{h_d}\right)
+    },
+\end{equation}
+where $\mathbf{p}_i, \mathbf{p}_j$ are projected representations of dimension $h_d = $ head\_dim, and $\mathcal{N}(i)$ is the neighbourhood of $i$ in $\mathcal{G}$. Multi-head attention is applied with $H$ heads; the outputs are averaged before a linear projection maps the result to the output dimension.
 
-\subsection{FRAP}
+FGSv2 employs GATv2 \citep{brody2022how} in place of the original GAT, using an additive attention formulation that is strictly more expressive:
+\begin{equation}
+  \alpha_{ij}^{\mathrm{v2}} =
+    \frac{
+      \exp\!\left(\mathbf{a}^\top \mathrm{LeakyReLU}\!\left(\mathbf{W}\,[\mathbf{h}_i \,\Vert\, \mathbf{h}_j]\right)\right)
+    }{
+      \sum_{k \in \mathcal{N}(i)}
+      \exp\!\left(\mathbf{a}^\top \mathrm{LeakyReLU}\!\left(\mathbf{W}\,[\mathbf{h}_i \,\Vert\, \mathbf{h}_k]\right)\right)
+    },
+\end{equation}
+where $\mathbf{W}$ and $\mathbf{a}$ are learnable parameters and $\Vert$ denotes concatenation.
+
+\subsection{FRAP Encoder}
 \label{sec:Methodology_FRAP}
 
-% TODO: Describe FRAP.
+The FRAP encoder \citep{zheng2019learning} models the competition between candidate signal phases explicitly. For intersection $i$ with $A_i$ candidate phases and $M_i$ traffic movements, the encoder:
+\begin{enumerate}
+  \item Embeds each phase as a binary movement-membership vector and each movement as a demand scalar (density or queue).
+  \item Concatenates phase and demand embeddings and passes them through a lane embedding layer.
+  \item Applies a 2D convolutional layer over phase pairs to compute pairwise competition scores, weighted by a learnable relation embedding.
+  \item Pools valid competition scores across all phase pairs and projects the result to a fixed-dimensional output.
+\end{enumerate}
+The output is a single embedding vector per intersection that encodes relative phase urgency. The design is permutation-equivariant with respect to phase ordering, which improves generalisation across heterogeneous intersection geometries.
 
-\section{Rewards}
+\section{Reward Function}
 \label{sec:Methodology_Rewards}
 
-\subsection{Difference in Waiting Time}
+\subsection{Differential Waiting Time}
 \label{sec:Methodology_DiffWaitingTime}
 
-% TODO: Define the difference-in-waiting-time reward.
+All experiments use the differential waiting time reward:
+\begin{equation}
+  r_t = W_{t-1} - W_t,
+  \qquad
+  W_t = \frac{1}{100}\sum_{l \in \mathcal{L}}\sum_{v \in l} w_v(t),
+  \label{eq:reward}
+\end{equation}
+where $\mathcal{L}$ is the set of incoming lanes controlled by the traffic signal, $v$ indexes vehicles, and $w_v(t)$ is the accumulated waiting time of vehicle $v$ at step $t$ as reported by SUMO via the TraCI interface. A positive value of $r_t$ indicates that total waiting time at the intersection decreased relative to the previous step. Dividing by 100 normalises the scale across scenarios that differ in traffic volume.
 
-\subsection{Delay}
-\label{sec:Methodology_Delay}
+This reward is local to each agent, which aligns with the CTDE assumption: the reward does not require knowledge of the global joint state at execution time, so decentralised policies remain valid after training.
 
-% TODO: Define the delay reward.
+\subsection{Alternative Reward Signals}
+\label{sec:Methodology_AltRewards}
 
-\subsection{Pressure}
-\label{sec:Methodology_Pressure}
+\paragraph{Delay.}
+Delay quantifies the additional travel time incurred by vehicles relative to their free-flow speed. It captures network-level throughput effects directly but requires per-vehicle free-flow speed estimates from SUMO, increasing per-step computational cost. Delay is used as an \emph{evaluation metric} (Section~\ref{sec:ExperimentalDesign_MetricsProcedure}) rather than a training signal.
 
-% TODO: Define the pressure reward.
+\paragraph{Pressure.}
+Pressure \citep{wei2019presslight} measures the lane imbalance at an intersection:
+\begin{equation}
+  p_i = \left|\,\sum_{l \in \mathcal{L}_{\mathrm{in}}^{i}} \rho_l
+              - \sum_{l \in \mathcal{L}_{\mathrm{out}}^{i}} \rho_l\,\right|,
+\end{equation}
+where $\rho_l$ is vehicle density on lane $l$. The pressure reward $r_t = -p_i(t)$ penalises queue accumulation and has been shown to stabilise single-agent training \citep{wei2019presslight}. It was evaluated as an alternative signal but not adopted as the primary reward in this work.
 
-\section{Individual Contribution}
+\section{Proposed Contributions: FGS and FGSv2}
 \label{sec:Methodology_IndividualContribution}
 
-% TODO: Describe the contribution in GNN-based communication, fairness optimization, and/or representation learning.
+\subsection{FGS: Graph-Aware Multi-Agent SAC}
+\label{sec:Methodology_FGS}
+
+FGS wraps the SAC algorithm with a shared graph encoder that enables each agent to condition its policy on the current state of its neighbours. All agents share a single set of parameters, so the framework scales to networks of arbitrary size without any per-agent parameter budget.
+
+\paragraph{Graph encoder.}
+The graph encoder $f_\psi$ transforms the dictionary observation into an ego embedding used by the actor and a full graph tensor used by the centralized critic. Given node features $\mathbf{X} \in \mathbb{R}^{N \times d}$, the encoder proceeds as follows:
+\begin{enumerate}
+  \item \textit{Local encoding.} The feature matrix is unfolded to a batch of $N$ vectors. A local encoder $\phi$ maps each $\mathbf{x}_i$ to a local embedding $\mathbf{h}_i \in \mathbb{R}^{d_h}$:
+  \[
+    \mathbf{h}_i = \phi(\mathbf{x}_i), \quad i = 1,\ldots,N.
+  \]
+  Two choices of $\phi$ are evaluated: a two-layer MLP (FGS-MLP) and the FRAP encoder described in Section~\ref{sec:Methodology_FRAP} (FGS-FRAP).
+  \item \textit{Graph communication (optional).} A single GAT or GATv2 layer aggregates messages from neighbours:
+  \[
+    \mathbf{h}_i^{\prime} = \mathrm{GAT}\bigl(\mathbf{h}_i,\; \{\mathbf{h}_j : j \in \mathcal{N}(i)\},\; \{w_{ij}\}\bigr).
+  \]
+  When communication is disabled, $\mathbf{h}_i^{\prime} = \mathbf{h}_i$.
+  \item \textit{Output.} The graph tensor $\mathbf{H}^{\prime} \in \mathbb{R}^{N \times d_h^{\prime}}$ stacks all updated embeddings; the ego embedding $\mathbf{h}_{\mathrm{ego}}^{\prime}$ is the row indexed by the ego index.
+\end{enumerate}
+
+\paragraph{Actor.}
+The actor $\pi_\phi$ maps the ego embedding to a distribution over valid phases:
+\[
+  \mathbf{l} = \pi_\phi(\mathbf{h}_{\mathrm{ego}}^{\prime}), \qquad
+  \pi(a | o) \propto \exp(l_a)\cdot \mathbf{m}_a,
+\]
+where $\mathbf{l} \in \mathbb{R}^{A_{\max}}$ are the raw logits and $\mathbf{m} \in \{0,1\}^{A_{\max}}$ is the action mask.
+
+\paragraph{Centralized joint-action critic.}
+The critic operates on the full graph tensor and an estimate of all agents' action probabilities, following the CTDE design. For each candidate ego action $a$, the critic constructs a context vector by concatenating the flattened graph tensor $\mathrm{vec}(\mathbf{H}^{\prime})$, the matrix of all agents' action-probability vectors with the ego's row replaced by the one-hot vector for $a$, the ego embedding $\mathbf{h}_{\mathrm{ego}}^{\prime}$, and a one-hot encoding of the ego index:
+\[
+  Q_\theta(a \,|\, \mathbf{H}^{\prime}, \boldsymbol{\Pi}_{-i}, i) =
+    \mathrm{MLP}_\theta\!\bigl[\,
+      \mathrm{vec}(\mathbf{H}^{\prime})\;\Vert\;
+      \mathrm{vec}(\boldsymbol{\Pi}_{a})\;\Vert\;
+      \mathbf{h}_{\mathrm{ego}}^{\prime}\;\Vert\;
+      \mathbf{e}_i\,
+    \bigr],
+\]
+where $\boldsymbol{\Pi}_{a}$ substitutes the one-hot for $a$ into the ego row of the joint action-probability matrix $\boldsymbol{\Pi}$. Twin critics are maintained and the minimum is used for target computation as in standard SAC. The joint action structure requires $n$-step = 1 updates to keep the action-probability estimates on-policy.
+
+The four FGS variants investigated in this thesis are summarised in Table~\ref{tab:fgs_variants}.
+
+\begin{table}[ht]
+  \centering
+  \caption{FGS architecture variants evaluated in the ablation study.}
+  \label{tab:fgs_variants}
+  \begin{tabular}{lcc}
+    \hline
+    Variant & Local encoder & Communication \\
+    \hline
+    FGS-MLP-none  & MLP   & none   \\
+    FGS-MLP-GAT   & MLP   & GAT    \\
+    FGS-FRAP-none & FRAP  & none   \\
+    FGS-FRAP-GAT  & FRAP  & GAT    \\
+    \hline
+  \end{tabular}
+\end{table}
+
+\subsection{FGSv2: Action-Token Architecture}
+\label{sec:Methodology_FGSv2}
+
+FGSv2 preserves FRAP's phase-competition structure not as a final scalar score but as a set of intermediate \emph{action tokens}, one token per candidate phase. This changes the information topology of the architecture: rather than collapsing phase-level information into a single node embedding before graph communication and actor computation, the action tokens carry phase-specific features through to the actor head.
+
+\paragraph{FRAP action-token encoder.}
+The encoder is tapped at the phase-competition representation block of FRAP, before the final pooling step that would otherwise produce a scalar. For each candidate phase $a \in \{1,\ldots,A_{\max}\}$, the encoder produces a token $\mathbf{t}_{i,a} \in \mathbb{R}^{d_t}$ capturing how that phase's demand and its competitive relationships with other phases are represented at intersection $i$. The full output is a tensor $\mathbf{T}_i \in \mathbb{R}^{A_{\max} \times d_t}$, with invalid phases masked to zero.
+
+A node summary $\mathbf{s}_i \in \mathbb{R}^{d_t}$ is obtained by masked mean-pooling over valid action tokens:
+\[
+  \mathbf{s}_i = \frac{\sum_{a} m_{i,a}\,\mathbf{t}_{i,a}}{\sum_{a} m_{i,a}},
+\]
+where $m_{i,a} \in \{0,1\}$ is the validity mask for phase $a$ at intersection $i$.
+
+\paragraph{Graph communication and residual gate.}
+GATv2 operates on the node summaries $\mathbf{s}_i$ rather than on the full action-token tensors, keeping the communication overhead independent of the number of candidate phases:
+\[
+  \mathbf{g}_i = \mathrm{GATv2}\!\left(\mathbf{s}_i,\; \{\mathbf{s}_j : j \in \mathcal{N}(i)\}\right).
+\]
+A scalar residual gate $\beta_i \in [0,1]$ (learned, initialised to zero) controls how much the graph context contributes to the final node representation:
+\[
+  \mathbf{c}_i = \beta_i\,\mathbf{g}_i + (1 - \beta_i)\,\mathbf{s}_i.
+\]
+Initialising $\beta$ to zero means the network starts as a purely local policy and gradually learns to incorporate neighbour information only if it reduces the SAC objective.
+
+\paragraph{Action-conditioned actor.}
+For each candidate phase $a$, the actor concatenates the corresponding action token, the graph context broadcast across all phases, and a one-hot encoding of $a$ before mapping through a two-layer MLP to a scalar logit:
+\[
+  l_a = \mathrm{MLP}_\phi\!\bigl[\,\mathbf{t}_{i,a}\;\Vert\;\mathbf{c}_i\;\Vert\;\mathbf{e}_a\,\bigr].
+\]
+Stacking over $a$ gives the full logit vector $\mathbf{l} \in \mathbb{R}^{A_{\max}}$, which is masked and normalised as in FGS.
+
+\paragraph{Centralized action-token critic.}
+The critic in FGSv2 extends the FGS design by incorporating the action-token tensors of all agents alongside the graph embeddings, providing the critic with phase-level demand information across the network. For each candidate ego action $a$, the critic context includes the flattened node summaries after graph communication, the stacked action-token matrices of all agents, a joint-action context in which the ego's token is replaced by the one-hot for $a$, and the ego index one-hot. Twin critics and $n$-step = 1 are retained from FGS.
