@@ -2,7 +2,7 @@
 \chaptermark{Methodology}
 \label{ch:Methodology}
 
-The proposed framework, referred to as \emph{FGS} (Fair Graph-based Signaling), extends the multi-agent Soft Actor-Critic algorithm with graph-based inter-agent communication and phase-aware local encoding. Its second-generation variant, \emph{FGSv2}, replaces the single node embedding produced by the local encoder with a set of per-action tokens, enabling richer action-conditioned reasoning at both the actor and the centralized critic. Both variants follow the \emph{centralised training with decentralised execution} (CTDE) paradigm \citep{lowe2017multi}: at execution time each agent acts solely on its own local observation, while training exploits a centralized critic that has access to the joint state of all agents.
+The proposed framework, referred to as \emph{FGS} (FRAP-Graph-SAC), extends the multi-agent Soft Actor-Critic algorithm with graph-based inter-agent communication and phase-aware local encoding. Its second-generation variant, \emph{FGSv2}, replaces the single node embedding produced by the local encoder with a set of per-action tokens, enabling richer action-conditioned reasoning at both the actor and the centralized critic. Both variants follow the \emph{centralised training with decentralised execution} (CTDE) paradigm \citep{lowe2017multi}: at execution time each agent acts solely on its own local observation, while training exploits a centralized critic that has access to the joint state of all agents.
 
 \section{Problem Formulation}
 \label{sec:Methodology_ProblemFormulation}
