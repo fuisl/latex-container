@@ -1,33 +1,152 @@
 \chapter{Experimental Design}
 \label{ch:ExperimentalDesign}
 
-\section{Dataset, Materials, and System Context}
+This chapter describes the simulation scenarios, evaluation metrics, training configuration, and software pipeline used to assess the FGS and FGSv2 frameworks. All experiments are conducted within the RESCO benchmark \citep{ault2021reinforcement}, which provides standardised German traffic scenarios, fixed demand profiles, and reproducible evaluation protocols for comparing traffic signal control methods.
+
+\section{Simulation Scenarios}
 \label{sec:ExperimentalDesign_DatasetMaterialsSystemContext}
 
-\subsection{TapasCologne and InTAS}
+\subsection{TapasCologne and InTAS Demand Models}
 \label{sec:ExperimentalDesign_TapasCologneInTAS}
 
-% TODO: Describe the TapasCologne and InTAS scenarios.
+Two real-world German traffic demand models are used, each at multiple network scales.
+
+\paragraph{TapasCologne.}
+The Cologne scenarios are derived from the TapasCologne dataset \citep{tapascologne}, a microscopic travel demand simulation for the city of Cologne produced by the German Aerospace Center (DLR). Origin-destination demand is generated from a large-scale activity-based model and mapped to the SUMO road network. Three sub-networks of increasing size are extracted from the full Cologne network and included in the RESCO benchmark:
+\begin{itemize}
+  \item \textbf{cologne1}: a single signalised intersection, used as a single-agent reference.
+  \item \textbf{cologne3}: a three-intersection arterial corridor.
+  \item \textbf{cologne8}: an eight-intersection network, the primary multi-agent test bed for the FGS ablation study.
+\end{itemize}
+
+\paragraph{InTAS.}
+The Ingolstadt scenarios are based on the InTAS (Ingolstadt Traffic Scenario) dataset \citep{intasscenario}, a realistic traffic model for the city of Ingolstadt developed in cooperation with local authorities. Three sub-networks are included in the RESCO benchmark:
+\begin{itemize}
+  \item \textbf{ingolstadt1}: a single signalised intersection.
+  \item \textbf{ingolstadt7}: a seven-intersection sub-network.
+  \item \textbf{ingolstadt21}: a twenty-one-intersection network, the largest and most topologically complex scenario evaluated.
+\end{itemize}
+
+Each scenario runs for 3600 simulated seconds (one hour of traffic). Demand files, network topology, and traffic light phase programmes are taken directly from the RESCO release without modification, ensuring comparability with published baselines.
 
 \subsection{SUMO and TraCI}
 \label{sec:ExperimentalDesign_SUMOTraCI}
 
-% TODO: Describe SUMO and the TraCI interface.
+All scenarios are simulated using SUMO (Simulation of Urban MObility) \citep{lopez2018microscopic}, a microscopic open-source traffic simulator. SUMO models individual vehicles, applies car-following and lane-changing models, and advances the simulation in discrete time steps of one second. Traffic light phases are updated by the RL agent at each decision step via the TraCI (Traffic Control Interface) API, which provides bidirectional communication between the Python training process and the running SUMO instance. At each step, TraCI reports per-lane vehicle counts, speeds, accumulated waiting times, and the current signal state; the RL agent returns the next phase selection, which SUMO applies immediately.
+
+The SUMO-RL library \citep{alegre2021sumorl} wraps this interaction into a PettingZoo-compatible parallel environment, providing standardised observation and reward interfaces that FGSGraphParallelEnv extends with graph-structured observations (see Section~\ref{sec:Methodology_ObservationSpace}).
 
 \section{Evaluation Setup}
 \label{sec:ExperimentalDesign_EvaluationSetup}
 
-% TODO: Describe device, number of episodes, and experiment configuration.
+\paragraph{Training length.}
+Each agent is trained for 200 episodes. Each episode corresponds to one complete 3600-second simulation run. The first 2000 environment steps of training are used for warm-up: experiences are collected but no gradient updates are applied, allowing the prioritised replay buffer to accumulate a sufficient number of transitions before learning begins.
 
-\section{Evaluation Metrics and Training/Testing Procedure}
+\paragraph{Evaluation protocol.}
+A deterministic evaluation episode is run every 5 training episodes. During evaluation the exploration noise of SAC is suppressed by taking the greedy action (highest logit after masking) rather than sampling from the softmax distribution. Evaluation results are logged to Weights \& Biases \citep{wandb} at each checkpoint.
+
+\paragraph{Seeds and statistical reporting.}
+All experiments are run with 5 independent random seeds. Reported metrics are the mean and standard deviation across seeds. The base seed for each run is drawn from the set $\{0, 1, 2, 3, 4\}$, applied jointly to the Python random number generator, NumPy, PyTorch, and the SUMO simulation.
+
+\paragraph{Hardware.}
+Experiments are run on a single machine with a CUDA-capable GPU (device index 1, fractional allocation 0.1 per learner) and 16 logical CPU cores. RLlib is configured with zero parallel environment runners (\texttt{num\_env\_runners: 0}); environment stepping and learning occur sequentially in the main process to reduce inter-process communication overhead for single-GPU runs.
+
+\section{Evaluation Metrics}
 \label{sec:ExperimentalDesign_MetricsProcedure}
 
-% TODO: Define evaluation metrics, referring to RESCO where appropriate.
-% TODO: Include formulas for the selected metrics.
-% TODO: Describe evaluation every five episodes.
-% TODO: Describe running five different seeds and reporting averages.
+Metrics follow the definitions in the RESCO benchmark \citep{ault2021reinforcement}. Let $V_c$ denote the set of vehicles that completed their trip during the evaluation episode, $t_v^{\mathrm{arr}}$ the arrival time and $t_v^{\mathrm{dep}}$ the departure time of vehicle $v$, and $w_v$ its total accumulated waiting time.
+
+\paragraph{Mean travel time (MTT).}
+\begin{equation}
+  \mathrm{MTT} = \frac{1}{|V_c|} \sum_{v \in V_c} \left(t_v^{\mathrm{arr}} - t_v^{\mathrm{dep}}\right) \quad [\mathrm{s}]
+  \label{eq:mtt}
+\end{equation}
+MTT is the primary comparison metric. Lower values indicate better network-level performance.
+
+\paragraph{Mean delay (MD).}
+\begin{equation}
+  \mathrm{MD} = \frac{1}{|V_c|} \sum_{v \in V_c} \left[\left(t_v^{\mathrm{arr}} - t_v^{\mathrm{dep}}\right) - \frac{d_v}{v_v^{\mathrm{ff}}}\right] \quad [\mathrm{s}]
+  \label{eq:delay}
+\end{equation}
+where $d_v$ is the total trip distance of vehicle $v$ and $v_v^{\mathrm{ff}}$ is its free-flow speed. MD isolates the time lost to congestion and signal delays.
+
+\paragraph{Mean waiting time (MWT).}
+\begin{equation}
+  \mathrm{MWT} = \frac{1}{|V_c|} \sum_{v \in V_c} w_v \quad [\mathrm{s}]
+  \label{eq:mwt}
+\end{equation}
+MWT captures time spent stationary, directly corresponding to the reward signal used during training (Equation~\ref{eq:reward}).
+
+\paragraph{Throughput (TP).}
+\begin{equation}
+  \mathrm{TP} = |V_c|
+  \label{eq:throughput}
+\end{equation}
+TP counts the number of vehicles that completed their journey. Higher throughput under the same demand indicates the network is being cleared more efficiently.
+
+All four metrics are reported for every scenario--method combination. Primary ranking of methods uses MTT; the remaining metrics provide complementary views of efficiency, signal responsiveness, and network saturation.
+
+\section{Hyperparameter Configuration}
+\label{sec:ExperimentalDesign_Hyperparameters}
+
+Table~\ref{tab:hyperparams} summarises the training hyperparameters for all methods evaluated in this thesis. FGS and FGSv2 use lower learning rates than DQN and PPO, reflecting the more complex centralised critic that benefits from slower, more stable updates.
+
+\begin{table}[ht]
+  \centering
+  \caption{Training hyperparameters per algorithm. ``--'' indicates the parameter does not apply.}
+  \label{tab:hyperparams}
+  \begin{tabular}{lcccc}
+    \hline
+    Parameter              & FGS              & FGSv2            & DQN              & PPO              \\
+    \hline
+    Actor LR               & $3\times10^{-4}$ & $1\times10^{-4}$ & --               & $5\times10^{-4}$ \\
+    Critic/Value LR        & $3\times10^{-4}$ & $1\times10^{-4}$ & $5\times10^{-4}$ & $5\times10^{-4}$ \\
+    Entropy ($\alpha$) LR  & $3\times10^{-4}$ & $1\times10^{-4}$ & --               & --               \\
+    Discount $\gamma$      & 0.95             & 0.95             & 0.99             & 0.99             \\
+    Soft update $\tau$     & 0.005            & 0.005            & --               & --               \\
+    Batch size             & 256              & 256              & 32               & 4000             \\
+    Replay capacity        & 100\,000         & 100\,000         & 50\,000          & --               \\
+    PER $\alpha$           & 0.6              & 0.6              & 0.6              & --               \\
+    PER $\beta$            & 0.4              & 0.4              & 0.4              & --               \\
+    Warm-up steps          & 2\,000           & 2\,000           & 1\,000           & --               \\
+    Grad.\ clip            & --               & 5.0              & --               & --               \\
+    PPO clip $\varepsilon$ & --               & --               & --               & 0.2              \\
+    SGD iterations         & --               & --               & --               & 10               \\
+    Mini-batch size        & --               & --               & --               & 128              \\
+    \hline
+  \end{tabular}
+\end{table}
+
+The FGS and FGSv2 neural network architecture hyperparameters are fixed across all scenarios and listed in Table~\ref{tab:arch_params}.
+
+\begin{table}[ht]
+  \centering
+  \caption{Neural network architecture hyperparameters for FGS and FGSv2.}
+  \label{tab:arch_params}
+  \begin{tabular}{lc}
+    \hline
+    Component               & Configuration              \\
+    \hline
+    FRAP encoder output dim & 128                        \\
+    FRAP conv units         & 32                         \\
+    GAT / GATv2 heads       & 5                          \\
+    GAT / GATv2 head dim    & 16                         \\
+    GAT / GATv2 output dim  & 128                        \\
+    Critic hidden dims      & [256, 256]                 \\
+    Critic activation       & ReLU                       \\
+    Topology source         & \texttt{tls\_super\_edges} \\
+    Twin Q-networks         & yes                        \\
+    \hline
+  \end{tabular}
+\end{table}
 
 \section{System Architecture}
 \label{sec:ExperimentalDesign_SystemArchitecture}
 
-% TODO: Describe the pipeline from input to SUMO, TraCI, RLlib, PyTorch, PyTorch Geometric, Weights and Biases, and SUMO outputs.
+Figure~\ref{fig:system_arch} illustrates the end-to-end pipeline. % TODO: insert system architecture figure
+
+The pipeline operates as follows. The SUMO network file (\texttt{.net.xml}) and vehicle demand file (\texttt{.rou.xml}) for the selected RESCO scenario are loaded at startup. A pre-processing step parses the network topology and constructs the agent communication graph (Section~\ref{sec:Methodology_DataPreprocessing}), which is serialised and reloaded for each training run. SUMO is launched as a subprocess and controlled through TraCI. The SUMO-RL environment wrapper translates raw TraCI observations into the structured dictionary format consumed by \texttt{FGSGraphParallelEnv}, which appends the graph tensors and constructs the full observation batch.
+
+RLlib manages the training loop: it samples rollouts from the environment, stores transitions in the prioritised replay buffer, and dispatches gradient updates to the PyTorch learner. Graph operations in the encoder and communication layers are implemented with PyTorch Geometric. All training metrics—episode reward, evaluation MTT, MWT, TP, and per-agent statistics—are emitted to Weights \& Biases at each logging step, providing real-time monitoring and facilitating cross-run comparison.
+
+The configuration system is managed by Hydra; each experiment is fully specified by a preset YAML file that composes the scenario, algorithm, and model hyperparameters, ensuring reproducibility from a single configuration identifier.
