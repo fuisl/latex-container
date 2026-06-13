@@ -1,56 +1,130 @@
 \chapter{Literature Review}
 \label{ch:LiteratureReview}
 
-% TODO: Compare prior studies and connect them into a cohesive review.
+Traffic signal control sits at the intersection of transportation engineering, optimisation theory, and machine learning. This chapter traces the development of control methods from classical analytical approaches through single-agent reinforcement learning to modern multi-agent graph-based systems, identifying at each stage the limitations that motivated the next generation of work. Section~\ref{sec:LiteratureReview_ExistingTSCApproaches} surveys TSC methods directly; Section~\ref{sec:LiteratureReview_RLAndMARL} discusses the algorithmic design axes that differentiate them; Section~\ref{sec:LiteratureReview_GraphMLVariants} examines graph-based learning as an architectural building block; Section~\ref{sec:LiteratureReview_FairnessRepresentation} reviews representation learning and fairness in the TSC context; and Section~\ref{sec:LiteratureReview_ResearchGap} states the research gap addressed by this thesis.
 
-\section{Existing Traffic Signal Control Approaches}
+%──────────────────────────────────────────────────────────────────────────────
+\section{Traffic Signal Control Approaches}
 \label{sec:LiteratureReview_ExistingTSCApproaches}
+%──────────────────────────────────────────────────────────────────────────────
 
-\subsection{Classical Traffic Signal Control}
+\subsection{Classical Methods}
 \label{sec:LiteratureReview_ClassicalTSC}
 
-% TODO: Review fixed-time, actuated, adaptive, and optimization-based classical approaches.
+The earliest principled approach to signal timing is Webster's analytical formula \citep{webster1958traffic}, which derives the optimal cycle length that minimises average vehicle delay under the assumption of stationary, Poisson-distributed arrival rates. Webster's method remains the foundation of fixed-time signal plans deployed worldwide: the cycle length, phase splits, and offsets are computed offline from historical counts and applied without feedback. Under the demand conditions for which they were calibrated, fixed-time plans perform well; the limitation is that real traffic demand is neither stationary nor fully predictable. Incidents, events, and daily variability all cause the actual demand to deviate from the design scenario, and a fixed-time plan has no mechanism to adapt.
 
-\subsection{Reinforcement Learning for Traffic Signal Control}
+Vehicle-actuated control partially addresses this by extending green phases when loop detectors sense arriving vehicles and terminating phases early when queues are absent. More sophisticated adaptive systems such as SCOOT \citep{hunt1981scoot} and SCATS \citep{lowrie1990scats} estimate real-time occupancy from detector data and continuously adjust timing plans across a network. Both systems have been deployed at city scale and have demonstrated meaningful reductions in average delay compared to fixed-time control. However, they rely on dense detector infrastructure, require expert parameter tuning for each deployment, and optimise within a fixed phase sequence — they cannot discover phase orderings or combinations outside the hand-crafted programme.
+
+Max pressure control \citep{varaiya2013max} takes a different approach: rather than optimising timing within a fixed plan, it selects at each step the phase that maximises the difference between vehicle counts on incoming and outgoing lanes, a quantity called \emph{pressure}. This policy is provably throughput-optimal under mild assumptions — it maximises the set of demand rates for which the network remains stable — and requires no pre-calibration. However, max pressure minimises global queue imbalance rather than individual vehicle waiting time, and its greedy single-step decisions can accumulate unnecessary delay when a suboptimal phase is forced by the pressure criterion. Both of these limitations are relevant to the German RESCO scenarios evaluated in this thesis.
+
+\subsection{Reinforcement Learning for Single-Agent TSC}
 \label{sec:LiteratureReview_RLTSC}
 
-% TODO: Review single-agent reinforcement learning approaches for traffic signal control.
+The application of reinforcement learning to traffic signal control was first explored systematically by \citet{wiering2000multiagent}, who showed that tabular Q-learning agents can discover effective phase policies in small synthetic grids without any prior model of traffic dynamics. With the emergence of deep neural networks as function approximators, DQN-based controllers became the dominant approach. \citet{wei2018intellilight} demonstrated that a DQN agent trained on real-world demand data from Hangzhou could match or exceed fixed-time control in terms of average travel time, establishing RL as a viable alternative rather than a theoretical curiosity. A key insight from this and subsequent work is that the choice of reward signal and state representation has a larger effect on performance than the specific RL algorithm: poorly designed states with irrelevant features or rewards that fail to capture network-level objectives consistently underperform even simple adaptive controllers.
 
-\subsection{Multi-Agent Reinforcement Learning for Traffic Signal Control}
+\citet{wei2019presslight} made this insight explicit by deriving both the state and reward from the max pressure theory. PressLight represents the intersection state as the pressure differential between incoming and outgoing lanes — the same quantity that max pressure control maximises — and uses this as the reward signal. By grounding the RL problem in a quantity with known theoretical properties (throughput optimality), PressLight achieves more stable training and better generalisation than heuristic state/reward designs. The result also illustrates a broader principle in the TSC literature: RL methods that incorporate domain knowledge, either in the reward function or in the state representation, consistently outperform those that treat the problem as a generic control task.
+
+Single-agent RL is, however, limited to isolated intersection control. Applying independent single-agent policies to each intersection in a network ignores the spatial dependencies between adjacent signals: the queue at one intersection is a direct consequence of the phase decisions at its upstream neighbours. Attempting to capture these dependencies through a larger observation window (including neighbour states in the input) inflates the observation space without providing a mechanism for agents to explicitly coordinate their decisions.
+
+\subsection{Multi-Agent Reinforcement Learning for TSC}
 \label{sec:LiteratureReview_MARLTSC}
 
-% TODO: Review multi-agent reinforcement learning approaches for network-level control.
+The natural extension to network-level control is to treat each intersection as an independent RL agent and allow agents to share information. Naive independent learning — where each agent optimises its own reward while ignoring other agents — suffers from the non-stationarity problem: from any single agent's perspective, the environment appears to change as other agents update their policies during training, violating the Markov assumption and making convergence difficult to guarantee. Despite this, independent DQN and PPO baselines evaluated in the RESCO benchmark \citep{ault2021reinforcement} often perform competitively, suggesting that the local reward signal provides sufficient learning signal even without explicit coordination.
 
-\section{Reinforcement Learning and Multi-Agent Reinforcement Learning}
+The most influential graph-based approach to MARL-TSC is CoLight \citep{wei2019colight}, which uses graph attention networks to aggregate information from neighbouring intersections before the agent selects its next phase. Each intersection encodes its local state into an embedding, and GAT attention coefficients \citep{velickovic2018graph} weight the contributions of neighbours according to the similarity of their embeddings to the ego node. Experiments on both synthetic grids and real-world Hangzhou road networks demonstrate that graph-attention communication consistently reduces average travel time compared to independent agents, with larger improvements on denser networks where coordination pressure is higher. CoLight established the pattern — local encoder, graph communication, shared parameters — that subsequent methods including FGS follow.
+
+The FRAP encoder \citep{zheng2019learning} contributes a different dimension: instead of improving coordination, it improves the local feature representation by making the phase competition structure explicit. Rather than encoding the intersection state as a flat vector, FRAP models pairwise competition between candidate phases, embedding the demand on each movement and computing how much each phase is favoured relative to its competitors. This encoder is permutation-equivariant with respect to phase labels and generalises across intersections with different phase configurations. Applied to DQN, FRAP achieves faster convergence and better final performance than MLP encoders, particularly in scenarios where phase counts vary across the network.
+
+MPLight \citep{chen2020toward} scales multi-agent pressure-based control to networks of up to one thousand intersections by combining the PressLight state/reward design with decentralised multi-agent training. The shared-parameter architecture keeps the per-intersection parameter count constant regardless of network size, and the pressure-based reward ensures that local objectives align with global throughput. MPLight demonstrates that decentralised MARL with a well-designed local objective can coordinate large networks without explicit inter-agent communication, though at the cost of the coordination advantages that communication-enabled methods such as CoLight provide.
+
+The RESCO benchmark \citep{ault2021reinforcement} standardises comparison across these methods by providing a common set of evaluation scenarios, including the German traffic networks from TapasCologne and InTAS used in this thesis, along with fixed experimental protocols for episode length, seed averaging, and metric computation. RESCO reveals that no single method dominates across all scenarios: max pressure performs strongly on large Ingolstadt networks where global throughput is the primary objective, while RL methods with rich local representations perform better on smaller, more congestion-prone Cologne networks. This scenario-dependence motivates studying how architectural choices — encoder design, communication mechanism, RL algorithm — interact with network topology and size.
+
+%──────────────────────────────────────────────────────────────────────────────
+\section{Algorithmic Design Choices in RL for TSC}
 \label{sec:LiteratureReview_RLAndMARL}
+%──────────────────────────────────────────────────────────────────────────────
 
 \subsection{Model-Free and Model-Based Reinforcement Learning}
 \label{sec:LiteratureReview_ModelFreeModelBased}
 
-% TODO: Compare model-free and model-based approaches.
+Model-based RL methods learn an explicit model of the environment transition dynamics and use it to plan or generate synthetic experience. In principle, a good model enables far more sample-efficient learning because the agent can reason about consequences without executing actions in the real environment. In practice, traffic networks present severe challenges for model learning: the dynamics depend on tens of thousands of vehicles interacting through complex car-following and lane-changing behaviours, the state space is effectively continuous and very high-dimensional, and the demand is non-stationary across the day and week. No tractable dynamics model has yet been demonstrated to generalise across the German RESCO scenarios at the level of fidelity required for planning-based control.
 
-\subsection{Discrete and Continuous Action Spaces}
+Model-free methods, which learn directly from environment interactions without building an explicit dynamics model, have therefore dominated the TSC literature. Their primary disadvantage is sample efficiency: each gradient update requires real environment transitions from the SUMO simulator, which are computationally expensive to generate. Off-policy methods — which store transitions in a replay buffer and reuse them for multiple updates — partially compensate for this by decoupling data collection from policy optimisation. SAC \citep{haarnoja2018soft} is particularly well-suited to this regime: its maximum entropy objective prevents the policy from becoming overconfident early in training, and its off-policy data reuse makes each simulation episode more informative.
+
+\subsection{Action Space Formulation}
 \label{sec:LiteratureReview_ActionSpaces}
 
-% TODO: Discuss discrete action spaces such as phase selection or next-phase decisions.
-% TODO: Discuss continuous action spaces where relevant.
+Two action formulations dominate the RL-TSC literature. The first, and most common, is \emph{phase selection}: the agent chooses the next phase to activate from the set of predefined phases in the intersection's signal programme. This is a discrete action space with size equal to the number of candidate phases, typically between 2 and 8 for real-world intersections. Phase selection is easy to interpret, aligns with how physical signal controllers operate, and maps naturally to softmax-based actor architectures.
+
+The second formulation is \emph{duration assignment}: the agent selects how long the current phase should remain active, producing a continuous or discretised action over green durations. Duration assignment offers finer-grained control but requires the agent to reason about timing in absolute terms rather than relative urgency, which can slow learning. The RESCO benchmark and the majority of recent MARL-TSC work use phase selection, and all methods compared in this thesis — including DQN, PPO, independent SAC, and FGS/FGSv2 — operate in the discrete phase-selection action space.
 
 \subsection{On-Policy and Off-Policy Learning}
 \label{sec:LiteratureReview_OnPolicyOffPolicy}
 
-% TODO: Compare on-policy and off-policy learning.
+On-policy methods such as PPO \citep{schulman2017proximal} require that the data used for each gradient update was collected under the current policy. This guarantees that the policy improvement is grounded in the agent's actual behaviour distribution, but it also means that collected experience cannot be reused: after each policy update, all stored transitions are discarded. In TSC, where each training episode requires running a full 3600-second SUMO simulation, discarding experience after each update is costly. PPO mitigates this with multiple epochs of mini-batch updates over the same rollout batch, but the fundamental constraint remains.
 
-\section{Graph Machine Learning Variants}
+Off-policy methods decouple data collection from policy optimisation by storing transitions in a replay buffer and sampling arbitrary past experience for updates. DQN and SAC are both off-policy, and the prioritised experience replay \citep{schaul2016prioritized} used by both in this thesis further improves data efficiency by sampling transitions in proportion to their temporal-difference error, focusing learning on the transitions that are currently most informative. The key trade-off is stability: because the replay buffer may contain transitions from outdated policies, off-policy methods can be prone to divergence if the policy changes too rapidly. SAC's entropy regularisation implicitly stabilises training by preventing sudden policy collapses, which is one reason it is chosen as the core algorithm for FGS.
+
+%──────────────────────────────────────────────────────────────────────────────
+\section{Graph Machine Learning for Traffic Networks}
 \label{sec:LiteratureReview_GraphMLVariants}
+%──────────────────────────────────────────────────────────────────────────────
 
-% TODO: Review graph neural networks and graph-based learning variants relevant to traffic networks.
+Road networks are canonical examples of spatial graphs, and graph-based machine learning has been applied to traffic problems long before its adoption in RL-TSC. Early work used Graph Convolutional Networks \citep{kipf2017semi} for traffic flow forecasting: predicting future speeds or volumes at sensors across a network by propagating historical observations along the road graph. These applications demonstrated that GCN-style message passing captures spatial correlations more effectively than treating each sensor independently or using a global mean aggregation. The fixed, degree-normalised aggregation of GCN is, however, suboptimal when neighbours have very different relevance to the prediction — a property that varies dynamically with traffic conditions.
 
-\section{Related Work on Fairness and Representation Learning}
+Graph Attention Networks \citep{velickovic2018graph} replace fixed aggregation weights with content-dependent attention coefficients, allowing the model to focus on the most informative neighbours at each time step. CoLight \citep{wei2019colight} applied this idea to RL-TSC and showed that attention-weighted communication reduces average travel time more than fixed-weight communication, supporting the hypothesis that the relevance of neighbour information is indeed dynamic. Nevertheless, the original GAT attention mechanism has a theoretical limitation: the attention scores are a static function of the projected node features, meaning the ranking of neighbours cannot change depending on the target node's own state \citep{brody2022how}. In a traffic context, this means an intersection cannot attend differently to the same upstream neighbour based on whether it is itself congested or free-flowing.
+
+GATv2 \citep{brody2022how} resolves this by inserting a non-linearity before the attention scoring, making the coefficients a function of both source and target features jointly rather than independently. This strictly expands the set of attention functions that can be represented, and GATv2 has demonstrated improved performance over GAT on several graph learning benchmarks. FGSv2 adopts GATv2 as its communication layer precisely because of this expressiveness advantage: in heterogeneous traffic networks where different intersections experience very different congestion levels at the same time step, the ability to compute target-dependent attention is expected to enable more selective and useful message passing.
+
+%──────────────────────────────────────────────────────────────────────────────
+\section{Representation Learning and Fairness in TSC}
 \label{sec:LiteratureReview_FairnessRepresentation}
+%──────────────────────────────────────────────────────────────────────────────
 
-% TODO: Review work related to fairness-aware rewards, representation learning, FRAP, and communication-aware MARL.
+The choice of how to encode the local intersection state — the observation representation — has proven to be one of the highest-leverage design decisions in RL-TSC. Generic MLP encoders treat the observation as an unstructured vector and rely on the network to discover relevant features from scratch. Domain-informed encoders instead build known structure into the architecture, reducing the number of samples needed to reach good performance.
 
+The most influential domain-informed encoder is FRAP \citep{zheng2019learning}, which encodes the intersection state through the lens of phase competition. The key insight is that the controller's decision at each step reduces to a relative comparison: which candidate phase has the most urgent demand relative to the movements it preempts? FRAP makes this comparison explicit by computing pairwise competition scores between all candidate phases, weighted by the current demand on the movements each phase controls. The encoder is permutation-equivariant: relabelling the phases does not change the output, which means a model trained on one intersection generalises to another with a different phase numbering convention. On synthetic grid networks, FRAP consistently achieves faster convergence and higher final performance than MLP-based encoders when used with DQN \citep{zheng2019learning}.
+
+Whether FRAP's advantages persist when the encoder is used within a graph communication framework — where the local embedding is subsequently aggregated with neighbour messages — is not established in the literature. The FGS framework investigates this directly: Section~\ref{sec:Methodology_IndividualContribution} describes how both MLP and FRAP encoders are combined with GAT communication within a unified SAC training framework, and the experimental ablation in Chapter~\ref{ch:ResultsAndDiscussion} quantifies the contribution of each component.
+
+Fairness in TSC — the question of whether green time is distributed equitably across all movements and intersections — has received comparatively little attention in the RL literature. Most methods optimise aggregate metrics such as average travel time or total throughput, which can be dominated by high-demand movements at the expense of low-demand ones. The differential waiting time reward used in this thesis (Equation~\ref{eq:reward}) has an implicit fairness property: each agent is rewarded for reducing waiting time at its own intersection regardless of how busy that intersection is relative to others, preventing any single intersection from being systematically neglected during training. Entropy regularisation in SAC has a complementary effect: by maintaining policy diversity across agents, it prevents all agents from converging to identical strategies that may benefit the busiest intersections at the cost of quieter ones. Quantifying these implicit fairness effects is identified in Section~\ref{sec:LiteratureReview_ResearchGap} as one of the open questions motivating this thesis.
+
+%──────────────────────────────────────────────────────────────────────────────
 \section{Research Gap and Positioning of This Thesis}
 \label{sec:LiteratureReview_ResearchGap}
+%──────────────────────────────────────────────────────────────────────────────
 
-% TODO: Identify the research gap and position the thesis contribution.
+Three gaps in the existing literature motivate the contributions of this thesis.
+
+\paragraph{German RESCO scenarios are underexplored with modern MARL.}
+The RESCO benchmark \citep{ault2021reinforcement} was introduced specifically to provide standardised German traffic scenarios for fair method comparison, but the majority of MARL-TSC papers — including CoLight \citep{wei2019colight}, FRAP \citep{zheng2019learning}, and MPLight \citep{chen2020toward} — evaluate exclusively on Chinese or synthetic grid networks. The German scenarios differ structurally from these: the Ingolstadt networks have irregular topologies with varying numbers of phases per intersection, and the Cologne demand model reflects European driving patterns. Whether coordination mechanisms that help on regular Chinese grids transfer to these more heterogeneous settings is an open empirical question.
+
+\paragraph{SAC has not been systematically evaluated in graph-aware MARL-TSC.}
+All major MARL-TSC methods reviewed above use either DQN (off-policy, discrete, value-based) or PPO (on-policy, policy gradient). SAC offers a different profile: off-policy sample efficiency, entropy-regularised exploration, and actor-critic separation that allows the actor and critic to be designed independently. In multi-agent settings, SAC's entropy bonus may produce more diverse joint policies than DQN's epsilon-greedy exploration, which could be beneficial when coordination strategies differ across network regions. No published work evaluates SAC with graph-based inter-agent communication on any RESCO scenario.
+
+\paragraph{FRAP and graph communication have not been combined in a principled framework.}
+CoLight uses GAT communication but with a generic MLP encoder. FRAP uses a phase-competition encoder but with independent-agent DQN and no inter-agent communication. The FGS framework proposed in this thesis combines both: a phase-aware encoder (either MLP or FRAP) with graph attention communication and off-policy SAC training, evaluated on German RESCO scenarios. FGSv2 extends this further by replacing the single node embedding with per-action tokens, connecting FRAP's phase-competition representation directly to the actor's action-selection head. This combination has not been studied, and its effect on performance, training stability, and encoder–communication interaction across different network topologies is the central empirical question of this thesis.
+
+Table~\ref{tab:related_work} summarises how the most closely related methods compare along the key design dimensions.
+
+\begin{table}[ht]
+  \centering
+  \caption{Comparison of related MARL-TSC methods along key design dimensions. ``Ger.'' = evaluated on German RESCO scenarios.}
+  \label{tab:related_work}
+  \begin{tabular}{lccccc}
+    \hline
+    Method              & RL algo & Encoder    & Graph comm. & Ger.       & Reference                   \\
+    \hline
+    Max pressure        & --      & pressure   & --          & \checkmark & \cite{varaiya2013max}       \\
+    IndDQN              & DQN     & MLP        & --          & \checkmark & \cite{mnih2015humanlevel}   \\
+    IndPPO              & PPO     & MLP        & --          & \checkmark & \cite{schulman2017proximal} \\
+    PressLight          & DQN     & pressure   & --          & --         & \cite{wei2019presslight}    \\
+    FRAP                & DQN     & FRAP       & --          & --         & \cite{zheng2019learning}    \\
+    CoLight             & DQN     & MLP        & GAT         & --         & \cite{wei2019colight}       \\
+    MPLight             & DQN     & pressure   & --          & --         & \cite{chen2020toward}       \\
+    \hline
+    FGS (this thesis)   & SAC     & MLP/FRAP   & GAT/GATv2   & \checkmark & --                          \\
+    FGSv2 (this thesis) & SAC     & FRAP-token & GATv2       & \checkmark & --                          \\
+    \hline
+  \end{tabular}
+\end{table}
