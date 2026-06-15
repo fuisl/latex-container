@@ -12,9 +12,6 @@ The response to these limitations has followed two broad tracks. The first track
 
 The extension from single-intersection RL to multi-agent RL (MARL) for network-level control introduces a further challenge: agents must not only learn individually effective phase policies, but also produce collectively coherent behaviour that reduces network-wide delay. Independent agents, each optimising its own local reward, ignore the upstream and downstream consequences of their decisions. Graph-based communication — where each intersection aggregates information from its neighbours over the road graph — provides a mechanism for coupling agent decisions without requiring centralised coordination at execution time \citep{wei2019colight}.
 
-% TODO (personal motivation): Add 1–2 sentences describing your personal connection
-% to this problem — e.g., experience with traffic in Ho Chi Minh City, interest in
-% applying European benchmarks to Asian urban contexts, or the VGU DLR connection.
 
 \section{Problem Statement}
 \label{sec:Introduction_ProblemStatement}
@@ -89,7 +86,7 @@ This thesis focuses on the design, implementation, and empirical evaluation of a
 \begin{itemize}
   \item Control algorithm design: the FGS and FGSv2 architectural variants described in Chapter~\ref{ch:Methodology}.
   \item Algorithm analysis: ablation across encoder types, communication mechanisms, and RL algorithms.
-  \item Empirical comparison: all six German RESCO scenarios across three scale tiers — \textbf{Single-intersection} (cologne1, ingolstadt1), \textbf{Corridor} (cologne3, ingolstadt7), and \textbf{Regional} (cologne8, ingolstadt21) — against a standardised set of classical and deep RL baselines.
+  \item Empirical comparison: six German RESCO scenarios across three scale tiers — \textbf{Single-intersection} (cologne1, ingolstadt1), \textbf{Corridor} (cologne3, ingolstadt7), and \textbf{Regional} (cologne8, ingolstadt21) — against a standardised set of classical and deep RL baselines. FGS-variant results for the ingolstadt7 Corridor scenario were not available at the time of writing and are omitted from the FGS comparison columns; baseline results for that scenario are included for reference.
 \end{itemize}
 
 \subsection{Limitations}

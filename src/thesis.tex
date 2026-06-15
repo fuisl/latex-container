@@ -40,6 +40,10 @@
 
 % Farbigen Text
 \usepackage{xcolor}
+\usepackage{colortbl}
+% Table shorthands used in results and appendix
+\newcommand{\na}{$\circ$}       % cell: not run / no data
+\newcommand{\pt}{$^\dagger$}    % cell: partial run
 
 \parindent = 0pt  % Neue Absaetze nicht einruecken
 \parskip = 1ex % Neue Absaetze: 1/2 Zeile Abstand
@@ -140,7 +144,7 @@
 %%%%%% Kalkulationen:
 %https://tex.stackexchange.com/questions/30081/how-can-i-sum-two-values-and-store-the-result-in-other-variable
 \usepackage{tikz}
-\usetikzlibrary{math}
+\usetikzlibrary{math,positioning,arrows.meta,shapes.geometric,fit,backgrounds,calc}
 
 %%%%%% Gestaltung von Kopf- und Fusszeilen:
 % https://tex.stackexchange.com/questions/344241/logo-as-header-using-fancyhdr-package

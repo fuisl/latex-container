@@ -28,8 +28,8 @@ This appendix presents complete numerical results across all six German RESCO sc
 
 All results from this work are \textit{best-validation} values: the validation checkpoint with minimum mean waiting time observed during training, evaluated on a fixed held-out demand seed. Results marked $\circ$ indicate scenarios where the method was not yet run or crashed before producing valid metrics; these cells are candidates for re-run. Results marked $\dagger$ are from a partially trained run (FGS(MLP+GATv2+SAC) on Ing.~Reg.\ terminated after 17 of 200 training episodes due to resource exhaustion) and should not be compared directly to converged results. RESCO reference values (IDQN, IPPO, FMA2C) are reproduced from the original paper \citep{ault2021reinforcement} and represent best-episode averages over five random seeds.
 
-\newcommand{\na}{$\circ$}        % missing / not run
-\newcommand{\pt}{$^\dagger$}     % partial run
+\providecommand{\na}{$\circ$}        % missing / not run
+\providecommand{\pt}{$^\dagger$}     % partial run
 
 % ─────────────────────────────────────────────────────────────────────────────
 %  Table A.1  –  Baseline methods

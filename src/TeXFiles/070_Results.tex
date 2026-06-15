@@ -8,67 +8,67 @@ Following the RESCO benchmark taxonomy \citep{ault2021reinforcement}, the six sc
 \section{Main Results}
 \label{sec:ResultsAndDiscussion_MainResults}
 
-Table~\ref{tab:main_results} summarises the best-validation performance across all FGS variants and available baselines. Four primary metrics are reported: mean waiting time per vehicle (Wait, seconds), mean trip duration (Trip, seconds), mean delay relative to free-flow speed (Delay, seconds), and throughput expressed as the proportion of departed vehicles that arrived at their destination (Throughput, \%).
+Table~\ref{tab:main_results} summarises best-validation performance of all evaluated methods across all six German RESCO scenarios. Three metrics are reported per scenario: mean waiting time (Wait, s), mean trip duration (Trip, s), and mean delay relative to free-flow (Delay, s). Bold denotes the lowest Wait per scenario among methods with available results. Full ablation variant results are in Appendix~\ref{ch:Appendix_FullResults}.
 
 \begin{table}[htbp]
 \centering
-\caption{Best-validation performance across FGS variants and baselines on German RESCO scenarios, organised by the Single / Corridor / Regional tier classification. Results are from the best validation checkpoint over 200 training episodes (or fewer, where noted). `---' indicates that the run was not executed or crashed before producing valid metrics. Complete results for all six scenarios and all variants are provided in Appendix~\ref{ch:Appendix_FullResults}.}
+\caption{Best-validation performance on German RESCO scenarios (single seed; best-validation checkpoint). Scenarios as rows; methods as columns. $\downarrow$~lower is better. \textbf{Bold}: lowest Wait per scenario. $\circ$~=~not run or not available; $\dagger$~=~partial run (17/200 episodes). FT~=~FixedTime; MP~=~MaxPressure; $\text{FGS}_\text{S}$~=~FGS(MLP+GATv2+SAC); $\text{FGS}_\text{P}$~=~FGS(MLP+GATv2+PPO). FT and MP reference values from \citet{ault2021reinforcement}.}
 \label{tab:main_results}
-\footnotesize
+\scriptsize
 \setlength{\tabcolsep}{4pt}
-\begin{tabular}{llrrrr}
-\hline
-\textbf{Method} & \textbf{Scenario} & \textbf{Wait (s)} & \textbf{Trip (s)} & \textbf{Delay (s)} & \textbf{Thru.~(\%)} \\
-\hline
-\multicolumn{6}{l}{\textit{Single-intersection tier: cologne1 ($N=1$)}} \\
-FGS(MLP+GATv2+SAC) & cologne1 & 5.4 & 40.6 & 23.0 & 99.2 \\
-\hline
-\multicolumn{6}{l}{\textit{Corridor tier: cologne3 ($N=3$, arterial)}} \\
-DQN                 & cologne3 & 93.5 & 140.0 & 127.2 & 90.6 \\
-PPO                 & cologne3 &  6.5 &  56.5 &  20.3 & 98.9 \\
-CoLight             & cologne3 &  7.9 &  57.7 &  21.9 & 98.8 \\
-FRAP                & cologne3 & 18.6 &  71.1 &  39.8 & 97.7 \\
-FGS(FRAP+GAT+SAC)   & cologne3 & 460.8 & 479.0 & 1270.4 & 62.1 \\
-FGS(MLP+GATv2+SAC)  & cologne3 &  7.4 &  56.9 &  20.8 & 98.9 \\
-\hline
-\multicolumn{6}{l}{\textit{Regional tier: cologne8 ($N=8$)}} \\
-DQN                 & cologne8 &  6.7 &  89.8 &  25.5 & 98.5 \\
-PPO                 & cologne8 &  4.9 &  86.1 &  21.9 & 98.5 \\
-CoLight             & cologne8 & 23.8 & 105.7 &  51.8 & 97.9 \\
-FRAP                & cologne8 & 17.1 & 108.6 &  44.9 & 97.8 \\
-FGS(FRAP+GAT+SAC)   & cologne8 & 87.6 & 169.5 & 222.9 & 95.2 \\
-FGS(MLP+GAT+SAC)    & cologne8 &  5.5 &  87.8 &  23.5 & 98.5 \\
-FGS(MLP+GAT+PPO)    & cologne8 &  6.7 &  89.1 &  24.9 & 98.5 \\
-FGS(MLP+GATv2+PPO)  & cologne8 &  6.3 &  88.3 &  24.0 & 98.4 \\
-FGS(FRAP+GATv2+PPO) & cologne8 &  6.7 &  88.9 &  24.6 & 98.5 \\
-FGS(MLP+GATv2+SAC)  & cologne8 &  \textbf{4.9} &  \textbf{86.4} &  \textbf{22.2} & 98.5 \\
-\hline
-\multicolumn{6}{l}{\textit{Single-intersection tier: ingolstadt1 ($N=1$)}} \\
-DQN                 & ingolstadt1 & 11.9 & 44.5 & 33.1 & 98.9 \\
-PPO                 & ingolstadt1 &  5.2 & 36.0 & 22.4 & 99.0 \\
-CoLight             & ingolstadt1 &  5.3 & 36.5 & 22.4 & 99.1 \\
-FRAP                & ingolstadt1 &  7.3 & 40.1 & 26.6 & 99.1 \\
-FGS(FRAP+GAT+SAC)   & ingolstadt1 & 78.1 & 95.0 & 590.7 & 96.2 \\
-FGS(MLP+GAT+SAC)    & ingolstadt1 &  \textbf{4.8} & \textbf{35.8} & 22.6 & 99.2 \\
-FGS(MLP+GATv2+SAC)  & ingolstadt1 &  5.5 & 36.8 & 23.0 & 99.0 \\
-\hline
-\multicolumn{6}{l}{\textit{Corridor tier: ingolstadt7 ($N=7$, arterial)  — FGS variants pending re-run}} \\
-DQN                 & ingolstadt7 &  9.4 & 71.7 & 34.4 & 97.6 \\
-PPO                 & ingolstadt7 & 14.7 & 77.1 & 42.3 & 97.6 \\
-CoLight             & ingolstadt7 & 17.5 & 78.6 & 47.0 & 97.6 \\
-\hline
-\multicolumn{6}{l}{\textit{Regional tier: ingolstadt21 ($N=21$)}} \\
-DQN                 & ingolstadt21 & \textbf{67.0} & \textbf{253.3} & \textbf{115.1} & 94.1 \\
-CoLight             & ingolstadt21 & 120.8 & 302.1 & 216.8 & 93.2 \\
-FGS(MLP+GATv2+PPO)  & ingolstadt21 & 88.6 & 253.5 & 234.9 & 90.9 \\
-FGS(MLP+GAT+PPO)    & ingolstadt21 & 261.2 & 406.6 & 492.0 & 77.2 \\
-FGS(FRAP+GATv2+PPO) & ingolstadt21 & 460.7 & 614.8 & 617.0 & 60.7 \\
-FGS(MLP+GATv2+SAC)  & ingolstadt21 & 757.5 & 875.2 & 1201.8 & 43.0\rlap{$^\dagger$} \\
-\hline
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{llrrrrrrrr}
+\toprule
+ & &
+  \multicolumn{6}{c}{\textit{Baselines}} &
+  \multicolumn{2}{c}{\textit{Proposed}} \\
+\cmidrule(lr){3-8}\cmidrule(lr){9-10}
+\textbf{Scenario} & \textbf{Metric}
+  & \textbf{FT} & \textbf{MP}
+  & \textbf{DQN} & \textbf{PPO} & \textbf{CoLight} & \textbf{FRAP}
+  & $\mathbf{FGS_S}$ & $\mathbf{FGS_P}$ \\
+\midrule
+%── Single-intersection tier ──────────────────────────────────────────
+\multicolumn{10}{l}{\textit{Single-intersection tier ($N=1$)}} \\[2pt]
+\multirow{3}{*}{\shortstack[l]{Ing.\ Single\\(ingolstadt1)}}
+  & Wait  & \na & \na & 11.9 &  5.2 &  5.3 &  7.3 &  5.5 & \na \\
+  & Trip  & \na & \na & 44.5 & 36.0 & 36.5 & 40.1 & 36.8 & \na \\
+  & Delay & \na & \na & 33.1 & 22.4 & 22.4 & 26.6 & 23.0 & \na \\[4pt]
+\multirow{3}{*}{\shortstack[l]{Col.\ Single\\(cologne1)}}
+  & Wait  & \na & \na & \na & \na & \na & \na & \textbf{5.4} & \na \\
+  & Trip  & \na & \na & \na & \na & \na & \na &  40.6 & \na \\
+  & Delay & \na & \na & \na & \na & \na & \na &  23.0 & \na \\
+\midrule
+%── Corridor tier ─────────────────────────────────────────────────────
+\multicolumn{10}{l}{\textit{Corridor tier (arterial)}} \\[2pt]
+\multirow{3}{*}{\shortstack[l]{Ing.\ Corr.\\(ingolstadt7,\ $N=7$)}}
+  & Wait  & \na & \na & \textbf{9.4} & 14.7 & 17.5 & \na & \na & \na \\
+  & Trip  & \na & \na & 71.7 & 77.1 & 78.6 & \na & \na & \na \\
+  & Delay & \na & \na & 34.4 & 42.3 & 47.0 & \na & \na & \na \\[4pt]
+\multirow{3}{*}{\shortstack[l]{Col.\ Corr.\\(cologne3,\ $N=3$)}}
+  & Wait  & \na & \na & 93.5 & \textbf{6.5} &  7.9 & 18.6 & 7.4 & \na \\
+  & Trip  & \na & \na & 140.0 & 56.5 & 57.7 & 71.1 & 56.9 & \na \\
+  & Delay & \na & \na & 127.2 & 20.3 & 21.9 & 39.8 & 20.8 & \na \\
+\midrule
+%── Regional tier ─────────────────────────────────────────────────────
+\multicolumn{10}{l}{\textit{Regional tier}} \\[2pt]
+\multirow{3}{*}{\shortstack[l]{Ing.\ Reg.\\(ingolstadt21,\ $N=21$)}}
+  & Wait  & \na & \na & \textbf{67.0} & \na & 120.8 & \na & 757.5\pt & 88.6 \\
+  & Trip  & \na & \na & 253.3 & \na & 302.1 & \na & 875.2\pt & 253.5 \\
+  & Delay & \na & \na & 115.1 & \na & 216.8 & \na & 1201.8\pt & 234.9 \\[4pt]
+\multirow{3}{*}{\shortstack[l]{Col.\ Reg.\\(cologne8,\ $N=8$)}}
+  & Wait  & \na & \na &  6.7 & 4.9 & 23.8 & 17.1 & \textbf{4.9} & 6.3 \\
+  & Trip  & \na & \na & 89.8 & 86.1 & 105.7 & 108.6 & 86.4 & 88.3 \\
+  & Delay & \na & \na & 25.5 & 21.9 &  51.8 &  44.9 & 22.2 & 24.0 \\
+\bottomrule
 \end{tabular}
 \vspace{4pt}
 
-\footnotesize $^\dagger$ Terminated after 17 of 200 training episodes; see Section~\ref{sec:ResultsAndDiscussion_Convergence}.
+{\footnotesize
+$\circ$ Not run or not available (fill FT/MP from \citealt{ault2021reinforcement}).
+$\dagger$ Partial run — 17 of 200 training episodes; see Section~\ref{sec:ResultsAndDiscussion_Convergence}.
+Ing.\ Corr.\ FGS results are pending re-run.
+}
 \end{table}
 
 Several patterns are immediately visible. First, in both Cologne and Ingolstadt \textbf{Corridor} and \textbf{Regional} scenarios, FGS(MLP+GATv2+SAC) matches or exceeds the best baseline results where runs completed: on the Cologne Regional scenario (cologne8) it achieves a mean waiting time of 4.9~s, tied with the PPO baseline and 1.8~s lower than DQN (6.7~s). Second, performance degrades sharply when the FRAP encoder is used: FGS(FRAP+GAT+SAC) produces dramatically worse results across all scenarios, with the Cologne Corridor (cologne3) showing a collapse to 460.8~s mean wait (versus 7.4~s for the MLP counterpart). Third, the Ingolstadt Regional scenario (ingolstadt21, $N=21$) reveals a fundamental scaling failure of the SAC-based variant, while the PPO-based counterpart with GATv2 achieves 88.6~s mean wait, competitive with CoLight (120.8~s). Full results across all six scenarios and all variants are provided in Appendix~\ref{ch:Appendix_FullResults}, Tables~\ref{tab:appendix_baselines}--\ref{tab:appendix_throughput}.

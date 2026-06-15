@@ -278,6 +278,15 @@ where $\rho_l$ is vehicle density on lane $l$. The pressure reward $r_t = -p_i(t
 \section{Proposed Contributions: FGS and FGSv2}
 \label{sec:Methodology_IndividualContribution}
 
+Figure~\ref{fig:fgs_framework} provides a side-by-side overview of the FGS and FGSv2 architectures described in the following subsections. Both variants operate under the CTDE paradigm: the actor uses only the ego agent's local embedding at execution time, while the centralised critic additionally receives the full graph context and the joint action-probability matrix during training.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\textwidth]{Figures/fgs_framework.pdf}
+  \caption{Overview of the FGS (left) and FGSv2 (right) architectures. \textbf{FGS}: the raw node-feature matrix is processed by a shared local encoder (MLP or FRAP), optionally followed by a single GATv2 communication layer. The ego agent's updated embedding feeds the actor; the full graph tensor feeds the centralised critic. \textbf{FGSv2}: the FRAP encoder is tapped before its final scalar projection, producing per-phase action tokens $\mathbf{Z}_i$. A masked mean-pool of these tokens forms the node summary $\mathbf{s}_i$, which enters GATv2 communication and is gated by a learned scalar $\lambda$ (initialised to zero). The action-conditioned actor concatenates the per-phase token with the gated graph context and a one-hot phase identity before producing a logit for each candidate phase.}
+  \label{fig:fgs_framework}
+\end{figure}
+
 \subsection{FGS: Graph-Aware Multi-Agent SAC}
 \label{sec:Methodology_FGS}
 
