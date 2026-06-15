@@ -76,7 +76,7 @@
 %\multirow{number rows}{width}{text}
 
 %%%% Font setup: use Libertinus for text and New Computer Modern for math
-\PassOptionsToPackage{fleqn,reqno}{amsmath}
+\PassOptionsToPackage{reqno}{amsmath}
 \usepackage[nomath]{libertinus}
 \usepackage{unicode-math}
 \setmathfont{NewCMMath-Book.otf}
@@ -117,6 +117,9 @@
 % Algorithm pseudocode
 \usepackage{algorithm}
 \usepackage{algpseudocode}
+% Landscape tables in appendix
+\usepackage{rotating}
+\usepackage{booktabs}
 \algrenewcommand\algorithmicindent{1.2em}
 \newcommand{\AlgComment}[1]{\hfill\(\triangleright\) \textit{#1}}
 

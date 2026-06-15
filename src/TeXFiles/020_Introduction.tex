@@ -27,7 +27,7 @@ Second, the RL algorithms used in MARL-TSC are almost exclusively value-based (D
 
 Third, no published method combines all three of the following properties in a single framework: (i) a phase-aware local encoder that models phase competition explicitly \citep{zheng2019learning}; (ii) graph-attention communication between neighbouring intersections; and (iii) discrete-action SAC as the RL algorithm. The interaction between these components — whether phase-aware encoding complements or competes with graph communication, and whether entropy regularisation helps or hinders convergence in this setting — is unknown.
 
-This thesis addresses all three gaps by designing, implementing, and evaluating the FGS (FRAP-Graph-SAC) framework: a graph-aware MARL system for traffic signal control that combines local phase-aware encoders, GATv2-based inter-agent communication, and discrete-action SAC, evaluated on six German RESCO scenarios ranging from single-intersection baselines to twenty-one-intersection urban networks.
+This thesis addresses all three gaps by designing, implementing, and evaluating the FGS (FRAP-Graph-SAC) framework: a graph-aware MARL system for traffic signal control that combines local phase-aware encoders, GATv2-based inter-agent communication, and discrete-action SAC, evaluated on six German RESCO scenarios spanning three scale tiers: Single-intersection (cologne1, ingolstadt1), Corridor (cologne3, ingolstadt7), and Regional (cologne8, ingolstadt21).
 
 \section{Research Objectives}
 \label{sec:Introduction_ResearchObjectives}
@@ -89,7 +89,7 @@ This thesis focuses on the design, implementation, and empirical evaluation of a
 \begin{itemize}
   \item Control algorithm design: the FGS and FGSv2 architectural variants described in Chapter~\ref{ch:Methodology}.
   \item Algorithm analysis: ablation across encoder types, communication mechanisms, and RL algorithms.
-  \item Empirical comparison: all six German RESCO scenarios (cologne1, cologne3, cologne8, ingolstadt1, ingolstadt7, ingolstadt21) against a standardised set of classical and deep RL baselines.
+  \item Empirical comparison: all six German RESCO scenarios across three scale tiers — \textbf{Single-intersection} (cologne1, ingolstadt1), \textbf{Corridor} (cologne3, ingolstadt7), and \textbf{Regional} (cologne8, ingolstadt21) — against a standardised set of classical and deep RL baselines.
 \end{itemize}
 
 \subsection{Limitations}

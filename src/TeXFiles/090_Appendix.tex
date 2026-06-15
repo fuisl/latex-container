@@ -1,9 +1,190 @@
 \chapter{Tools and Technologies}
 \label{ch:Appendix_ToolsAndTechnologies}
 
-% TODO: Describe tools and technologies such as Hydra, SUMO, and Weights and Biases.
+The FGS experimental pipeline integrates the following software components.
+\textbf{SUMO 1.18} \citep{lopez2018microscopic} provides microscopic traffic simulation and exposes the TraCI socket interface for per-step observation and action exchange.
+\textbf{SUMO-RL} \citep{alegre2021sumorl} wraps SUMO environments as Gymnasium-compatible multi-agent environments; graph observation wrappers and custom reward functions were added for this work.
+\textbf{RLlib 2.x} (Ray) provides the distributed multi-agent training loop; custom policy modules subclassing \texttt{TorchRLModule} implement the FGS actor, critic, and encoder components.
+\textbf{PyTorch Geometric} implements the GATv2 convolution (\texttt{GATv2Conv}) and heterogeneous graph batching utilities.
+\textbf{Hydra} structures all experiment configurations as composable YAML files; scenario, algorithm, and architecture parameters are varied without code changes.
+\textbf{Weights \& Biases} \citep{wandb} tracks all training runs, logs per-episode RESCO metrics, and stores model checkpoints.
 
 \chapter{Losses and Network Objectives}
 \label{ch:Appendix_LossesObjectives}
 
-% TODO: Include losses, Bellman equations, and objective functions used by the networks.
+The full discrete-action SAC objective functions are given in Section~\ref{sec:Methodology_SAC}.
+The PPO clipped objective is $\mathcal{L}^{\text{CLIP}}(\phi) = \mathbb{E}_t\!\left[\min\!\left(r_t(\phi)\hat{A}_t,\, \mathrm{clip}(r_t(\phi), 1-\epsilon, 1+\epsilon)\hat{A}_t\right)\right]$ where $r_t(\phi) = \pi_\phi(a_t|s_t)/\pi_{\phi_\text{old}}(a_t|s_t)$ and $\hat{A}_t$ is the generalised advantage estimate with $\lambda=0.95$ and $\gamma=0.99$.
+The joint loss for PPO includes value function and entropy terms: $\mathcal{L} = \mathcal{L}^{\text{CLIP}} - c_1 \mathcal{L}^{VF} + c_2 \mathcal{H}[\pi_\phi]$ with $c_1=0.5$ and $c_2=10^{-3}$.
+
+\chapter{Full Experimental Results}
+\label{ch:Appendix_FullResults}
+
+This appendix presents complete numerical results across all six German RESCO scenarios and all evaluated methods, formatted after the style of the original RESCO supplementary material \citep{ault2021reinforcement}. Scenarios are classified into three scale tiers following the RESCO benchmark nomenclature:
+\begin{itemize}
+  \item \textbf{Single-intersection} (\textit{Single}): ingolstadt1 ($N=1$) and cologne1 ($N=1$).
+  \item \textbf{Corridor} (\textit{Corr.}): ingolstadt7 ($N=7$, arterial) and cologne3 ($N=3$, arterial).
+  \item \textbf{Regional} (\textit{Reg.}): ingolstadt21 ($N=21$) and cologne8 ($N=8$).
+\end{itemize}
+
+All results from this work are \textit{best-validation} values: the validation checkpoint with minimum mean waiting time observed during training, evaluated on a fixed held-out demand seed. Results marked $\circ$ indicate scenarios where the method was not yet run or crashed before producing valid metrics; these cells are candidates for re-run. Results marked $\dagger$ are from a partially trained run (FGS(MLP+GATv2+SAC) on Ing.~Reg.\ terminated after 17 of 200 training episodes due to resource exhaustion) and should not be compared directly to converged results. RESCO reference values (IDQN, IPPO, FMA2C) are reproduced from the original paper \citep{ault2021reinforcement} and represent best-episode averages over five random seeds.
+
+\newcommand{\na}{$\circ$}        % missing / not run
+\newcommand{\pt}{$^\dagger$}     % partial run
+
+% ─────────────────────────────────────────────────────────────────────────────
+%  Table A.1  –  Baseline methods
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{sidewaystable}[p]
+\centering
+\caption{Performance of baseline methods across all six RESCO scenarios (best-validation metrics, single seed unless noted). Columns follow the Single / Corridor / Regional tier classification. Reference results for IDQN, IPPO, and FMA2C are from \citet{ault2021reinforcement} (5-seed averages). DQN, PPO, CoLight, and FRAP are single-seed results from this work. $\circ$ = not run.}
+\label{tab:appendix_baselines}
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{llrrrrrr}
+\toprule
+\textbf{Method} & \textbf{Metric}
+  & \textbf{Ing.\ Single} & \textbf{Ing.\ Corr.}  & \textbf{Ing.\ Reg.}
+  & \textbf{Col.\ Single} & \textbf{Col.\ Corr.}  & \textbf{Col.\ Reg.} \\
+\midrule
+\multicolumn{8}{l}{\textit{RESCO benchmark reference (5 seeds, best episode) \citep{ault2021reinforcement}}} \\[2pt]
+\multirow{4}{*}{IDQN}
+  & Avg.\ Delay     & 21.48 & 31.19 &  61.11 &  26.05 &  24.55 &  22.06 \\
+  & Avg.\ Trip Time & 35.29 & 68.69 & 198.72 &  43.59 &  59.00 &  86.02 \\
+  & Avg.\ Wait      &  3.93 &  8.71 &  21.36 &   7.98 &   8.50 &   5.46 \\
+  & Avg.\ Queue     &  0.43 &  0.67 &   0.82 &   2.09 &   0.87 &   0.38 \\[4pt]
+\multirow{4}{*}{IPPO}
+  & Avg.\ Delay     & 21.85 & 32.00 & 369.34 & 209.49 &  58.98 &  21.62 \\
+  & Avg.\ Trip Time & 35.68 & 69.38 & 509.28 & 224.56 &  93.70 &  85.71 \\
+  & Avg.\ Wait      &  4.20 &  8.86 & 315.31 & 193.66 &  43.50 &   5.19 \\
+  & Avg.\ Queue     &  0.49 &  0.74 &   5.45 &  21.86 &   5.73 &   0.36 \\[4pt]
+\multirow{4}{*}{FMA2C}
+  & Avg.\ Delay     & 27.74 & 51.78 &  96.67 &  30.82 &  32.58 &  34.44 \\
+  & Avg.\ Trip Time & 41.40 & 87.75 & 233.04 &  48.07 &  66.83 &  98.68 \\
+  & Avg.\ Wait      &  8.74 & 23.32 &  48.88 &  11.87 &  15.84 &  14.70 \\
+  & Avg.\ Queue     &  1.07 &  1.86 &   1.84 &   3.20 &   2.01 &   1.03 \\
+\midrule
+\multicolumn{8}{l}{\textit{Single-seed baselines trained in this work (best-validation checkpoint)}} \\[2pt]
+\multirow{4}{*}{DQN}
+  & Avg.\ Delay     &  33.1 &  34.4 & 115.1 & \na   & 127.2 &  25.5 \\
+  & Avg.\ Trip Time &  44.5 &  71.7 & 253.3 & \na   & 140.0 &  89.8 \\
+  & Avg.\ Wait      &  11.9 &   9.4 &  67.0 & \na   &  93.5 &   6.7 \\
+  & Avg.\ Queue     &  1.99 &  0.81 &   1.12 & \na   &  7.64 &  0.46 \\[4pt]
+\multirow{4}{*}{PPO}
+  & Avg.\ Delay     &  22.4 &  42.3 &  \na  & \na   &  20.3 &  21.9 \\
+  & Avg.\ Trip Time &  36.0 &  77.1 &  \na  & \na   &  56.5 &  86.1 \\
+  & Avg.\ Wait      &   5.2 &  14.7 &  \na  & \na   &   6.5 &   4.9 \\
+  & Avg.\ Queue     &  0.93 &  0.95 &  \na  & \na   &  0.83 &  0.32 \\[4pt]
+\multirow{4}{*}{CoLight}
+  & Avg.\ Delay     &  22.4 &  47.0 & 216.8 & \na   &  21.9 &  51.8 \\
+  & Avg.\ Trip Time &  36.5 &  78.6 & 302.1 & \na   &  57.7 & 105.7 \\
+  & Avg.\ Wait      &   5.3 &  17.5 & 120.8 & \na   &   7.9 &  23.8 \\
+  & Avg.\ Queue     &  1.52 &  1.22 &   2.55 & \na   &  1.00 &  1.63 \\[4pt]
+\multirow{4}{*}{FRAP}
+  & Avg.\ Delay     &  26.6 &  \na  &  \na  & \na   &  39.8 &  44.9 \\
+  & Avg.\ Trip Time &  40.1 &  \na  &  \na  & \na   &  71.1 & 108.6 \\
+  & Avg.\ Wait      &   7.3 &  \na  &  \na  & \na   &  18.6 &  17.1 \\
+  & Avg.\ Queue     &  1.67 &  \na  &  \na  & \na   &  2.78 &  1.20 \\
+\bottomrule
+\end{tabular}
+\end{sidewaystable}
+
+% ─────────────────────────────────────────────────────────────────────────────
+%  Table A.2  –  FGS framework variants
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{sidewaystable}[p]
+\centering
+\caption{Performance of FGS framework variants across all six RESCO scenarios (best-validation metrics, single seed). Encoder: MLP = two-layer MLP; FRAP = phase-competition encoder \citep{zheng2019learning}. Graph: GAT = dot-product attention; GATv2 = dynamic additive attention \citep{brody2022how}. RL: SAC = discrete soft actor-critic \citep{christodoulou2019soft}; PPO = proximal policy optimisation \citep{schulman2017proximal}. $\circ$ = not yet run; $\dagger$ = terminated early (17\,/\,200 episodes).}
+\label{tab:appendix_fgs}
+\scriptsize
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{llrrrrrr}
+\toprule
+\textbf{Variant} & \textbf{Metric}
+  & \textbf{Ing.\ Single} & \textbf{Ing.\ Corr.}  & \textbf{Ing.\ Reg.}
+  & \textbf{Col.\ Single} & \textbf{Col.\ Corr.}  & \textbf{Col.\ Reg.} \\
+\midrule
+\multicolumn{8}{l}{\textit{MLP encoder + SAC}} \\[2pt]
+\multirow{4}{*}{FGS(MLP+GAT+SAC)}
+  & Avg.\ Delay     &  22.6 &  \na  & \na   & \na   & \na   &  23.5 \\
+  & Avg.\ Trip Time &  35.8 &  \na  & \na   & \na   & \na   &  87.8 \\
+  & Avg.\ Wait      &   4.8 &  \na  & \na   & \na   & \na   &   5.5 \\
+  & Avg.\ Queue     &  0.94 &  \na  & \na   & \na   & \na   &  0.38 \\[4pt]
+\multirow{4}{*}{FGS(MLP+GATv2+SAC)}
+  & Avg.\ Delay     &  23.0 &  \na  & 1201.8\pt & 23.0 & 20.8 & 22.2 \\
+  & Avg.\ Trip Time &  36.8 &  \na  &  875.2\pt & 40.6 & 56.9 & 86.4 \\
+  & Avg.\ Wait      &   5.5 &  \na  &  757.5\pt &  5.4 &  7.4 &  4.9 \\
+  & Avg.\ Queue     &  1.08 &  \na  &  13.48\pt & 2.63 & 0.85 & 0.34 \\
+\midrule
+\multicolumn{8}{l}{\textit{MLP encoder + PPO}} \\[2pt]
+\multirow{4}{*}{FGS(MLP+GAT+PPO)}
+  & Avg.\ Delay     &  \na  &  \na  & 492.0 & \na   & \na   &  24.9 \\
+  & Avg.\ Trip Time &  \na  &  \na  & 406.6 & \na   & \na   &  89.1 \\
+  & Avg.\ Wait      &  \na  &  \na  & 261.2 & \na   & \na   &   6.7 \\
+  & Avg.\ Queue     &  \na  &  \na  &  4.93 & \na   & \na   &  0.47 \\[4pt]
+\multirow{4}{*}{FGS(MLP+GATv2+PPO)}
+  & Avg.\ Delay     &  \na  &  \na  & 234.9 & \na   & \na   &  24.0 \\
+  & Avg.\ Trip Time &  \na  &  \na  & 253.5 & \na   & \na   &  88.3 \\
+  & Avg.\ Wait      &  \na  &  \na  &  88.6 & \na   & \na   &   6.3 \\
+  & Avg.\ Queue     &  \na  &  \na  &  2.58 & \na   & \na   &  0.44 \\
+\midrule
+\multicolumn{8}{l}{\textit{FRAP encoder + SAC}} \\[2pt]
+\multirow{4}{*}{FGS(FRAP+GAT+SAC)}
+  & Avg.\ Delay     & 590.7 &  \na  &  \na  & \na\rlap{$^*$} & 1270.4 & 222.9 \\
+  & Avg.\ Trip Time &  95.0 &  \na  &  \na  & \na\rlap{$^*$} &  479.0 & 169.5 \\
+  & Avg.\ Wait      &  78.1 &  \na  &  \na  & \na\rlap{$^*$} &  460.8 &  87.6 \\
+  & Avg.\ Queue     &  2.55 &  \na  &  \na  & \na\rlap{$^*$} &  34.72 &  6.11 \\
+\midrule
+\multicolumn{8}{l}{\textit{FRAP encoder + PPO}} \\[2pt]
+\multirow{4}{*}{FGS(FRAP+GATv2+PPO)}
+  & Avg.\ Delay     &  \na  &  \na  & 617.0 & \na   & \na   &  24.6 \\
+  & Avg.\ Trip Time &  \na  &  \na  & 614.8 & \na   & \na   &  88.9 \\
+  & Avg.\ Wait      &  \na  &  \na  & 460.7 & \na   & \na   &   6.7 \\
+  & Avg.\ Queue     &  \na  &  \na  &  7.77 & \na   & \na   &  0.47 \\
+\bottomrule
+\end{tabular}
+\vspace{6pt}
+
+\footnotesize
+$\circ$ Not yet run; pending re-run.\quad
+$\dagger$ Partial: 17 of 200 training episodes completed (resource exhaustion).\quad
+$*$ Col.\ Single FGS(FRAP+GAT+SAC) run crashed before producing valid metrics.
+\end{sidewaystable}
+
+% ─────────────────────────────────────────────────────────────────────────────
+%  Table A.3  –  Throughput summary
+% ─────────────────────────────────────────────────────────────────────────────
+\begin{sidewaystable}[p]
+\centering
+\caption{Vehicle throughput (arrived / departed, \%) across all methods and scenarios. Higher is better. $\circ$ = not run; $\dagger$ = partial run (17 episodes). RESCO reference algorithms did not report throughput; cells for IDQN, IPPO, FMA2C are therefore omitted.}
+\label{tab:appendix_throughput}
+\small
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{lrrrrrr}
+\toprule
+\textbf{Method}
+  & \textbf{Ing.\ Single} & \textbf{Ing.\ Corr.}  & \textbf{Ing.\ Reg.}
+  & \textbf{Col.\ Single} & \textbf{Col.\ Corr.}  & \textbf{Col.\ Reg.} \\
+\midrule
+\multicolumn{7}{l}{\textit{Baseline methods (this work)}} \\[2pt]
+DQN               & 98.9 & 97.6 & 94.1 & \na   & 90.6 & 98.5 \\
+PPO               & 99.0 & 97.6 & \na  & \na   & 98.9 & 98.5 \\
+CoLight           & 99.1 & 97.6 & 93.2 & \na   & 98.8 & 97.9 \\
+FRAP              & 99.1 & \na  & \na  & \na   & 97.7 & 97.8 \\
+\midrule
+\multicolumn{7}{l}{\textit{FGS variants (this work)}} \\[2pt]
+FGS(MLP+GAT+SAC)    & 99.2 & \na  & \na       & \na   & \na   & 98.5 \\
+FGS(MLP+GATv2+SAC)  & 99.0 & \na  & 43.0\pt   & 99.2  & 98.9  & 98.5 \\
+FGS(MLP+GAT+PPO)    & \na  & \na  & 77.2      & \na   & \na   & 98.5 \\
+FGS(MLP+GATv2+PPO)  & \na  & \na  & 90.9      & \na   & \na   & 98.4 \\
+FGS(FRAP+GAT+SAC)   & 96.2 & \na  & \na       & \na\rlap{$^*$} & 62.1 & 95.2 \\
+FGS(FRAP+GATv2+PPO) & \na  & \na  & 60.7      & \na   & \na   & 98.5 \\
+\bottomrule
+\end{tabular}
+\vspace{4pt}
+
+\footnotesize
+$\circ$ Not yet run.\quad $\dagger$ Partial run.\quad $*$ Crashed before producing valid metrics.
+\end{sidewaystable}

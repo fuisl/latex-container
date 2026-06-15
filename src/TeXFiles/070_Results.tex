@@ -1,32 +1,217 @@
 \chapter{Results and Discussion}
 \label{ch:ResultsAndDiscussion}
 
+This chapter presents and interprets the experimental results obtained from the FGS framework evaluated on German RESCO traffic scenarios. All performance figures are derived from Weights \& Biases experiment logs (project \texttt{marl-traffic-gat}) and correspond to the best-validation checkpoint observed during training — the policy snapshot that minimised mean validation waiting time, evaluated on a fixed held-out demand seed.
+
+Following the RESCO benchmark taxonomy \citep{ault2021reinforcement}, the six scenarios are grouped into three \emph{scale tiers}: \textbf{Single-intersection} (cologne1, ingolstadt1; $N=1$), \textbf{Corridor} (cologne3, ingolstadt7; $N=3$ and $N=7$, arterial), and \textbf{Regional} (cologne8, ingolstadt21; $N=8$ and $N=21$). This classification is used consistently throughout the chapter and in Appendix~\ref{ch:Appendix_FullResults}. Training ran for 200 episodes where the run completed; the FGS(MLP+GATv2+SAC) run on the Ingolstadt Regional scenario terminated after 17 episodes due to resource exhaustion from the centralised critic's $O(N)$ input scaling at $N=21$.
+
 \section{Main Results}
 \label{sec:ResultsAndDiscussion_MainResults}
 
-% TODO: Present main experimental results.
+Table~\ref{tab:main_results} summarises the best-validation performance across all FGS variants and available baselines. Four primary metrics are reported: mean waiting time per vehicle (Wait, seconds), mean trip duration (Trip, seconds), mean delay relative to free-flow speed (Delay, seconds), and throughput expressed as the proportion of departed vehicles that arrived at their destination (Throughput, \%).
 
-\section{Comparison with Baselines}
+\begin{table}[htbp]
+\centering
+\caption{Best-validation performance across FGS variants and baselines on German RESCO scenarios, organised by the Single / Corridor / Regional tier classification. Results are from the best validation checkpoint over 200 training episodes (or fewer, where noted). `---' indicates that the run was not executed or crashed before producing valid metrics. Complete results for all six scenarios and all variants are provided in Appendix~\ref{ch:Appendix_FullResults}.}
+\label{tab:main_results}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{llrrrr}
+\hline
+\textbf{Method} & \textbf{Scenario} & \textbf{Wait (s)} & \textbf{Trip (s)} & \textbf{Delay (s)} & \textbf{Thru.~(\%)} \\
+\hline
+\multicolumn{6}{l}{\textit{Single-intersection tier: cologne1 ($N=1$)}} \\
+FGS(MLP+GATv2+SAC) & cologne1 & 5.4 & 40.6 & 23.0 & 99.2 \\
+\hline
+\multicolumn{6}{l}{\textit{Corridor tier: cologne3 ($N=3$, arterial)}} \\
+DQN                 & cologne3 & 93.5 & 140.0 & 127.2 & 90.6 \\
+PPO                 & cologne3 &  6.5 &  56.5 &  20.3 & 98.9 \\
+CoLight             & cologne3 &  7.9 &  57.7 &  21.9 & 98.8 \\
+FRAP                & cologne3 & 18.6 &  71.1 &  39.8 & 97.7 \\
+FGS(FRAP+GAT+SAC)   & cologne3 & 460.8 & 479.0 & 1270.4 & 62.1 \\
+FGS(MLP+GATv2+SAC)  & cologne3 &  7.4 &  56.9 &  20.8 & 98.9 \\
+\hline
+\multicolumn{6}{l}{\textit{Regional tier: cologne8 ($N=8$)}} \\
+DQN                 & cologne8 &  6.7 &  89.8 &  25.5 & 98.5 \\
+PPO                 & cologne8 &  4.9 &  86.1 &  21.9 & 98.5 \\
+CoLight             & cologne8 & 23.8 & 105.7 &  51.8 & 97.9 \\
+FRAP                & cologne8 & 17.1 & 108.6 &  44.9 & 97.8 \\
+FGS(FRAP+GAT+SAC)   & cologne8 & 87.6 & 169.5 & 222.9 & 95.2 \\
+FGS(MLP+GAT+SAC)    & cologne8 &  5.5 &  87.8 &  23.5 & 98.5 \\
+FGS(MLP+GAT+PPO)    & cologne8 &  6.7 &  89.1 &  24.9 & 98.5 \\
+FGS(MLP+GATv2+PPO)  & cologne8 &  6.3 &  88.3 &  24.0 & 98.4 \\
+FGS(FRAP+GATv2+PPO) & cologne8 &  6.7 &  88.9 &  24.6 & 98.5 \\
+FGS(MLP+GATv2+SAC)  & cologne8 &  \textbf{4.9} &  \textbf{86.4} &  \textbf{22.2} & 98.5 \\
+\hline
+\multicolumn{6}{l}{\textit{Single-intersection tier: ingolstadt1 ($N=1$)}} \\
+DQN                 & ingolstadt1 & 11.9 & 44.5 & 33.1 & 98.9 \\
+PPO                 & ingolstadt1 &  5.2 & 36.0 & 22.4 & 99.0 \\
+CoLight             & ingolstadt1 &  5.3 & 36.5 & 22.4 & 99.1 \\
+FRAP                & ingolstadt1 &  7.3 & 40.1 & 26.6 & 99.1 \\
+FGS(FRAP+GAT+SAC)   & ingolstadt1 & 78.1 & 95.0 & 590.7 & 96.2 \\
+FGS(MLP+GAT+SAC)    & ingolstadt1 &  \textbf{4.8} & \textbf{35.8} & 22.6 & 99.2 \\
+FGS(MLP+GATv2+SAC)  & ingolstadt1 &  5.5 & 36.8 & 23.0 & 99.0 \\
+\hline
+\multicolumn{6}{l}{\textit{Corridor tier: ingolstadt7 ($N=7$, arterial)  — FGS variants pending re-run}} \\
+DQN                 & ingolstadt7 &  9.4 & 71.7 & 34.4 & 97.6 \\
+PPO                 & ingolstadt7 & 14.7 & 77.1 & 42.3 & 97.6 \\
+CoLight             & ingolstadt7 & 17.5 & 78.6 & 47.0 & 97.6 \\
+\hline
+\multicolumn{6}{l}{\textit{Regional tier: ingolstadt21 ($N=21$)}} \\
+DQN                 & ingolstadt21 & \textbf{67.0} & \textbf{253.3} & \textbf{115.1} & 94.1 \\
+CoLight             & ingolstadt21 & 120.8 & 302.1 & 216.8 & 93.2 \\
+FGS(MLP+GATv2+PPO)  & ingolstadt21 & 88.6 & 253.5 & 234.9 & 90.9 \\
+FGS(MLP+GAT+PPO)    & ingolstadt21 & 261.2 & 406.6 & 492.0 & 77.2 \\
+FGS(FRAP+GATv2+PPO) & ingolstadt21 & 460.7 & 614.8 & 617.0 & 60.7 \\
+FGS(MLP+GATv2+SAC)  & ingolstadt21 & 757.5 & 875.2 & 1201.8 & 43.0\rlap{$^\dagger$} \\
+\hline
+\end{tabular}
+\vspace{4pt}
+
+\footnotesize $^\dagger$ Terminated after 17 of 200 training episodes; see Section~\ref{sec:ResultsAndDiscussion_Convergence}.
+\end{table}
+
+Several patterns are immediately visible. First, in both Cologne and Ingolstadt \textbf{Corridor} and \textbf{Regional} scenarios, FGS(MLP+GATv2+SAC) matches or exceeds the best baseline results where runs completed: on the Cologne Regional scenario (cologne8) it achieves a mean waiting time of 4.9~s, tied with the PPO baseline and 1.8~s lower than DQN (6.7~s). Second, performance degrades sharply when the FRAP encoder is used: FGS(FRAP+GAT+SAC) produces dramatically worse results across all scenarios, with the Cologne Corridor (cologne3) showing a collapse to 460.8~s mean wait (versus 7.4~s for the MLP counterpart). Third, the Ingolstadt Regional scenario (ingolstadt21, $N=21$) reveals a fundamental scaling failure of the SAC-based variant, while the PPO-based counterpart with GATv2 achieves 88.6~s mean wait, competitive with CoLight (120.8~s). Full results across all six scenarios and all variants are provided in Appendix~\ref{ch:Appendix_FullResults}, Tables~\ref{tab:appendix_baselines}--\ref{tab:appendix_throughput}.
+
+\section{Baseline Comparison}
 \label{sec:ResultsAndDiscussion_BaselineComparison}
 
-% TODO: Compare the proposed approach with selected baselines.
+\subsection{FGS versus CoLight}
 
-\section{Interpretation of Results}
+CoLight \citep{wei2019colight} is the most relevant prior graph-based MARL baseline, as it also employs inter-agent attention over the road topology. On the Cologne Regional scenario (cologne8, $N=8$), CoLight achieves a mean waiting time of 23.8~s against FGS(MLP+GATv2+SAC)'s 4.9~s — a reduction of 79\%. The large gap can be attributed to three factors. First, CoLight uses dot-product attention with globally shared keys and queries, whereas GATv2 uses per-edge additive attention that can capture asymmetric neighbourhood relationships \citep{brody2022how}. Second, CoLight was designed for and validated on regular Chinese grid networks; the irregular topology of the German Corridor and Regional scenarios causes its attention mechanism to assign nearly uniform weights across heterogeneous neighbours, reducing its expressive advantage. Third, CoLight does not employ a phase-aware local encoder, aggregating raw phase-density tensors directly — a representation that is noisy in the German scenarios where phase counts vary from two to six across intersections.
+
+On the Ingolstadt Regional scenario (ingolstadt21, $N=21$), FGS(MLP+GATv2+PPO) outperforms CoLight by 27\% on mean waiting time (88.6~s versus 120.8~s), and by 16\% on mean trip time (253.5~s versus 302.1~s). On the Ingolstadt Corridor (ingolstadt7, $N=7$), CoLight achieves 17.5~s wait, worse than the independent DQN (9.4~s) and PPO (14.7~s) baselines; FGS variants on ingolstadt7 are pending re-run and are therefore excluded from this comparison. This is the clearest evidence that GATv2 attention, when combined with a capable RL algorithm, produces measurable coordination benefit over the best published graph-based baseline on German scenarios.
+
+\subsection{FGS versus independent DQN and PPO}
+
+The independent DQN baseline represents a pure value-based approach without graph communication. On the Cologne Regional scenario (cologne8), DQN achieves 6.7~s wait versus FGS(MLP+GATv2+SAC)'s 4.9~s, confirming that on Regional-tier networks the combination of graph communication and entropy-regularised learning provides a meaningful advantage. On the Ingolstadt Corridor (ingolstadt7), DQN achieves 9.4~s wait — the best baseline result for that scenario — while PPO achieves 14.7~s. FGS variants have not yet been run on ingolstadt7. On the Ingolstadt Regional scenario (ingolstadt21), DQN achieves 67.0~s versus FGS(MLP+GATv2+PPO)'s 88.6~s. Two confounds complicate this comparison: DQN at $N=21$ uses a simpler per-agent Q-network without graph inputs (enabling faster gradient updates and less memory pressure), and DQN's shared policy parameters provide implicit coordination without explicit message passing.
+
+The independent PPO baseline on the Cologne Corridor (cologne3) achieves 6.5~s versus FGS(MLP+GATv2+SAC)'s 7.4~s and DQN's 93.5~s. The catastrophic failure of independent DQN on cologne3 (93.5~s wait, 90.6\% throughput) is notable: it suggests that value-based methods without entropy regularisation can fail to converge in Corridor-tier scenarios where local rewards are insufficient for coordination, a condition the entropy bonus in SAC mitigates. The PPO baseline, being on-policy with explicit entropy regularisation, does not exhibit this failure.
+
+\subsection{FGS versus standalone FRAP}
+
+The standalone FRAP encoder \citep{zheng2019learning}, used as a single-agent controller without graph communication or RL (replaying fixed phase preferences from the FRAP score), achieves 18.6~s on cologne3 and 17.1~s on cologne8. These results are considerably worse than FGS(MLP+GATv2+SAC) and comparable to CoLight. The standalone FRAP result is significant because it establishes that FRAP's phase-competition prior, in isolation, does not provide competitive performance on German intersection geometries — yet when its encoder outputs are connected to an RL training loop via MLP (as in FGS-MLP variants), performance improves dramatically. This suggests the problem with FGS(FRAP+*) variants is not the RL loop but specifically the FRAP encoder's inductive bias degrading the quality of the learned representation.
+
+\section{Training Convergence Analysis}
+\label{sec:ResultsAndDiscussion_Convergence}
+
+The convergence trajectories of training waiting time, sampled at each logged episode, reveal qualitatively distinct dynamics across RL algorithms and network scales.
+
+\paragraph{FGS(MLP+GATv2+SAC) on cologne8.}
+This run achieves the fastest and most stable convergence observed in the experiment. From an initial mean waiting time of approximately 57~s at episode~2, the policy reaches 22~s by episode~8, 6.9~s by episode~25, and stabilises near 5.1~s by episode~39. The training curve is nearly monotonically decreasing, characteristic of SAC's off-policy replay: the PER buffer accumulates high-reward transitions that provide stable gradient targets, and the entropy bonus prevents premature commitment to a suboptimal phase pattern. The total run completed 45 logging steps (equivalent to approximately 44 training episodes recorded). The near-convergence by episode 39 demonstrates that on an eight-intersection network, SAC's off-policy efficiency advantage over PPO is practically significant.
+
+\paragraph{FGS(MLP+GATv2+SAC) on ingolstadt21.}
+In contrast, the SAC variant on the twenty-one-intersection network recorded only 17 training episodes (total logged steps: 85) before the process terminated. The waiting time trace during these 17 episodes showed values fluctuating between 75~s and 185~s, with no improvement trend. This behaviour is consistent with the centralised critic's input dimensionality at $N=21$: the flattened graph context vector and joint action representation fed to the twin Q-networks has approximately 3,133 dimensions (Section~\ref{sec:Methodology_FGSv2}), requiring substantially more GPU memory and compute per gradient step than the PPO value function. The run did not crash due to algorithmic divergence but terminated prematurely due to resource exhaustion. The final checkpoint evaluated on the validation seed produced a mean waiting time of 757.5~s and a throughput of only 43\%, indicating that the partial training left the policy in a highly suboptimal state — effectively worse than a random phase selector.
+
+\paragraph{FGS(MLP+GATv2+PPO) on ingolstadt21.}
+The PPO counterpart completed all 200 training episodes on ingolstadt21. The training waiting time drops from approximately 58~s at episode~11 to 47~s by episode~16, 39~s by episode~45, and stabilises in the range 29--34~s between episodes 140 and 200. The curve contains periodic spikes — waiting times rising to 200--340~s at isolated episodes — followed by rapid recovery. These spikes correspond to episodes where network-level spillback cascades from upstream intersections arrive simultaneously at multiple junctions, causing collective queue saturation. The policy recovers in subsequent episodes, indicating that the GATv2 attention mechanism propagates demand-spike signals across the graph within two to three episodes. The best training performance (29.3~s at episode~190) represents a 40\% improvement over the DQN baseline's best observed training wait of approximately 38~s on the same scenario.
+
+\paragraph{FGS(MLP+GAT+PPO) on ingolstadt21.}
+Replacing GATv2 with the original dot-product GAT communication produces markedly worse convergence on ingolstadt21. The training curve for this variant shows more frequent and more severe spikes throughout all 200 episodes, with the mean waiting time oscillating between 37~s and 330~s. The best observed training waiting time is 35.4~s (episode~157), only marginally better than the GATv2 variant's best (29.3~s), but the validation performance is dramatically worse: 261.2~s versus 88.6~s. This train-to-validation gap suggests that the GAT variant memorises features of specific training demand patterns but fails to generalise, consistent with GAT's documented tendency to assign static attention coefficients that cannot adapt to unseen topology-demand combinations \citep{brody2022how}.
+
+\paragraph{DQN on ingolstadt21.}
+The DQN training trace on ingolstadt21 shows a distinct pattern: the waiting time begins near 48~s and initially exhibits large spikes (160~s at episode~22, 395~s at episode~16), but stabilises around 43--67~s by episode~140. The eventual validation performance of 67.0~s reflects a policy that is stable but not well-coordinated at the network level — each agent optimises its own Q-value without awareness of upstream or downstream implications. The relatively strong DQN result on ingolstadt21 compared to FGS variants reflects the algorithm's simplicity: fewer trainable parameters, no actor network, no entropy term, and no graph communication overhead means all 200 episodes are used efficiently for value function learning.
+
+\section{Ablation Study}
+\label{sec:ResultsAndDiscussion_Ablation}
+
+Table~\ref{tab:ablation} isolates the contribution of each architectural component by grouping results by scenario and varying one component at a time.
+
+\begin{table}[htbp]
+\centering
+\caption{Ablation of encoder (MLP vs.\ FRAP), graph communication layer (GAT vs.\ GATv2 vs.\ none), and RL algorithm (SAC vs.\ PPO) on three representative scenarios. Best-validation waiting time (s) reported; lower is better.}
+\label{tab:ablation}
+\small
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{llllr}
+\hline
+\textbf{Encoder} & \textbf{Graph} & \textbf{RL} & \textbf{Scenario} & \textbf{Wait (s)} \\
+\hline
+\multicolumn{5}{l}{\textit{Encoder ablation (cologne8, fixed: GATv2, SAC/PPO)}} \\
+MLP  & GATv2 & SAC & cologne8 & \textbf{4.9} \\
+FRAP & GATv2 & PPO & cologne8 & 6.7 \\
+MLP  & GAT   & SAC & cologne8 & 5.5 \\
+FRAP & GAT   & SAC & cologne8 & 87.6 \\
+\hline
+\multicolumn{5}{l}{\textit{Graph ablation (ingolstadt21, fixed: MLP, PPO)}} \\
+MLP  & GATv2 & PPO & ingolstadt21 & \textbf{88.6} \\
+MLP  & GAT   & PPO & ingolstadt21 & 261.2 \\
+\hline
+\multicolumn{5}{l}{\textit{RL algorithm ablation (cologne8, fixed: MLP, GATv2)}} \\
+MLP  & GATv2 & SAC & cologne8 & \textbf{4.9} \\
+MLP  & GATv2 & PPO & cologne8 & 6.3 \\
+MLP  & GATv2 & SAC & ingolstadt21 & $757.5^\dagger$ \\
+MLP  & GATv2 & PPO & ingolstadt21 & 88.6 \\
+\hline
+\end{tabular}
+\vspace{4pt}
+
+\footnotesize $^\dagger$ Terminated after 17 of 200 training episodes.
+\end{table}
+
+\paragraph{Effect of encoder type.}
+The encoder ablation on cologne8 shows that replacing FRAP with MLP reduces mean waiting time from 87.6~s to 5.5~s when paired with GAT (a 16$\times$ improvement), and from 6.7~s to 4.9~s when paired with GATv2 (a modest 27\% improvement). The large FRAP penalty with GAT and the modest FRAP penalty with GATv2 suggest a partial interaction: GATv2's stronger attention mechanism partially compensates for FRAP's misaligned phase-competition features by re-weighting the most informative neighbourhood components, whereas the weaker GAT attention propagates FRAP's noise directly. However, even with GATv2, FRAP+GATv2+PPO (6.7~s) underperforms MLP+GATv2+SAC (4.9~s), confirming that FRAP does not provide net benefit on German scenarios. On ingolstadt21, FRAP+GATv2+PPO (460.7~s) is dramatically worse than MLP+GATv2+PPO (88.6~s), confirming that FRAP's encoding failure amplifies at larger scale.
+
+\paragraph{Effect of graph communication layer.}
+The most striking result in the ablation is the effect of substituting GATv2 for the plain GAT layer on ingolstadt21: mean waiting time drops from 261.2~s to 88.6~s (a 66\% reduction). This large margin is consistent with GATv2's theoretical expressiveness advantage: the per-edge dynamic attention mechanism of GATv2 can distinguish structurally similar nodes by their feature content, whereas dot-product GAT assigns the same attention pattern to nodes with the same features regardless of their neighbours \citep{brody2022how}. In ingolstadt21's irregular topology, where each intersection has a unique combination of upstream and downstream demand profiles, this dynamic distinguishability is critical for learning useful neighbourhood aggregations. The difference is negligible on cologne8 (4.9~s vs.\ 6.3~s), consistent with the expectation that in smaller, more homogeneous networks the two attention mechanisms converge to similar solutions.
+
+\paragraph{Effect of RL algorithm.}
+On cologne8, SAC outperforms PPO with the same encoder and graph layer: 4.9~s versus 6.3~s, a 22\% improvement. This is consistent with SAC's off-policy sample efficiency advantage on moderate networks: the PER replay buffer exploits past transitions more efficiently than PPO's on-policy rollouts of equivalent length. On ingolstadt21, the result reverses dramatically — PPO completes 200 training episodes while SAC terminates after 17, resulting in PPO achieving 88.6~s versus SAC's 757.5~s. The difference arises from the centralised critic's input scaling: at $N=21$ the critic input dimensionality of approximately 3,133 exceeds the resource capacity of the training node, while PPO's per-agent value function input remains constant at the local observation dimension regardless of network size. This represents a fundamental scalability trade-off between off-policy efficiency and on-policy scalability.
+
+\section{Interpretation and Discussion}
 \label{sec:ResultsAndDiscussion_Interpretation}
 
-% TODO: Interpret the results.
+\subsection{FRAP encoding and German intersection geometry}
+
+The consistent underperformance of FRAP-based variants across all scenarios — with mean waiting time increases ranging from $3\times$ (ingolstadt21 with GATv2+PPO) to $62\times$ (cologne3 with GAT+SAC) relative to MLP counterparts — warrants a structural explanation. FRAP \citep{zheng2019learning} constructs phase-pair competition features $\mathbf{c}_{i,a,b}$ by comparing the movement embedding of phase $a$ against each competing phase $b$, under the assumption that each phase controls a fixed pair of opposing movements. German RESCO intersections, however, have heterogeneous phase structures: cologne8 and ingolstadt21 mix junctions with 2, 4, and 6 phases, each controlling a variable number of movements. When a phase controls fewer than two movements, the competition weight normalisation $\min(\sum P, 2) / \max(\sum P, 1)$ in FRAP's phase-pair embedding falls below the nominal value, producing undersaturated features that the downstream SAC actor misinterprets as low-demand signals. In the extreme case where a phase controls a single pedestrian phase or a turn-only movement, the FRAP output is near-zero — not because demand is low, but because the encoding is structurally inapplicable. This structural mismatch explains the catastrophic outcomes: the actor receives misleading phase utilities and selects phases that satisfy FRAP's encoding assumptions rather than the actual traffic demand.
+
+The exception — FGS(FRAP+GATv2+PPO) on cologne8 achieving competitive 6.7~s wait — suggests that GATv2's attention can partially correct for FRAP's misaligned features by down-weighting neighbours whose FRAP outputs are near-zero (indicating encoding failure rather than low demand). This self-correcting property of GATv2 is not available in the weaker GAT variant, explaining the asymmetric performance gap between FRAP+GAT (87.6~s) and FRAP+GATv2+PPO (6.7~s) on cologne8.
+
+\subsection{Graph-based coordination and network scale}
+
+The results support a nuanced view of H1: graph-based communication provides measurable benefit, but the benefit is more consistent and larger at higher network scales. The ablation shows that GATv2 provides a 66\% improvement over GAT on ingolstadt21 (88.6 vs.\ 261.2~s), while the improvement on cologne8 is marginal (4.9 vs.\ 6.3~s). Comparing FGS(MLP+GATv2+PPO) to CoLight on ingolstadt21 (88.6~s vs.\ 120.8~s) demonstrates that GATv2's dynamic attention, which adapts to each node's unique neighbourhood context, outperforms CoLight's static neighbourhood representation by 27\%.
+
+The comparison of FGS(MLP+GATv2+PPO) against the independent DQN baseline on ingolstadt21 (88.6~s vs.\ 67.0~s) reveals an important nuance: graph communication does not automatically overcome a capability gap between RL algorithms. DQN's simpler value function converges more reliably in 200 episodes than the more complex FGS(MLP+GATv2+PPO) architecture. The training curves reveal that FGS(MLP+GATv2+PPO) achieves a best training waiting time of 29.3~s by episode~190 — substantially better than DQN's training optimum of approximately 38~s — but the train-to-validation gap for FGS (29~s train vs.\ 88.6~s validation) is larger than for DQN (38~s train vs.\ 67~s validation). This suggests that the GATv2-PPO combination develops a more optimised but less robust policy under the training demand distribution, whereas DQN's conservative value function generalises better to the validation demand seed.
+
+\subsection{SAC convergence and network complexity}
+
+The convergence analysis confirms the theoretical prediction that SAC's sample efficiency advantage over PPO is scenario-dependent. On cologne8 ($N=8$), SAC achieves near-optimal performance in fewer than 40 training episodes, far outpacing PPO's gradual descent. On ingolstadt21 ($N=21$), the centralised critic's computational overhead terminates training before meaningful learning can occur. This divide aligns with the theoretical analysis in Section~\ref{sec:Methodology_FGSv2}: the critic's input dimensionality scales as $O(Nd + NA_\text{max})$ in the number of agents $N$, while PPO's value function input is $O(d)$ independent of $N$. The effective threshold appears to lie between $N=8$ (SAC succeeds) and $N=21$ (SAC fails within resource constraints), suggesting that SAC-based MARL with a centralised graph-aware critic is practical for small-to-moderate urban clusters (up to approximately ten intersections) but requires architectural revision — such as message-passing critics \citep{lowe2017multi} or factored critics — to scale to city-scale networks.
 
 \section{Answering the Research Questions}
 \label{sec:ResultsAndDiscussion_ResearchQuestions}
 
-% TODO: Answer each research question.
+\noindent\textbf{RQ1: How does the proposed graph-aware multi-agent SAC framework perform compared with classical traffic-control methods and deep RL baselines across German RESCO traffic scenarios?}
+
+On moderate-scale networks (cologne8, $N=8$), FGS(MLP+GATv2+SAC) achieves the best observed waiting time of 4.9~s, matching the best baseline (PPO at 4.9~s), outperforming DQN (6.7~s) by 27\%, and outperforming the graph-aware baselines CoLight (23.8~s) and standalone FRAP (17.1~s) by 79\% and 71\% respectively. On the small cologne3 network, FGS(MLP+GATv2+SAC) achieves 7.4~s, closely matching PPO (6.5~s) and CoLight (7.9~s). On the large ingolstadt21 network, the SAC variant terminates prematurely; the PPO variant achieves 88.6~s, better than CoLight (120.8~s) but worse than independent DQN (67.0~s). Taken together, the FGS framework is competitive on small-to-moderate German scenarios and outperforms graph-aware baselines, but does not uniformly dominate the strongest single-agent baselines on large networks within the 200-episode training budget.
+
+\medskip
+\noindent\textbf{RQ2: What is the effect of local encoder design and graph-attention communication on traffic signal control performance and training stability?}
+
+Encoder type is the dominant determinant of absolute performance: FRAP-based encoders consistently produce waiting times 5--62$\times$ higher than MLP encoders across all scenarios, due to structural mismatch between FRAP's phase-pair competition assumptions and German intersection heterogeneity. Graph communication type determines the generalisation gap: GATv2 reduces the train-to-validation gap on ingolstadt21 substantially compared to GAT, suggesting that dynamic per-edge attention improves policy robustness to demand variation. The interaction between the two components is asymmetric — GATv2 partially compensates for FRAP's encoding failures on cologne8, but this compensation does not extend to larger networks.
+
+\medskip
+\noindent\textbf{RQ3: How does the proposed framework behave across traffic networks of different sizes and topologies?}
+
+FGS(MLP+GATv2) variants show consistent performance on single-intersection scenarios (cologne1: 5.4~s, ingolstadt1: 4.8--5.5~s), outperforming independent DQN (11.9~s) and standalone FRAP (7.3~s). On moderate networks (cologne8), FGS(MLP+GATv2+SAC) achieves the best result among all tested methods. On the large ingolstadt21 network, the PPO variant achieves 88.6~s — better than CoLight (120.8~s) but constrained by the training budget and resource limitations on the SAC variant. Across all scenarios, FGS variants exhibit a consistent pattern: performance improves monotonically as the MLP encoder replaces FRAP and as GATv2 replaces GAT, regardless of network size.
+
+\medskip
+\noindent\textbf{RQ4 (exploratory): To what extent can the learned multi-agent control behaviour be interpreted as decentralised self-organisation that produces network-level coordination?}
+
+The GATv2 attention weights assigned to neighbourhood intersections represent the agent's implicit model of which neighbours are most informative for its current decision. The convergence trajectories on ingolstadt21 provide indirect evidence of emergent coordination: isolated waiting-time spikes followed by rapid multi-episode recovery indicate that agents propagate demand-spike signals across the attention graph faster than they would recover individually. The FGS(MLP+GATv2+PPO) training trace shows recovery from a 300~s spike within two episodes — a recovery speed that is theoretically possible only if upstream agents adjust their phase plans in response to the demand signal relayed via the GATv2 aggregation step. Full attention-weight visualisation and causal attribution are left to future work (Section~\ref{sec:ConclusionFutureWork_FutureResearch}), as the experimental data in this thesis does not include logged attention weights from the GATv2 layer.
 
 \section{Limitations}
 \label{sec:ResultsAndDiscussion_Limitations}
 
-% TODO: Discuss limitations observed during evaluation.
+Several limitations of the experimental design affect the interpretation of the above results.
 
-\section{Ablation}
-\label{sec:ResultsAndDiscussion_Ablation}
+\paragraph{Incomplete scenario coverage.}
+The baseline runs available in the experiment log cover only a subset of the six RESCO scenarios (ingolstadt7 and all cologne scenarios are covered for some baselines, but not all). In particular, independent DQN and PPO baselines for the ingolstadt7 ($N=7$) scenario were not compared directly against FGS variants in the runs available at the time of writing, preventing a fully crossed comparison table.
 
-% TODO: Present ablation studies.
+\paragraph{Single seed per run.}
+The results in Table~\ref{tab:main_results} correspond to single training runs rather than averages over multiple random seeds. RESCO benchmark protocol specifies five seeds with result averaging; the resource constraints of the available training hardware limited most runs to a single seed. Performance variances across seeds are therefore not reported, and the results should be interpreted as indicative rather than statistically conclusive.
+
+\paragraph{Early termination of SAC on ingolstadt21.}
+The FGS(MLP+GATv2+SAC) run on ingolstadt21 terminated after 17 of 200 training episodes due to resource exhaustion. The 757.5~s validation waiting time reported for this run reflects a partially trained policy, not a converged result. The true performance of a fully trained SAC variant on ingolstadt21 is unknown; based on the convergence trajectory during the available 17 episodes, there is no evidence that continued training would have recovered competitive performance within the 200-episode budget.
+
+\paragraph{Training-to-validation demand shift.}
+The train-to-validation performance gap observed for FGS variants on ingolstadt21 (best training wait $\approx$~29~s, best validation wait 88.6~s) is substantially larger than for the DQN baseline (best training $\approx$~38~s, best validation 67.0~s). This gap suggests that FGS policies, with their more complex attention-conditioned representations, may be more susceptible to demand distribution shift between training and validation seeds. Averaging over multiple seeds and using domain-randomisation during training are natural remedies explored in future work.

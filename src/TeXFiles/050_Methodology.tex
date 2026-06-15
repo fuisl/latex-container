@@ -169,7 +169,7 @@ GATv2 corrects this with an additive attention formulation that is strictly more
     },
   \label{eq:gatv2_attn}
 \end{equation}
-where $\mathbf{W}$ and $\mathbf{a}$ are learnable parameters and $\Vert$ denotes concatenation. By applying the non-linearity before the inner product, GATv2 allows attention coefficients to depend jointly on both the query $\mathbf{h}_i$ and the key $\mathbf{h}_j$. Multi-head attention is applied with $H$ heads; outputs are concatenated and projected to the output dimension. All FGS and FGSv2 variants with graph communication use GATv2 as specified by Equation~\eqref{eq:gatv2_attn}.
+where $\mathbf{W}$ and $\mathbf{a}$ are learnable parameters, $\Vert$ denotes concatenation, and $\alpha_{ij}$ is the normalised attention coefficient for edge $(i,j)$ — note that $\alpha_{ij}$ here is a graph-attention weight, distinct from the SAC temperature scalar $\alpha$ used in Section~\ref{sec:Methodology_SAC}. By applying the non-linearity before the inner product, GATv2 allows attention coefficients to depend jointly on both the query $\mathbf{h}_i$ and the key $\mathbf{h}_j$. Multi-head attention is applied with $H$ heads; outputs are concatenated and projected to the output dimension. All FGS and FGSv2 variants with graph communication use GATv2 as specified by Equation~\eqref{eq:gatv2_attn}.
 
 \subsection{FRAP Encoder}
 \label{sec:Methodology_FRAP}
@@ -286,11 +286,11 @@ FGS wraps the SAC algorithm with a shared graph encoder that enables each agent 
 \paragraph{Graph encoder.}
 The graph encoder $f_\psi$ transforms the dictionary observation into an ego embedding used by the actor and a full graph tensor used by the centralized critic. Given node features $\mathbf{X} \in \mathbb{R}^{N \times d}$, the encoder proceeds as follows:
 \begin{enumerate}
-  \item \textit{Local encoding.} The feature matrix is unfolded to a batch of $N$ vectors. A local encoder $\phi$ maps each $\mathbf{x}_i$ to a local embedding $\mathbf{h}_i \in \mathbb{R}^{d_h}$:
+  \item \textit{Local encoding.} The feature matrix is unfolded to a batch of $N$ vectors. A local encoder $f_{\mathrm{enc}}$ maps each $\mathbf{x}_i$ to a local embedding $\mathbf{h}_i \in \mathbb{R}^{d_h}$:
   \[
-    \mathbf{h}_i = \phi(\mathbf{x}_i), \quad i = 1,\ldots,N.
+    \mathbf{h}_i = f_{\mathrm{enc}}(\mathbf{x}_i), \quad i = 1,\ldots,N.
   \]
-  Two choices of $\phi$ are evaluated: a two-layer MLP (FGS-MLP) and the FRAP encoder described in Section~\ref{sec:Methodology_FRAP} (FGS-FRAP).
+  Two choices of $f_{\mathrm{enc}}$ are evaluated: a two-layer MLP (FGS-MLP) and the FRAP encoder described in Section~\ref{sec:Methodology_FRAP} (FGS-FRAP).
   \item \textit{Graph communication (optional).} A single GAT or GATv2 layer aggregates messages from neighbours:
   \[
     \mathbf{h}_i^{\prime} = \mathrm{GAT}\bigl(\mathbf{h}_i,\; \{\mathbf{h}_j : j \in \mathcal{N}(i)\},\; \{w_{ij}\}\bigr).
@@ -470,19 +470,19 @@ Algorithm~\ref{alg:fgs_training} presents the complete training procedure shared
 \Statex \rule{\linewidth}{0.3pt}
 \Statex \textbf{Phase 1 — FRAP action-token encoding}
 \ForAll{intersection $i \in \mathcal{N}$ \textbf{and} movement $u$}
-  \State $e_{i,u} \leftarrow \operatorname{ReLU}\!\bigl(W_{\text{lane}}\bigl[\sigma(\operatorname{Emb}_{\text{phase}}(p_{i,u})),\;\sigma(W_d\,d_{i,u})\bigr]\bigr)$
+  \State $\mathbf{e}_{i,u} \leftarrow \operatorname{ReLU}\!\bigl(W_{\text{lane}}\bigl[\sigma(\operatorname{Emb}_{\text{phase}}(p_{i,u})),\;\sigma(W_d\,d_{i,u})\bigr]\bigr)$
   \hfill\(\triangleright\) \textit{lane embedding}
 \EndFor
 \ForAll{$i \in \mathcal{N}$, valid phase $a$ ($m_{i,a}=1$)}
-  \State $\phi_{i,a} \leftarrow \sum_u w_{i,a,u}\,e_{i,u}$
+  \State $\boldsymbol{\phi}_{i,a} \leftarrow \sum_u w_{i,a,u}\,\mathbf{e}_{i,u}$
   \hfill\(\triangleright\) \textit{phase-pair embedding (scaled sum over movements)}
   \ForAll{competitor $b \in V_{i,a}$}
-    \State $r_{i,a,b} \leftarrow \operatorname{ReLU}(\operatorname{Conv}_{\text{rel}}(\operatorname{Emb}_{\text{rel}}(R_{i,a,b})))$
-    \State $c_{i,a,b} \leftarrow \operatorname{ReLU}\!\bigl(\operatorname{Conv}_{\text{hid}}([\phi_{i,a},\phi_{i,b}] \odot r_{i,a,b})\bigr)$
+    \State $\mathbf{r}_{i,a,b} \leftarrow \operatorname{ReLU}(\operatorname{Conv}_{\text{rel}}(\operatorname{Emb}_{\text{rel}}(R_{i,a,b})))$
+    \State $\mathbf{c}_{i,a,b} \leftarrow \operatorname{ReLU}\!\bigl(\operatorname{Conv}_{\text{hid}}([\boldsymbol{\phi}_{i,a},\boldsymbol{\phi}_{i,b}] \odot \mathbf{r}_{i,a,b})\bigr)$
     \hfill\(\triangleright\) \textit{competition feature}
   \EndFor
   \If{$|V_{i,a}| > 0$}
-    \State $\mathbf{z}_{i,a} \leftarrow \operatorname{LayerNorm}\!\bigl(\operatorname{ReLU}\!\bigl(\operatorname{Adapter}(\tfrac{1}{|V_{i,a}|}\textstyle\sum_{b} c_{i,a,b})\bigr)\bigr)$ \hfill (Eq.~\ref{eq:fgsv2_token})
+    \State $\mathbf{z}_{i,a} \leftarrow \operatorname{LayerNorm}\!\bigl(\operatorname{ReLU}\!\bigl(\operatorname{Adapter}(\tfrac{1}{|V_{i,a}|}\textstyle\sum_{b} \mathbf{c}_{i,a,b})\bigr)\bigr)$ \hfill (Eq.~\ref{eq:fgsv2_token})
   \Else
     \State $\mathbf{z}_{i,a} \leftarrow \mathbf{0}$ \hfill\(\triangleright\) \textit{no competitors: single valid phase}
   \EndIf
