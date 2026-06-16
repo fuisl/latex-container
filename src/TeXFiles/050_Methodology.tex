@@ -141,7 +141,7 @@ The temperature $\alpha$ is itself optimised by minimising the dual objective
     \right],
   \label{eq:sac_alpha_loss}
 \end{equation}
-where $\mathcal{H}_{\mathrm{target}} = -\!\log(1/A_{\mathrm{valid}})$ is the entropy of the uniform policy over valid actions. The off-policy design of SAC enables training from a prioritised replay buffer, reducing the number of environment interactions needed to reach convergence---an important property when SUMO simulations are the bottleneck.
+where $\mathcal{H}_{\mathrm{target}} = -\!\log(1/A_{\mathrm{valid}})$ is the entropy of the uniform policy over valid actions. Gradient derivations for all three SAC losses and the log-parameterisation of $\alpha$ are given in Appendix~\ref{sec:Appendix_SAC_gradients}. The off-policy design of SAC enables training from a prioritised replay buffer, reducing the number of environment interactions needed to reach convergence---an important property when SUMO simulations are the bottleneck.
 
 \subsection{Graph Attention Layer}
 \label{sec:Methodology_GAT}
@@ -169,7 +169,7 @@ GATv2 corrects this with an additive attention formulation that is strictly more
     },
   \label{eq:gatv2_attn}
 \end{equation}
-where $\mathbf{W}$ and $\mathbf{a}$ are learnable parameters, $\Vert$ denotes concatenation, and $\alpha_{ij}$ is the normalised attention coefficient for edge $(i,j)$ — note that $\alpha_{ij}$ here is a graph-attention weight, distinct from the SAC temperature scalar $\alpha$ used in Section~\ref{sec:Methodology_SAC}. By applying the non-linearity before the inner product, GATv2 allows attention coefficients to depend jointly on both the query $\mathbf{h}_i$ and the key $\mathbf{h}_j$. Multi-head attention is applied with $H$ heads; outputs are concatenated and projected to the output dimension. All FGS and FGSv2 variants with graph communication use GATv2 as specified by Equation~\eqref{eq:gatv2_attn}.
+where $\mathbf{W}$ and $\mathbf{a}$ are learnable parameters, $\Vert$ denotes concatenation, and $\alpha_{ij}$ is the normalised attention coefficient for edge $(i,j)$ — note that $\alpha_{ij}$ here is a graph-attention weight, distinct from the SAC temperature scalar $\alpha$ used in Section~\ref{sec:Methodology_SAC}. By applying the non-linearity before the inner product, GATv2 allows attention coefficients to depend jointly on both the query $\mathbf{h}_i$ and the key $\mathbf{h}_j$. Multi-head attention is applied with $H$ heads; outputs are concatenated and projected to the output dimension. All FGS and FGSv2 variants with graph communication use GATv2 as specified by Equation~\eqref{eq:gatv2_attn}. A proof of node-permutation equivariance and a discussion of edge-weight integration are in Appendix~\ref{sec:Appendix_GATv2_properties}.
 
 \subsection{FRAP Encoder}
 \label{sec:Methodology_FRAP}
@@ -257,7 +257,7 @@ All experiments use the differential waiting time reward:
   W_t = \frac{1}{100}\sum_{l \in \mathcal{L}}\sum_{v \in l} w_v(t),
   \label{eq:reward}
 \end{equation}
-where $\mathcal{L}$ is the set of incoming lanes controlled by the traffic signal, $v$ indexes vehicles, and $w_v(t)$ is the accumulated waiting time of vehicle $v$ at step $t$ as reported by SUMO via the TraCI interface. A positive value of $r_t$ indicates that total waiting time at the intersection decreased relative to the previous step. Dividing by 100 normalises the scale across scenarios that differ in traffic volume.
+where $\mathcal{L}$ is the set of incoming lanes controlled by the traffic signal, $v$ indexes vehicles, and $w_v(t)$ is the accumulated waiting time of vehicle $v$ at step $t$ as reported by SUMO via the TraCI interface. A positive value of $r_t$ indicates that total waiting time at the intersection decreased relative to the previous step. Dividing by 100 normalises the scale across scenarios that differ in traffic volume. Appendix~\ref{sec:Appendix_reward_telescope} proves that maximising the discounted sum of this reward is equivalent to minimising a discounted sum of waiting times.
 
 This reward is local to each agent, which aligns with the CTDE assumption: the reward does not require knowledge of the global joint state at execution time, so decentralised policies remain valid after training.
 
@@ -317,7 +317,7 @@ The actor $\pi_\phi$ maps the ego embedding to a distribution over valid phases.
   \qquad
   \pi(a \mid o) = \operatorname{softmax}(\tilde{\mathbf{l}}),
 \]
-where $\mathbf{l} \in \mathbb{R}^{A_{\max}}$ are the pre-mask logits and $m_a \in \{0,1\}$ is the per-phase validity flag. In the implementation $-\infty$ is approximated as $-10^9$.
+where $\mathbf{l} \in \mathbb{R}^{A_{\max}}$ are the pre-mask logits and $m_a \in \{0,1\}$ is the per-phase validity flag. In the implementation $-\infty$ is approximated as $-10^9$. Appendix~\ref{sec:Appendix_masked_softmax} proves formally that masked phases receive zero probability and zero gradient.
 
 \paragraph{Centralized joint-action critic.}
 The critic operates on the full graph tensor and an estimate of all agents' action probabilities, following the CTDE design. For each candidate ego action $a$, the critic constructs a context vector by concatenating the flattened graph tensor $\mathrm{vec}(\mathbf{H}^{\prime})$, the matrix of all agents' action-probability vectors with the ego's row replaced by the one-hot vector for $a$, the ego embedding $\mathbf{h}_{\mathrm{ego}}^{\prime}$, and a one-hot encoding of the ego index:
@@ -330,7 +330,7 @@ The critic operates on the full graph tensor and an estimate of all agents' acti
       \mathbf{e}_i\,
     \bigr],
 \]
-where $\boldsymbol{\Pi}_{a}$ substitutes the one-hot for $a$ into the ego row of the joint action-probability matrix $\boldsymbol{\Pi}$. Twin critics are maintained and the minimum is used for target computation as in standard SAC. The joint action structure requires $n$-step = 1 updates to keep the action-probability estimates on-policy.
+where $\boldsymbol{\Pi}_{a}$ substitutes the one-hot for $a$ into the ego row of the joint action-probability matrix $\boldsymbol{\Pi}$. Twin critics are maintained and the minimum is used for target computation as in standard SAC. The joint action structure requires $n$-step = 1 updates to keep the action-probability estimates on-policy. The input dimensionality of this critic and its implications for scalability at large $N$ are derived in Appendix~\ref{sec:Appendix_critic_complexity}.
 
 The four FGS variants investigated in this thesis are summarised in Table~\ref{tab:fgs_variants}.
 

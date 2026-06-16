@@ -9,12 +9,338 @@ The FGS experimental pipeline integrates the following software components.
 \textbf{Hydra} structures all experiment configurations as composable YAML files; scenario, algorithm, and architecture parameters are varied without code changes.
 \textbf{Weights \& Biases} \citep{wandb} tracks all training runs, logs per-episode RESCO metrics, and stores model checkpoints.
 
-\chapter{Losses and Network Objectives}
+\chapter{Mathematical Objectives, Gradients, and Stability Analysis}
 \label{ch:Appendix_LossesObjectives}
 
-The full discrete-action SAC objective functions are given in Section~\ref{sec:Methodology_SAC}.
-The PPO clipped objective is $\mathcal{L}^{\text{CLIP}}(\phi) = \mathbb{E}_t\!\left[\min\!\left(r_t(\phi)\hat{A}_t,\, \mathrm{clip}(r_t(\phi), 1-\epsilon, 1+\epsilon)\hat{A}_t\right)\right]$ where $r_t(\phi) = \pi_\phi(a_t|s_t)/\pi_{\phi_\text{old}}(a_t|s_t)$ and $\hat{A}_t$ is the generalised advantage estimate with $\lambda=0.95$ and $\gamma=0.99$.
-The joint loss for PPO includes value function and entropy terms: $\mathcal{L} = \mathcal{L}^{\text{CLIP}} - c_1 \mathcal{L}^{VF} + c_2 \mathcal{H}[\pi_\phi]$ with $c_1=0.5$ and $c_2=10^{-3}$.
+This appendix collects the mathematical derivations that underpin the FGS/FGSv2 framework: objective functions, loss gradients, masked action distributions, architectural equivariance properties, and the theoretical basis for convergence claims. Proofs are stated for the finite tabular/exact-policy setting; Section~\ref{sec:Appendix_convergence_disclaimer} states explicitly which guarantees do not extend to the implemented deep MARL system.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Notation and CTDE Objective}
+\label{sec:Appendix_CTDE}
+% ─────────────────────────────────────────────────────────────────────────────
+
+Throughout this appendix: $N$ is the number of agents; $A_i = |\mathcal{A}_i|$ the valid phase count for agent $i$; $A_{\max} = \max_i A_i$ the padded action-space width; $o_i^t$ the local observation of agent $i$ at step $t$; $\mathbf{o}_t = (o_1^t,\ldots,o_N^t)$ the joint observation; $\mathbf{a}_t = (a_1^t,\ldots,a_N^t)$ the joint action.
+
+The cooperative multi-agent objective averages individual rewards:
+\begin{equation}
+  J(\phi) = \mathbb{E}_{\pi_\phi}\!\left[\sum_{t=0}^{T}\gamma^t \frac{1}{N}\sum_{i=1}^{N}r_i^t\right].
+  \label{eq:marl_objective}
+\end{equation}
+Under maximum-entropy augmentation this becomes
+\begin{equation}
+  J_{\mathrm{MaxEnt}}(\phi) = \mathbb{E}_{\pi_\phi}\!\left[\sum_{t=0}^{T}\gamma^t \frac{1}{N}\sum_{i=1}^{N}\Bigl(r_i^t + \alpha\,\mathcal{H}\!\bigl(\pi_\phi(\cdot\mid o_i^t)\bigr)\Bigr)\right].
+  \label{eq:marl_maxent}
+\end{equation}
+Agents optimise per-agent SAC objectives with local rewards $r_i^t$; evaluation follows the RESCO network-level average protocol. The CTDE factorisation is
+\begin{equation}
+  \pi_\phi(\mathbf{a}\mid\mathbf{o}) = \prod_{i=1}^{N}\pi_\phi(a_i\mid o_i, \mathcal{G}),
+\end{equation}
+while at execution time each agent $i$ acts on its ego embedding $\mathbf{h}_i'$ alone.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Differential Waiting-Time Reward: Telescoping Property}
+\label{sec:Appendix_reward_telescope}
+% ─────────────────────────────────────────────────────────────────────────────
+
+The differential waiting-time reward is $r_t = W_{t-1} - W_t$ (Equation~\ref{eq:reward}). The following result shows that maximising the discounted sum of differential rewards is equivalent to minimising a discounted sum of cumulative waiting times.
+
+\begin{proposition}[Reward telescoping]
+\label{prop:telescope}
+For a finite horizon $T$ and discount factor $\gamma\in(0,1)$,
+\begin{equation}
+  \sum_{t=1}^{T}\gamma^{t-1}(W_{t-1}-W_t)
+  = W_0
+    - (1-\gamma)\sum_{t=1}^{T-1}\gamma^{t-1}W_t
+    - \gamma^{T-1}W_T.
+  \label{eq:telescope}
+\end{equation}
+\end{proposition}
+
+\begin{proof}
+Separate the sum: $S = \sum_{t=1}^{T}\gamma^{t-1}W_{t-1} - \sum_{t=1}^{T}\gamma^{t-1}W_t$.
+Re-index the first sum ($s \leftarrow t-1$, range $0$ to $T-1$):
+\begin{align*}
+  S &= \sum_{t=0}^{T-1}\gamma^{t}W_t
+       - \sum_{t=1}^{T}\gamma^{t-1}W_t \\
+    &= W_0
+       + \sum_{t=1}^{T-1}\gamma^{t}W_t
+       - \frac{1}{\gamma}\sum_{t=1}^{T-1}\gamma^{t}W_t
+       - \gamma^{T-1}W_T \\
+    &= W_0
+       + \!\Bigl(1-\tfrac{1}{\gamma}\Bigr)\!\sum_{t=1}^{T-1}\gamma^{t}W_t
+       - \gamma^{T-1}W_T \\
+    &= W_0
+       - (1-\gamma)\sum_{t=1}^{T-1}\gamma^{t-1}W_t
+       - \gamma^{T-1}W_T.
+\end{align*}
+\end{proof}
+
+\paragraph{Interpretation.} Maximising $S$ over trajectories is equivalent (up to the constant $W_0$) to minimising $(1-\gamma)\sum_{t=1}^{T-1}\gamma^{t-1}W_t + \gamma^{T-1}W_T$: a discounted sum of intermediate waiting times plus the terminal waiting time. When $\gamma<1$ both terms contribute; as $\gamma\to 1$ the sum approaches $W_0 - W_T$, so the agent would primarily optimise terminal rather than cumulative waiting. Using $\gamma=0.99$ in this work keeps the intermediate terms substantial.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Masked Discrete Action Distribution}
+\label{sec:Appendix_masked_softmax}
+% ─────────────────────────────────────────────────────────────────────────────
+
+Intersections in the German RESCO scenarios have heterogeneous phase counts; invalid phases must receive zero probability. Define the valid phase set $\mathcal{A}_i(o_i) = \{a : m_{i,a}=1\}$ and the masked policy
+\begin{equation}
+  \pi_\phi(a\mid o_i)
+  = \frac{m_{i,a}\exp z_{i,a}}
+         {\displaystyle\sum_{b=1}^{A_{\max}}m_{i,b}\exp z_{i,b}}.
+  \label{eq:masked_softmax}
+\end{equation}
+
+\begin{proposition}[Zero probability and zero gradient on masked actions]
+\label{prop:masked_zero}
+If $m_{i,a}=0$ then $\pi_\phi(a\mid o_i)=0$ and $\partial\pi_\phi(a\mid o_i)/\partial z_{i,b}=0$ for all $b$.
+\end{proposition}
+\begin{proof}
+When $m_{i,a}=0$ the numerator of~\eqref{eq:masked_softmax} is zero regardless of $z_{i,a}$, so $\pi_\phi(a\mid o_i)=0$. Since this holds for all values of all logits, every partial derivative is also zero.
+\end{proof}
+
+\paragraph{Implementation.} In practice invalid logits are set to $-10^9$ before the standard softmax rather than using~\eqref{eq:masked_softmax} directly; the two formulations are numerically equivalent when the finite approximation dominates all valid logits.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Discrete SAC: Losses and Gradients}
+\label{sec:Appendix_SAC_gradients}
+% ─────────────────────────────────────────────────────────────────────────────
+
+\subsection{Critic Loss and Gradient}
+\label{sec:Appendix_critic_loss}
+
+Given a replay-buffer sample $(s,a,r,s',d)$, the soft TD target (with stop-gradient) is
+\begin{equation}
+  y = r + \gamma(1-d)\sum_{a'}\pi_\phi(a'\mid s')\!
+      \left[\min_{j=1,2}Q_{\bar\theta_j}(s',a') - \alpha\log\pi_\phi(a'\mid s')\right].
+\end{equation}
+For twin critic $j$:
+\begin{equation}
+  \mathcal{L}_Q(\theta_j)
+  = \mathbb{E}_{\mathcal{D}}\!\left[\tfrac{1}{2}\bigl(Q_{\theta_j}(s,a)-y\bigr)^2\right],
+  \qquad
+  \nabla_{\!\theta_j}\mathcal{L}_Q
+  = \mathbb{E}_{\mathcal{D}}\!\left[\bigl(Q_{\theta_j}(s,a)-y\bigr)\nabla_{\!\theta_j}Q_{\theta_j}(s,a)\right].
+\end{equation}
+With Prioritised Experience Replay the loss is reweighted by importance-sampling corrections. For TD error $\delta_k = Q_{\theta_j}(s_k,a_k)-y_k$, define
+\begin{equation}
+  p_k = |\delta_k|+\varepsilon,\quad
+  P(k) = \frac{p_k^\beta}{\sum_j p_j^\beta},\quad
+  w_k = \!\left(\frac{1}{|\mathcal{D}|\,P(k)}\right)^{\!\rho},\quad
+  \tilde w_k = \frac{w_k}{\max_j w_j},
+  \label{eq:per_weights}
+\end{equation}
+giving PER critic loss $\mathcal{L}_Q(\theta_j) = \mathbb{E}_{k\sim P}[\tilde w_k\,\tfrac{1}{2}\delta_k^2]$.
+
+\subsection{Actor Loss and Softmax-Logit Gradient}
+\label{sec:Appendix_actor_gradient}
+
+The discrete actor loss is (reproduced from Equation~\ref{eq:sac_actor_loss}):
+\begin{equation}
+  \mathcal{L}_\pi(\phi) = \mathbb{E}_{s\sim\mathcal{D}}\!\left[
+    \sum_{a\in\mathcal{A}(s)}\pi_\phi(a\mid s)
+    \Bigl(\alpha\log\pi_\phi(a\mid s) - \min_k Q_{\theta_k}(s,a)\Bigr)\right].
+\end{equation}
+Define the soft state value $V_\theta^\pi(s) = \sum_a\pi_a\bigl[Q_\theta(s,a)-\alpha\log\pi_a\bigr]$.
+
+\begin{proposition}[Logit gradient of the actor loss]
+\label{prop:actor_gradient}
+Let $\pi_a = \operatorname{softmax}(z)_a$. Then
+\begin{equation}
+  \frac{\partial\mathcal{L}_\pi}{\partial z_b}
+  = \pi_b\Bigl[\alpha\log\pi_b - Q_\theta(s,b) + V_\theta^\pi(s)\Bigr].
+  \label{eq:actor_logit_grad}
+\end{equation}
+\end{proposition}
+\begin{proof}
+Using the softmax Jacobian $\partial\pi_a/\partial z_b = \pi_a(\delta_{ab}-\pi_b)$ and applying the product rule:
+\begin{align*}
+  \frac{\partial\mathcal{L}_\pi}{\partial z_b}
+  &= \sum_a\frac{\partial\pi_a}{\partial z_b}
+     \bigl(\alpha\log\pi_a - Q_\theta(s,a) + \alpha\bigr) \\
+  &= \sum_a\pi_a(\delta_{ab}-\pi_b)
+     \bigl(\alpha\log\pi_a - Q_\theta(s,a) + \alpha\bigr) \\
+  &= \pi_b\bigl(\alpha\log\pi_b - Q_\theta(s,b) + \alpha\bigr)
+     - \pi_b\!\sum_a\pi_a\bigl(\alpha\log\pi_a - Q_\theta(s,a) + \alpha\bigr).
+\end{align*}
+The inner sum equals $-V_\theta^\pi(s)+\alpha$. Substituting and cancelling $\alpha$ yields~\eqref{eq:actor_logit_grad}.
+\end{proof}
+
+\paragraph{Interpretation.} Actions with $Q_\theta(s,b) > V_\theta^\pi(s)$ receive a negative gradient component and therefore increased probability; the baseline $V_\theta^\pi(s)$ centres each update; the $\alpha\log\pi_b$ term moderates excessive concentration on any single action.
+
+\subsection{Temperature Objective and Log-Parameterisation}
+\label{sec:Appendix_alpha_loss}
+
+The temperature $\alpha$ is updated by minimising (Equation~\ref{eq:sac_alpha_loss})
+\begin{equation}
+  \mathcal{L}(\alpha)
+  = \mathbb{E}_{s\sim\mathcal{D}}\!\left[
+    \alpha\bigl(\mathcal{H}(\pi(\cdot\mid s)) - \mathcal{H}_{\mathrm{target}}\bigr)\right].
+  \label{eq:alpha_loss_appendix}
+\end{equation}
+Gradient $\nabla_\alpha\mathcal{L} = \mathbb{E}[\mathcal{H}(\pi)-\mathcal{H}_{\mathrm{target}}]$ correctly drives $\alpha$ upward when entropy falls below the target and downward when it exceeds it.
+
+For numerical stability the implementation optimises $\beta = \log\alpha$ (ensuring $\alpha=e^\beta>0$):
+\begin{equation}
+  \mathcal{L}_\alpha(\beta)
+  = e^\beta\,\mathbb{E}_{s\sim\mathcal{D}}\!\left[
+    \mathcal{H}_{\mathrm{target}} - \mathcal{H}(\pi_\phi(\cdot\mid s))\right],
+  \qquad
+  \nabla_\beta\mathcal{L}_\alpha
+  = e^\beta\,\mathbb{E}\!\left[\mathcal{H}_{\mathrm{target}} - \mathcal{H}(\pi)\right].
+\end{equation}
+This is the sign-flipped reparameterisation of~\eqref{eq:alpha_loss_appendix}; both forms drive $\alpha$ in the same direction under their respective gradient-descent steps.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{PPO: Generalised Advantage Estimation and Joint Loss}
+\label{sec:Appendix_PPO}
+% ─────────────────────────────────────────────────────────────────────────────
+
+The TD residual and GAE advantage estimate are
+\begin{align}
+  \delta_t &= r_t + \gamma V_\psi(s_{t+1}) - V_\psi(s_t), \label{eq:td_residual} \\
+  \hat{A}_t^{\mathrm{GAE}} &= \sum_{l=0}^{T-t-1}(\gamma\lambda)^l\delta_{t+l},
+  \label{eq:gae}
+\end{align}
+with $\lambda=0.95$ and $\gamma=0.99$; value targets are $\hat{R}_t = \hat{A}_t + V_\psi(s_t)$.
+
+The joint PPO objective (to maximise) is
+\begin{equation}
+  \mathcal{L}_{\mathrm{PPO}} = \mathcal{L}^{\mathrm{CLIP}} - c_1\mathcal{L}^{VF} + c_2\mathcal{H}[\pi_\phi],
+  \quad c_1=0.5,\quad c_2=10^{-3},
+  \label{eq:ppo_joint}
+\end{equation}
+where $\mathcal{L}^{\mathrm{CLIP}}$ is defined in Equation~\ref{sec:Methodology_PPO} and $\mathcal{L}^{VF} = \mathbb{E}_t[(V_\psi(s_t)-\hat{R}_t)^2]$.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{GATv2: Edge Weights and Permutation Equivariance}
+\label{sec:Appendix_GATv2_properties}
+% ─────────────────────────────────────────────────────────────────────────────
+
+\subsection{Edge-Weight Integration}
+\label{sec:Appendix_GATv2_edge_weights}
+
+The graph construction assigns $w_{ij}=1/\tau_{ij}$ (Equation~\ref{eq:edge_weight}). If incorporated into GATv2, the unnormalised attention score can be augmented as
+\begin{equation}
+  e_{ij} = \mathbf{a}^\top\mathrm{LeakyReLU}\!\bigl(\mathbf{W}[\mathbf{h}_i\,\Vert\,\mathbf{h}_j]\bigr)
+           + \eta\log(w_{ij}+\varepsilon),
+  \label{eq:gatv2_edge_weight}
+\end{equation}
+where $\eta>0$ is a learnable scalar and $\varepsilon>0$ prevents $\log 0$. In the current implementation $w_{ij}$ is passed to \texttt{GATv2Conv} as edge-attribute metadata but the log-weight additive term in~\eqref{eq:gatv2_edge_weight} is not activated; topology enters only through graph connectivity. Equation~\eqref{eq:gatv2_edge_weight} is presented as a candidate extension.
+
+\subsection{Node-Permutation Equivariance}
+\label{sec:Appendix_GATv2_equivariance}
+
+Let $P\in\{0,1\}^{N\times N}$ be a node-permutation matrix, $X\in\mathbb{R}^{N\times d}$ the feature matrix, and $\mathcal{E}$ the edge set.
+
+\begin{proposition}[GATv2 node-permutation equivariance]
+\label{prop:gatv2_equivariance}
+The GATv2 encoder $f$ satisfies $f(PX, P\mathcal{E}) = Pf(X,\mathcal{E})$.
+\end{proposition}
+\begin{proof}
+\begin{enumerate}
+\item \emph{Shared node encoder.} The local encoder $f_{\mathrm{enc}}$ uses the same weights for every node; permuting input rows gives $(f_{\mathrm{enc}}(PX))_i = f_{\mathrm{enc}}(X_{P^{-1}i}) = (Pf_{\mathrm{enc}}(X))_i$.
+\item \emph{Attention coefficients.} Under relabelling $i\mapsto Pi$, the logit $e_{Pi,Pj}$ is evaluated at features $(h_{Pi},h_{Pj})$, equalling $e_{ij}$ computed from the permuted embeddings. Softmax normalisation over neighbourhood $\{Pk : k\in\mathcal{N}(i)\}$ is identical.
+\item \emph{Neighbourhood aggregation.} Message pooling sums over unordered neighbour sets; the neighbour set of $Pi$ in $P\mathcal{E}$ is $\{Pj : j\in\mathcal{N}(i)\}$, which matches.
+\item \emph{Combined.} Relabelling inputs relabels outputs: $f(PX,P\mathcal{E})_i = f(X,\mathcal{E})_{P^{-1}i}$, i.e.\ $f(PX,P\mathcal{E})=Pf(X,\mathcal{E})$. \qedhere
+\end{enumerate}
+\end{proof}
+
+\paragraph{Significance.} Equivariance is what makes parameter sharing across intersections geometrically consistent: a policy trained on any intersection generalises to any topologically similar intersection without retraining.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{FRAP / FGSv2: Phase-Permutation Equivariance}
+\label{sec:Appendix_FRAP_equivariance}
+% ─────────────────────────────────────────────────────────────────────────────
+
+Let $P_A$ permute the $A_i$ candidate phases of intersection $i$. The FRAP encoder $g$ satisfies
+\begin{equation}
+  g\bigl(P_A\mathbf{M}_{\mathrm{pair}},\; P_A\mathbf{M}_{\mathrm{comp}}P_A^\top\bigr)
+  = P_A\,g\bigl(\mathbf{M}_{\mathrm{pair}},\mathbf{M}_{\mathrm{comp}}\bigr).
+  \label{eq:frap_equivariance}
+\end{equation}
+This holds because (1) movement embeddings share parameters across movements; (2) phase-pair pooling (Equation~\ref{eq:frap_phase_emb}) applies the same scaled sum to each candidate phase independently; (3) pairwise competition features (Equation~\ref{eq:frap_c}) use the same convolution for every ordered pair $(a,b)$; (4) the FGSv2 mean-pool over competitor set $V_{i,a}$ is permutation-invariant over competitors (Equation~\ref{eq:fgsv2_token}).
+
+\paragraph{Caveat.} FGSv2's action-conditioned actor concatenates a one-hot phase identity $\mathbf{e}_a$ (Equation~\ref{eq:fgsv2_actor}). For~\eqref{eq:frap_equivariance} to hold exactly, this one-hot must transform as $\mathbf{e}_a\mapsto P_A\mathbf{e}_a$ under phase relabelling. Since phases are indexed consistently across all training intersections this does not affect learning, but formal phase-permutation equivariance of FGSv2 holds only up to the phase-identity encoding.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Centralised Critic: Input-Dimension Scaling}
+\label{sec:Appendix_critic_complexity}
+% ─────────────────────────────────────────────────────────────────────────────
+
+For FGSv2 (Equation~\ref{eq:fgsv2_critic}), the critic input concatenates: (i) flattened gated graph contexts ($Nd_{h'}$ dims); (ii) joint action-probability matrix ($NA_{\max}$ dims); (iii) ego action token ($d_z$ dims); (iv) ego graph context ($d_{h'}$ dims); (v) one-hot ego identity ($N$ dims). The total is
+\begin{equation}
+  d_{\mathrm{critic}} = N(d_{h'} + A_{\max}) + d_z + d_{h'} + N
+                       = O\!\bigl(N(d_{h'} + A_{\max})\bigr).
+  \label{eq:critic_dim}
+\end{equation}
+At ingolstadt21 ($N=21$, $d_{h'}=128$, $A_{\max}=6$): $d_{\mathrm{critic}} \approx 21\times 134 + 277 = 3{,}091$. Twin critics, per-agent evaluation, and a PER replay batch multiply effective memory consumption considerably, which is the proximate cause of resource exhaustion reported in Section~\ref{sec:ResultsAndDiscussion_Convergence}. PPO's per-agent value function has input dimension $O(d_{h'})$, independent of $N$, explaining its ability to complete 200 training episodes at $N=21$ where SAC cannot.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Soft Bellman Contraction and Policy Improvement}
+\label{sec:Appendix_convergence}
+% ─────────────────────────────────────────────────────────────────────────────
+
+\subsection{Soft Bellman Contraction}
+\label{sec:Appendix_bellman_contraction}
+
+For a fixed policy $\pi$, the soft Bellman evaluation operator is
+\begin{equation}
+  (\mathcal{T}^\pi Q)(s,a)
+  = r(s,a) + \gamma\,\mathbb{E}_{s'}\!\left[
+    \sum_{a'}\pi(a'\mid s')\Bigl(Q(s',a') - \alpha\log\pi(a'\mid s')\Bigr)\right].
+\end{equation}
+
+\begin{theorem}[Soft Bellman contraction]
+\label{thm:bellman_contraction}
+$\mathcal{T}^\pi$ is a $\gamma$-contraction in $\|\cdot\|_\infty$:
+\begin{equation}
+  \|\mathcal{T}^\pi Q_1 - \mathcal{T}^\pi Q_2\|_\infty \leq \gamma\,\|Q_1-Q_2\|_\infty.
+\end{equation}
+Repeated application converges to the unique soft Q-function $Q^\pi_{\mathrm{soft}}$.
+\end{theorem}
+\begin{proof}
+The entropy terms cancel between $Q_1$ and $Q_2$. For any $(s,a)$:
+\begin{align*}
+  \bigl|(\mathcal{T}^\pi Q_1 - \mathcal{T}^\pi Q_2)(s,a)\bigr|
+  &= \gamma\left|\mathbb{E}_{s'}\!\left[\sum_{a'}\pi(a'\mid s')
+     (Q_1(s',a')-Q_2(s',a'))\right]\right| \\
+  &\leq \gamma\,\mathbb{E}_{s'}\!\left[\sum_{a'}\pi(a'\mid s')\|Q_1-Q_2\|_\infty\right]
+   = \gamma\,\|Q_1-Q_2\|_\infty.
+\end{align*}
+Taking the supremum over $(s,a)$ and applying the Banach fixed-point theorem completes the proof.
+\end{proof}
+
+\subsection{Soft Policy Improvement}
+\label{sec:Appendix_policy_improvement}
+
+Given $Q^\pi$, define the updated policy $\pi_{\mathrm{new}}(a\mid s) = \exp(Q^\pi(s,a)/\alpha)\,/\,Z(s)$ where $Z(s)=\sum_b\exp(Q^\pi(s,b)/\alpha)$.
+
+\begin{proposition}[Soft policy improvement]
+$V^{\pi_{\mathrm{new}}}_{\mathrm{soft}}(s) \geq V^\pi_{\mathrm{soft}}(s)$ for all $s$.
+\end{proposition}
+\begin{proof}
+Since $\log\pi_{\mathrm{new}}(a|s) = Q^\pi(s,a)/\alpha - \log Z(s)$, we have $Q^\pi(s,a)-\alpha\log\pi_{\mathrm{new}}(a|s)=\alpha\log Z(s)$ for all $a$, so $V^{\pi_{\mathrm{new}}}_{\mathrm{soft}}(s)=\alpha\log Z(s)$. Then:
+\begin{align*}
+  V^\pi_{\mathrm{soft}}(s)
+  &= \sum_a\pi(a|s)\bigl[Q^\pi(s,a)-\alpha\log\pi(a|s)\bigr] \\
+  &= \alpha\log Z(s)
+     - \alpha\underbrace{D_{\mathrm{KL}}\!\bigl(\pi(\cdot|s)\,\|\,\pi_{\mathrm{new}}(\cdot|s)\bigr)}_{\geq\,0}
+   \leq \alpha\log Z(s)
+   = V^{\pi_{\mathrm{new}}}_{\mathrm{soft}}(s).
+\end{align*}
+\end{proof}
+
+\subsection{Convergence Disclaimer}
+\label{sec:Appendix_convergence_disclaimer}
+
+The results above apply to the finite tabular entropy-regularised MDP. The implemented FGS/FGSv2 system departs from this setting through nonlinear function approximation, off-policy experience replay, simultaneous multi-agent learning, partial observability, target networks, and nonstationarity from co-adapting agent policies. These factors break the classical contraction argument, and global convergence to an optimal policy is \emph{not} guaranteed. The proofs establish the theoretical foundation of the SAC update targets; empirical convergence is assessed through training curves, TD errors, entropy, and validation metrics (Chapter~\ref{ch:ResultsAndDiscussion}).
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{Statistical Notes on Single-Seed Results}
+\label{sec:Appendix_stats}
+% ─────────────────────────────────────────────────────────────────────────────
+
+The RESCO benchmark specifies five random seeds with result averaging. Resource constraints limited most runs in this work to a single seed; results should be interpreted as indicative point estimates rather than statistically conclusive claims. For reference, a five-seed comparison would report mean $\bar x = S^{-1}\sum_s x_s$, standard error $\mathrm{SE}=\hat\sigma/\!\sqrt{S}$, and a 95\% confidence interval $\bar x \pm t_{S-1,\,0.975}\,\hat\sigma/\!\sqrt{S}$. Method comparisons benefit from paired differences $d_s = x_s^A - x_s^B$, which cancel seed-level variance: $\bar d \pm t_{S-1,\,0.975}\,\hat\sigma_d/\!\sqrt{S}$. Future work extending to five seeds will report paired-difference confidence intervals following this protocol.
 
 \chapter{Full Experimental Results}
 \label{ch:Appendix_FullResults}

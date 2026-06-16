@@ -81,6 +81,11 @@
 
 %%%% Font setup: use Libertinus for text and New Computer Modern for math
 \PassOptionsToPackage{reqno}{amsmath}
+\usepackage{amsthm}
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
 \usepackage[nomath]{libertinus}
 \usepackage{unicode-math}
 \setmathfont{NewCMMath-Book.otf}
@@ -334,12 +339,6 @@
 
 \tableofcontents
 \clearpage
-\listoffigures
-\addcontentsline{toc}{chapter}{List of Figures}
-\clearpage
-\listoftables
-\addcontentsline{toc}{chapter}{List of Tables}
-\clearpage
 \ifdefined\ThesisLanguageIsEnglish
     \printglossary[type=\acronymtype, title=List of Abbreviations, toctitle=List of Abbreviations]
 \else
@@ -369,6 +368,12 @@
     \input{TeXFiles/090_Appendix}
 \end{appendix}
 
+\clearpage
+\listoffigures
+\addcontentsline{toc}{chapter}{List of Figures}
+\clearpage
+\listoftables
+\addcontentsline{toc}{chapter}{List of Tables}
 \clearpage
 
 %Falls man die Überschrift des Literaturverzeichnisses
