@@ -4,13 +4,13 @@
 \section{Background and Motivation}
 \label{sec:Introduction_BackgroundAndMotivation}
 
-Urban traffic congestion is among the most persistent inefficiencies in modern infrastructure. In cities worldwide, the time lost to congestion increases vehicle emissions, raises logistics costs, and degrades quality of life for millions of daily commuters. Germany, with one of the highest vehicle densities in Europe, experiences significant peak-hour delays in its major urban centres; Cologne and Ingolstadt — the two cities whose road networks are evaluated in this thesis — are representative of the medium-density European urban environment where signal timing directly determines the throughput and fairness of the road network.
+Urban traffic congestion is among the most persistent inefficiencies in modern infrastructure. In cities worldwide, the time lost to congestion increases vehicle emissions, raises logistics costs, and degrades quality of life for millions of daily commuters. Germany, with one of the highest vehicle densities in Europe, experiences significant peak-hour delays in its major urban centers; Cologne and Ingolstadt — the two cities whose road networks are evaluated in this thesis — are representative of the medium-density European urban environment where signal timing directly determines the throughput and fairness of the road network.
 
 Traffic signal control (TSC) is the primary lever through which urban traffic is managed at the intersection level. A well-timed signal plan reduces average waiting time, balances queue lengths across directions, and enables coordinated flow along arterials. Conversely, poorly timed signals generate spillback — queues that extend upstream and block intersections they do not serve — which can cascade into network-wide congestion. The challenge is that optimal signal timing depends on real-time demand conditions that are neither stationary nor predictable from historical data alone. Fixed-time plans, designed for average demand, leave substantial throughput gains on the table during off-peak periods and fail under demand spikes caused by incidents or events.
 
 The response to these limitations has followed two broad tracks. The first track, represented by adaptive control systems such as SCOOT \citep{hunt1981scoot} and SCATS \citep{lowrie1990scats}, augments traditional signal engineering with real-time feedback from loop detectors. These systems have demonstrated meaningful improvements in arterial delay but require dense sensing infrastructure, expert parameter calibration, and remain constrained by pre-defined phase sequences. The second track, initiated by early reinforcement learning (RL) work \citep{wiering2000multiagent} and greatly expanded by deep RL \citep{wei2018intellilight,wei2019presslight}, treats phase selection as a sequential decision problem that an agent can learn to solve from simulation experience. This approach requires no explicit traffic model and, in principle, adapts to any demand pattern within the distribution encountered during training.
 
-The extension from single-intersection RL to multi-agent RL (MARL) for network-level control introduces a further challenge: agents must not only learn individually effective phase policies, but also produce collectively coherent behaviour that reduces network-wide delay. Independent agents, each optimising its own local reward, ignore the upstream and downstream consequences of their decisions. Graph-based communication — where each intersection aggregates information from its neighbours over the road graph — provides a mechanism for coupling agent decisions without requiring centralised coordination at execution time \citep{wei2019colight}.
+The extension from single-intersection RL to multi-agent RL (MARL) for network-level control introduces a further challenge: agents must not only learn individually effective phase policies, but also produce collectively coherent behavior that reduces network-wide delay. Independent agents, each optimizing its own local reward, ignore the upstream and downstream consequences of their decisions. Graph-based communication — where each intersection aggregates information from its neighbors over the road graph — provides a mechanism for coupling agent decisions without requiring centralized coordination at execution time \citep{wei2019colight}.
 
 
 \section{Problem Statement}
@@ -20,9 +20,9 @@ Despite significant progress in RL-based TSC, three practical gaps remain unaddr
 
 First, the dominant evaluation environments in MARL-TSC research are synthetic grid networks or Chinese urban scenarios (Hangzhou, Jinan). The German RESCO benchmark \citep{ault2021reinforcement} provides real-world demand models for Cologne and Ingolstadt and has been adopted as a standard evaluation protocol, but few MARL-TSC methods — particularly those using graph-based communication — have been evaluated on it. Whether coordination mechanisms that work on regular Chinese grids transfer to the irregular topologies and heterogeneous phase structures of German networks is an open empirical question.
 
-Second, the RL algorithms used in MARL-TSC are almost exclusively value-based (DQN and its variants) or on-policy (PPO). Soft Actor-Critic \citep{haarnoja2018soft}, which offers off-policy sample efficiency and entropy-regularised exploration, has not been systematically evaluated in a graph-aware multi-agent setting for traffic control. SAC's entropy bonus may be particularly beneficial in multi-agent environments, where diverse policies reduce the risk that agents converge to coordination patterns that perform well in training scenarios but fail under distribution shift.
+Second, the RL algorithms used in MARL-TSC are almost exclusively value-based (DQN and its variants) or on-policy (PPO). Soft Actor-Critic \citep{haarnoja2018soft}, which offers off-policy sample efficiency and entropy-regularized exploration, has not been systematically evaluated in a graph-aware multi-agent setting for traffic control. SAC's entropy bonus may be particularly beneficial in multi-agent environments, where diverse policies reduce the risk that agents converge to coordination patterns that perform well in training scenarios but fail under distribution shift.
 
-Third, no published method combines all three of the following properties in a single framework: (i) a phase-aware local encoder that models phase competition explicitly \citep{zheng2019learning}; (ii) graph-attention communication between neighbouring intersections; and (iii) discrete-action SAC as the RL algorithm. The interaction between these components — whether phase-aware encoding complements or competes with graph communication, and whether entropy regularisation helps or hinders convergence in this setting — is unknown.
+Third, no published method combines all three of the following properties in a single framework: (i) a phase-aware local encoder that models phase competition explicitly \citep{zheng2019learning}; (ii) graph-attention communication between neighboring intersections; and (iii) discrete-action SAC as the RL algorithm. The interaction between these components — whether phase-aware encoding complements or competes with graph communication, and whether entropy regularization helps or hinders convergence in this setting — is unknown.
 
 This thesis addresses all three gaps by designing, implementing, and evaluating the FGS (FRAP-Graph-SAC) framework: a graph-aware MARL system for traffic signal control that combines local phase-aware encoders, GATv2-based inter-agent communication, and discrete-action SAC, evaluated on six German RESCO scenarios spanning three scale tiers: Single-intersection (cologne1, ingolstadt1), Corridor (cologne3, ingolstadt7), and Regional (cologne8, ingolstadt21).
 
@@ -32,21 +32,21 @@ This thesis addresses all three gaps by designing, implementing, and evaluating 
 The work reported in this thesis pursues five interconnected objectives:
 
 \begin{enumerate}
-  \item \textbf{Survey existing TSC approaches.} Review classical, RL-based, and MARL-based methods to identify the state of the art and the limitations that motivate graph-aware, entropy-regularised control.
+  \item \textbf{Survey existing TSC approaches.} Review classical, RL-based, and MARL-based methods to identify the state of the art and the limitations that motivate graph-aware, entropy-regularized control.
 
   \item \textbf{Study local feature representation.} Investigate the effect of local encoder design — specifically MLP encoders versus the FRAP phase-competition encoder — on agent performance and learning dynamics.
 
-  \item \textbf{Study graph-based inter-agent communication.} Analyse whether GATv2-based message passing between neighbouring intersections improves coordination, and whether the benefit depends on network size and topology.
+  \item \textbf{Study graph-based inter-agent communication.} Analyse whether GATv2-based message passing between neighboring intersections improves coordination, and whether the benefit depends on network size and topology.
 
-  \item \textbf{Study RL optimisation schemes.} Compare discrete-action SAC, DQN, and PPO as RL algorithms within the same MARL-TSC framework, examining sample efficiency, stability, and final performance.
+  \item \textbf{Study RL optimization schemes.} Compare discrete-action SAC, DQN, and PPO as RL algorithms within the same MARL-TSC framework, examining sample efficiency, stability, and final performance.
 
-  \item \textbf{Evaluate across German RESCO scenarios.} Assess the complete FGS and FGSv2 frameworks against classical and deep RL baselines on the German RESCO benchmark, characterising performance, scalability, and the contribution of individual architectural components.
+  \item \textbf{Evaluate across German RESCO scenarios.} Assess the complete FGS and FGSv2 frameworks against classical and deep RL baselines on the German RESCO benchmark, characterizing performance, scalability, and the contribution of individual architectural components.
 \end{enumerate}
 
 \section{Research Questions and Hypotheses}
 \label{sec:Introduction_ResearchQuestions}
 
-The empirical investigation is organised around three primary research questions and one exploratory question.
+The empirical investigation is organized around three primary research questions and one exploratory question.
 
 \medskip
 \noindent\textbf{RQ1:} \textit{How does the proposed graph-aware multi-agent SAC framework perform compared with classical traffic-control methods and deep RL baselines across German RESCO traffic scenarios?}
@@ -58,17 +58,17 @@ The empirical investigation is organised around three primary research questions
 \noindent\textbf{RQ3:} \textit{How does the proposed framework behave across traffic networks of different sizes and topologies, such as the Cologne and Ingolstadt scenarios with varying numbers of intersections?}
 
 \medskip
-\noindent\textbf{RQ4} \textit{(exploratory):} \textit{To what extent can the learned multi-agent control behaviour be interpreted as decentralised self-organisation that produces network-level coordination?}
+\noindent\textbf{RQ4} \textit{(exploratory):} \textit{To what extent can the learned multi-agent control behavior be interpreted as decentralized self-organization that produces network-level coordination?}
 
 \medskip
 
 Four hypotheses guide the experimental design. They are stated as testable propositions, not guarantees; the experiments may confirm, partially support, or refute each one.
 
 \medskip
-\noindent\textbf{H1:} \textit{Graph-aware communication improves coordination between neighbouring intersections compared with independent-agent methods, as reflected in lower network-level mean travel time and waiting time.}
+\noindent\textbf{H1:} \textit{Graph-aware communication improves coordination between neighboring intersections compared with independent-agent methods, as reflected in lower network-level mean travel time and waiting time.}
 
 \medskip
-\noindent\textbf{H2:} \textit{Entropy-regularised SAC produces more stable training curves than purely value-based methods (DQN) in selected multi-agent German RESCO scenarios.} This hypothesis is framed as an investigation: SAC may not outperform DQN in all scenarios, and the conditions under which entropy regularisation is beneficial are themselves of interest.
+\noindent\textbf{H2:} \textit{Entropy-regularized SAC produces more stable training curves than purely value-based methods (DQN) in selected multi-agent German RESCO scenarios.} This hypothesis is framed as an investigation: SAC may not outperform DQN in all scenarios, and the conditions under which entropy regularization is beneficial are themselves of interest.
 
 \medskip
 \noindent\textbf{H3:} \textit{Phase-aware local encoders such as FRAP do not necessarily improve performance in all German RESCO scenarios.} FRAP's phase-competition structure encodes assumptions about movement representation and phase pairing that may not align uniformly with every network topology, making its relative contribution an empirical rather than a guaranteed finding.
@@ -82,11 +82,11 @@ Four hypotheses guide the experimental design. They are stated as testable propo
 \subsection{Scope}
 \label{sec:Introduction_Scope}
 
-This thesis focuses on the design, implementation, and empirical evaluation of a graph-aware MARL framework for signalised intersection control. The scope encompasses:
+This thesis focuses on the design, implementation, and empirical evaluation of a graph-aware MARL framework for signalized intersection control. The scope encompasses:
 \begin{itemize}
   \item Control algorithm design: the FGS and FGSv2 architectural variants described in Chapter~\ref{ch:Methodology}.
   \item Algorithm analysis: ablation across encoder types, communication mechanisms, and RL algorithms.
-  \item Empirical comparison: six German RESCO scenarios across three scale tiers — \textbf{Single-intersection} (cologne1, ingolstadt1), \textbf{Corridor} (cologne3, ingolstadt7), and \textbf{Regional} (cologne8, ingolstadt21) — against a standardised set of classical and deep RL baselines. FGS-variant results for the ingolstadt7 Corridor scenario were not available at the time of writing and are omitted from the FGS comparison columns; baseline results for that scenario are included for reference.
+  \item Empirical comparison: six German RESCO scenarios across three scale tiers — \textbf{Single-intersection} (cologne1, ingolstadt1), \textbf{Corridor} (cologne3, ingolstadt7), and \textbf{Regional} (cologne8, ingolstadt21) — against a standardized set of classical and deep RL baselines. FGS-variant results for the ingolstadt7 Corridor scenario were not available at the time of writing and are omitted from the FGS comparison columns; baseline results for that scenario are included for reference.
 \end{itemize}
 
 \subsection{Limitations}
@@ -95,7 +95,7 @@ This thesis focuses on the design, implementation, and empirical evaluation of a
 The following are explicitly outside the scope of this work:
 
 \begin{itemize}
-  \item \textbf{Pedestrian and cyclist modelling.} The SUMO environments used do not simulate pedestrian or cyclist movements; the control policy addresses vehicle phase selection only.
+  \item \textbf{Pedestrian and cyclist modeling.} The SUMO environments used do not simulate pedestrian or cyclist movements; the control policy addresses vehicle phase selection only.
 
   \item \textbf{Simulation environment.} All experiments are conducted in SUMO \citep{lopez2018microscopic} via the TraCI interface. Real-world deployment, with its sensor noise, communication latency, and physical actuator constraints, is not addressed.
 
@@ -111,11 +111,11 @@ The following are explicitly outside the scope of this work:
 \section{Thesis Structure}
 \label{sec:Introduction_ThesisStructure}
 
-The remainder of this thesis is organised as follows.
+The remainder of this thesis is organized as follows.
 
 \textbf{Chapter~\ref{ch:LiteratureReview}} surveys existing TSC approaches from fixed-time control through single-agent and multi-agent RL, reviews graph neural network variants relevant to inter-agent communication, and identifies the research gap that this thesis addresses.
 
-\textbf{Chapter~\ref{ch:TheoreticalBackground}} establishes the mathematical and conceptual foundations: Markov Decision Processes, partially observable and multi-agent extensions, the progression from dynamic programming to deep RL and entropy-regularised actor-critic methods, graph neural network message passing, and the traffic engineering concepts required to interpret the experiments.
+\textbf{Chapter~\ref{ch:TheoreticalBackground}} establishes the mathematical and conceptual foundations: Markov Decision Processes, partially observable and multi-agent extensions, the progression from dynamic programming to deep RL and entropy-regularized actor-critic methods, graph neural network message passing, and the traffic engineering concepts required to interpret the experiments.
 
 \textbf{Chapter~\ref{ch:Methodology}} describes the FGS and FGSv2 frameworks in detail: observation space, action space, graph construction, baseline algorithms, reward function, and the full architectural specifications of both proposed variants.
 
@@ -123,4 +123,4 @@ The remainder of this thesis is organised as follows.
 
 \textbf{Chapter~\ref{ch:ResultsAndDiscussion}} presents and interprets the experimental results: main performance comparisons, ablation across architectural variants, cross-scenario analysis, and answers to each research question.
 
-\textbf{Chapter~\ref{ch:ConclusionFutureWork}} summarises the contributions, reflects on the hypotheses in light of the experimental findings, and identifies directions for future work.
+\textbf{Chapter~\ref{ch:ConclusionFutureWork}} summarizes the contributions, reflects on the hypotheses in light of the experimental findings, and identifies directions for future work.

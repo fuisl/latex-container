@@ -2,12 +2,12 @@
 \chaptermark{Methodology}
 \label{ch:Methodology}
 
-The proposed framework, referred to as \emph{FGS} (FRAP-Graph-SAC), extends the multi-agent Soft Actor-Critic algorithm with graph-based inter-agent communication and phase-aware local encoding. Its second-generation variant, \emph{FGSv2}, replaces the single node embedding produced by the local encoder with a set of per-action tokens, enabling richer action-conditioned reasoning at both the actor and the centralized critic. Both variants follow the \emph{centralised training with decentralised execution} (CTDE) paradigm \citep{lowe2017multi}: at execution time each agent acts solely on its own local observation, while training exploits a centralized critic that has access to the joint state of all agents.
+The proposed framework, referred to as \emph{FGS} (FRAP-Graph-SAC), extends the multi-agent Soft Actor-Critic algorithm with graph-based inter-agent communication and phase-aware local encoding. Its second-generation variant, \emph{FGSv2}, replaces the single node embedding produced by the local encoder with a set of per-action tokens, enabling richer action-conditioned reasoning at both the actor and the centralized critic. Both variants follow the \emph{centralized training with decentralized execution} (CTDE) paradigm \citep{lowe2017multi}: at execution time each agent acts solely on its own local observation, while training exploits a centralized critic that has access to the joint state of all agents.
 
 \section{Problem Formulation}
 \label{sec:Methodology_ProblemFormulation}
 
-A signalised road network with $N$ intersections is modelled as a Decentralized Partially Observable Markov Decision Process (Dec-POMDP) $\langle \mathcal{N}, \mathcal{S}, \{\mathcal{O}_i\}, \{\mathcal{A}_i\}, T, \{r_i\}, \gamma \rangle$, where $\mathcal{N} = \{1, \ldots, N\}$ is the set of agents, $\mathcal{S}$ is the global state of the SUMO environment, $\mathcal{O}_i$ is the local observation space of agent $i$, $\mathcal{A}_i$ is its action space, $T$ is the stochastic transition function determined by the simulator, $r_i$ is the local reward function, and $\gamma \in (0,1)$ is the discount factor. Agents act simultaneously at each decision step; each agent observes only the state of its own intersection and its immediate neighbourhood.
+A signalized road network with $N$ intersections is modelled as a Decentralized Partially Observable Markov Decision Process (Dec-POMDP) $\langle \mathcal{N}, \mathcal{S}, \{\mathcal{O}_i\}, \{\mathcal{A}_i\}, T, \{r_i\}, \gamma \rangle$, where $\mathcal{N} = \{1, \ldots, N\}$ is the set of agents, $\mathcal{S}$ is the global state of the SUMO environment, $\mathcal{O}_i$ is the local observation space of agent $i$, $\mathcal{A}_i$ is its action space, $T$ is the stochastic transition function determined by the simulator, $r_i$ is the local reward function, and $\gamma \in (0,1)$ is the discount factor. Agents act simultaneously at each decision step; each agent observes only the state of its own intersection and its immediate neighborhood.
 
 \section{Observation Space}
 \label{sec:Methodology_ObservationSpace}
@@ -23,7 +23,7 @@ The node feature matrix $\mathbf{X} \in \mathbb{R}^{N \times d}$ stacks the feat
            \mathbf{q}^{(i)}\,\bigr] \in \mathbb{R}^{d},
   \label{eq:node_feature}
 \end{equation}
-where $\mathbf{e}_{\mathrm{phase}}^{(i)}$ is a one-hot vector encoding the current active phase, $t_{\mathrm{green}}^{(i)}$ is the time elapsed since the last phase change normalised by the minimum green time, and $\boldsymbol{\rho}^{(i)}, \mathbf{q}^{(i)}$ are the lane density and lane queue vectors over all incoming lanes of intersection $i$.
+where $\mathbf{e}_{\mathrm{phase}}^{(i)}$ is a one-hot vector encoding the current active phase, $t_{\mathrm{green}}^{(i)}$ is the time elapsed since the last phase change normalized by the minimum green time, and $\boldsymbol{\rho}^{(i)}, \mathbf{q}^{(i)}$ are the lane density and lane queue vectors over all incoming lanes of intersection $i$.
 
 The remaining fields in the observation dictionary are:
 \begin{itemize}
@@ -49,10 +49,10 @@ Phase transition constraints (minimum green time, yellow interval) are enforced 
 The agent communication graph $\mathcal{G} = (\mathcal{V}, \mathcal{E}, \mathbf{W})$ is derived from the SUMO road network file (\texttt{.net.xml}) before training begins and is fixed throughout.
 
 \paragraph{Node extraction.}
-Every junction that carries a traffic light logic (\texttt{tlLogic}) in the network XML is added to $\mathcal{V}$ as a graph node. Its geographic coordinates are recorded for visualisation but are not used as model inputs.
+Every junction that carries a traffic light logic (\texttt{tlLogic}) in the network XML is added to $\mathcal{V}$ as a graph node. Its geographic coordinates are recorded for visualization but are not used as model inputs.
 
 \paragraph{Super-edge construction.}
-For each outgoing road segment from a traffic light node, a Dijkstra traversal follows legal road transitions until it reaches the nearest downstream traffic light node, accumulating the intermediate edges along the path. This yields a set of \emph{super-edges} that connect pairs of signalised intersections directly, abstracting away unsignalised junctions in between.
+For each outgoing road segment from a traffic light node, a Dijkstra traversal follows legal road transitions until it reaches the nearest downstream traffic light node, accumulating the intermediate edges along the path. This yields a set of \emph{super-edges} that connect pairs of signalized intersections directly, abstracting away unsignalized junctions in between.
 
 \paragraph{Edge weight assignment.}
 The weight of super-edge $(i, j)$ is
@@ -62,7 +62,7 @@ The weight of super-edge $(i, j)$ is
 \end{equation}
 where $\tau_{ij}$ is the estimated travel time along the path. When multiple parallel routes connect the same signal pair, their weights accumulate additively. All edges are inserted bidirectionally to enable symmetric message passing.
 
-The resulting graph is serialised to disk as a pre-processing artefact and loaded once per training run, adding no per-step overhead.
+The resulting graph is serialized to disk as a pre-processing artefact and loaded once per training run, adding no per-step overhead.
 
 \section{Baseline Algorithms}
 \label{sec:Methodology_ModelsAlgorithmsFrameworks}
@@ -72,18 +72,18 @@ The following algorithms serve as baselines or as the algorithmic foundation of 
 \subsection{Deep Q-Network}
 \label{sec:Methodology_DQN}
 
-Deep Q-Network (DQN) \citep{mnih2015humanlevel} approximates the action-value function with a neural network $Q_\theta(s, a)$ trained to minimise the temporal-difference loss
+Deep Q-Network (DQN) \citep{mnih2015humanlevel} approximates the action-value function with a neural network $Q_\theta(s, a)$ trained to minimize the temporal-difference loss
 \begin{equation}
   \mathcal{L}(\theta) =
     \mathbb{E}_{(s,a,r,s') \sim \mathcal{D}}
     \!\left[\left(r + \gamma \max_{a'} Q_{\bar\theta}(s', a') - Q_\theta(s, a)\right)^2\right],
 \end{equation}
-where $\mathcal{D}$ is a replay buffer and $\bar\theta$ are the parameters of a periodically updated target network. Each intersection runs an independent DQN with no inter-agent communication, forming a fully decentralised value-based baseline.
+where $\mathcal{D}$ is a replay buffer and $\bar\theta$ are the parameters of a periodically updated target network. Each intersection runs an independent DQN with no inter-agent communication, forming a fully decentralized value-based baseline.
 
-\subsection{Proximal Policy Optimisation}
+\subsection{Proximal Policy Optimization}
 \label{sec:Methodology_PPO}
 
-Proximal Policy Optimisation (PPO) \citep{schulman2017proximal} is an on-policy actor-critic method that limits policy update size through a clipped surrogate objective:
+Proximal Policy Optimization (PPO) \citep{schulman2017proximal} is an on-policy actor-critic method that limits policy update size through a clipped surrogate objective:
 \begin{equation}
   \mathcal{L}^{\mathrm{CLIP}}(\theta) =
     \mathbb{E}_t\!\left[
@@ -98,7 +98,7 @@ where $r_t(\theta) = \pi_\theta(a_t|s_t) / \pi_{\theta_{\mathrm{old}}}(a_t|s_t)$
 \subsection{Soft Actor-Critic}
 \label{sec:Methodology_SAC}
 
-Soft Actor-Critic (SAC) \citep{haarnoja2018soft} augments the expected return objective with an entropy regularisation term:
+Soft Actor-Critic (SAC) \citep{haarnoja2018soft} augments the expected return objective with an entropy regularization term:
 \begin{equation}
   \pi^* = \arg\max_\pi \mathbb{E}\!\left[
     \sum_{t=0}^{T} \gamma^t
@@ -106,7 +106,7 @@ Soft Actor-Critic (SAC) \citep{haarnoja2018soft} augments the expected return ob
   \right],
   \label{eq:sac_objective}
 \end{equation}
-where $\alpha > 0$ is a temperature parameter balancing exploitation and exploration. Because traffic signal control admits only discrete phase actions, this work applies the discrete-action SAC formulation \citep{christodoulou2019soft}, which marginalises analytically over all actions rather than relying on the reparameterisation trick. Twin Q-networks $Q_{\theta_1}, Q_{\theta_2}$ are maintained to reduce overestimation bias. The discrete-action soft target value is
+where $\alpha > 0$ is a temperature parameter balancing exploitation and exploration. Because traffic signal control admits only discrete phase actions, this work applies the discrete-action SAC formulation \citep{christodoulou2019soft}, which marginalizes analytically over all actions rather than relying on the reparameterization trick. Twin Q-networks $Q_{\theta_1}, Q_{\theta_2}$ are maintained to reduce overestimation bias. The discrete-action soft target value is
 \begin{equation}
   V_{\mathrm{target}}(s') =
     \sum_{a'} \pi_\phi(a' \mid s')
@@ -133,7 +133,7 @@ where $d \in \{0,1\}$ is the episode-termination flag. The critic and actor loss
     \right].
   \label{eq:sac_actor_loss}
 \end{align}
-The temperature $\alpha$ is itself optimised by minimising the dual objective
+The temperature $\alpha$ is itself optimized by minimizing the dual objective
 \begin{equation}
   \mathcal{L}(\alpha) =
     \mathbb{E}_{s\sim\mathcal{D}}\!\left[
@@ -141,12 +141,12 @@ The temperature $\alpha$ is itself optimised by minimising the dual objective
     \right],
   \label{eq:sac_alpha_loss}
 \end{equation}
-where $\mathcal{H}_{\mathrm{target}} = -\!\log(1/A_{\mathrm{valid}})$ is the entropy of the uniform policy over valid actions. Gradient derivations for all three SAC losses and the log-parameterisation of $\alpha$ are given in Appendix~\ref{sec:Appendix_SAC_gradients}. The off-policy design of SAC enables training from a prioritised replay buffer, reducing the number of environment interactions needed to reach convergence---an important property when SUMO simulations are the bottleneck.
+where $\mathcal{H}_{\mathrm{target}} = -\!\log(1/A_{\mathrm{valid}})$ is the entropy of the uniform policy over valid actions. Gradient derivations for all three SAC losses and the log-parameterization of $\alpha$ are given in Appendix~\ref{sec:Appendix_SAC_gradients}. The off-policy design of SAC enables training from a prioritized replay buffer, reducing the number of environment interactions needed to reach convergence---an important property when SUMO simulations are the bottleneck.
 
 \subsection{Graph Attention Layer}
 \label{sec:Methodology_GAT}
 
-Both FGS and FGSv2 use GATv2 \citep{brody2022how} as the graph communication operator. For context, the original CoLight method \citep{wei2019colight} employed a scaled dot-product attention mechanism in which the coefficient weighting the message from neighbour $j$ to ego $i$ is
+Both FGS and FGSv2 use GATv2 \citep{brody2022how} as the graph communication operator. For context, the original CoLight method \citep{wei2019colight} employed a scaled dot-product attention mechanism in which the coefficient weighting the message from neighbor $j$ to ego $i$ is
 \begin{equation}
   e_{ij} =
     \frac{
@@ -156,7 +156,7 @@ Both FGS and FGSv2 use GATv2 \citep{brody2022how} as the graph communication ope
     },
   \label{eq:colight_attn}
 \end{equation}
-where $\mathbf{p}_i$ are projected representations of head dimension $h_d$ and $\mathcal{N}(i)$ is the neighbourhood of $i$ in $\mathcal{G}$. This dot-product form cannot vary its attention coefficients based on the query node independently of the key, a limitation identified by \citet{brody2022how}.
+where $\mathbf{p}_i$ are projected representations of head dimension $h_d$ and $\mathcal{N}(i)$ is the neighborhood of $i$ in $\mathcal{G}$. This dot-product form cannot vary its attention coefficients based on the query node independently of the key, a limitation identified by \citet{brody2022how}.
 
 GATv2 corrects this with an additive attention formulation that is strictly more expressive:
 \begin{equation}
@@ -169,7 +169,7 @@ GATv2 corrects this with an additive attention formulation that is strictly more
     },
   \label{eq:gatv2_attn}
 \end{equation}
-where $\mathbf{W}$ and $\mathbf{a}$ are learnable parameters, $\Vert$ denotes concatenation, and $\alpha_{ij}$ is the normalised attention coefficient for edge $(i,j)$ — note that $\alpha_{ij}$ here is a graph-attention weight, distinct from the SAC temperature scalar $\alpha$ used in Section~\ref{sec:Methodology_SAC}. By applying the non-linearity before the inner product, GATv2 allows attention coefficients to depend jointly on both the query $\mathbf{h}_i$ and the key $\mathbf{h}_j$. Multi-head attention is applied with $H$ heads; outputs are concatenated and projected to the output dimension. All FGS and FGSv2 variants with graph communication use GATv2 as specified by Equation~\eqref{eq:gatv2_attn}. A proof of node-permutation equivariance and a discussion of edge-weight integration are in Appendix~\ref{sec:Appendix_GATv2_properties}.
+where $\mathbf{W}$ and $\mathbf{a}$ are learnable parameters, $\Vert$ denotes concatenation, and $\alpha_{ij}$ is the normalized attention coefficient for edge $(i,j)$ — note that $\alpha_{ij}$ here is a graph-attention weight, distinct from the SAC temperature scalar $\alpha$ used in Section~\ref{sec:Methodology_SAC}. By applying the non-linearity before the inner product, GATv2 allows attention coefficients to depend jointly on both the query $\mathbf{h}_i$ and the key $\mathbf{h}_j$. Multi-head attention is applied with $H$ heads; outputs are concatenated and projected to the output dimension. All FGS and FGSv2 variants with graph communication use GATv2 as specified by Equation~\eqref{eq:gatv2_attn}. A proof of node-permutation equivariance and a discussion of edge-weight integration are in Appendix~\ref{sec:Appendix_GATv2_properties}.
 
 \subsection{FRAP Encoder}
 \label{sec:Methodology_FRAP}
@@ -198,7 +198,7 @@ For each candidate phase $a$, the phase-pair embedding aggregates the movement e
   \boldsymbol{\phi}_{i,a} = \sum_{u} w_{i,a,u}\,\mathbf{e}_{i,u} \in \mathbb{R}^{C},
   \label{eq:frap_phase_emb}
 \end{equation}
-where the weight $w_{i,a,u} = P_{i,a,u}\cdot\min(\sum_v P_{i,a,v},\,2)\,/\,\max(\sum_v P_{i,a,v},\,1)$ normalises each phase's contribution to the expected two-movement sum, ensuring that phases controlling different numbers of movements are represented on a comparable scale.
+where the weight $w_{i,a,u} = P_{i,a,u}\cdot\min(\sum_v P_{i,a,v},\,2)\,/\,\max(\sum_v P_{i,a,v},\,1)$ normalizes each phase's contribution to the expected two-movement sum, ensuring that phases controlling different numbers of movements are represented on a comparable scale.
 
 \paragraph{Step 3: Pairwise competition feature.}
 For each ordered competitor pair $(a, b)$ with $b \ne a$, a hidden competition feature $\mathbf{c}_{i,a,b}$ is computed in three sub-steps. First, the concatenated phase-pair embeddings pass through a $1{\times}1$ convolutional layer to produce a latent interaction:
@@ -242,7 +242,7 @@ yielding one scalar per candidate phase that directly serves as a Q-value estima
 
 FGSv2 \emph{replaces} Steps 4a--4b entirely: instead of projecting $\mathbf{c}_{i,a,b}$ to a scalar, it mean-pools $\mathbf{c}_{i,a,b}$ across valid competitors to produce a rich action token $\mathbf{z}_{i,a}$, retaining the $C$-dimensional feature vector for downstream graph communication and action-conditioned actor computation (Equation~\ref{eq:fgsv2_token}).
 
-The overall design is permutation-equivariant with respect to phase ordering: reordering the candidate phases produces a correspondingly reordered output vector, which supports generalisation across intersections with heterogeneous phase counts and movement configurations.
+The overall design is permutation-equivariant with respect to phase ordering: reordering the candidate phases produces a correspondingly reordered output vector, which supports generalization across intersections with heterogeneous phase counts and movement configurations.
 
 \section{Reward Function}
 \label{sec:Methodology_Rewards}
@@ -257,9 +257,9 @@ All experiments use the differential waiting time reward:
   W_t = \frac{1}{100}\sum_{l \in \mathcal{L}}\sum_{v \in l} w_v(t),
   \label{eq:reward}
 \end{equation}
-where $\mathcal{L}$ is the set of incoming lanes controlled by the traffic signal, $v$ indexes vehicles, and $w_v(t)$ is the accumulated waiting time of vehicle $v$ at step $t$ as reported by SUMO via the TraCI interface. A positive value of $r_t$ indicates that total waiting time at the intersection decreased relative to the previous step. Dividing by 100 normalises the scale across scenarios that differ in traffic volume. Appendix~\ref{sec:Appendix_reward_telescope} proves that maximising the discounted sum of this reward is equivalent to minimising a discounted sum of waiting times.
+where $\mathcal{L}$ is the set of incoming lanes controlled by the traffic signal, $v$ indexes vehicles, and $w_v(t)$ is the accumulated waiting time of vehicle $v$ at step $t$ as reported by SUMO via the TraCI interface. A positive value of $r_t$ indicates that total waiting time at the intersection decreased relative to the previous step. Dividing by 100 normalizes the scale across scenarios that differ in traffic volume. Appendix~\ref{sec:Appendix_reward_telescope} proves that maximizing the discounted sum of this reward is equivalent to minimizing a discounted sum of waiting times.
 
-This reward is local to each agent, which aligns with the CTDE assumption: the reward does not require knowledge of the global joint state at execution time, so decentralised policies remain valid after training.
+This reward is local to each agent, which aligns with the CTDE assumption: the reward does not require knowledge of the global joint state at execution time, so decentralized policies remain valid after training.
 
 \subsection{Alternative Reward Signals}
 \label{sec:Methodology_AltRewards}
@@ -273,24 +273,24 @@ Pressure \citep{wei2019presslight} measures the lane imbalance at an intersectio
   p_i = \left|\,\sum_{l \in \mathcal{L}_{\mathrm{in}}^{i}} \rho_l
               - \sum_{l \in \mathcal{L}_{\mathrm{out}}^{i}} \rho_l\,\right|,
 \end{equation}
-where $\rho_l$ is vehicle density on lane $l$. The pressure reward $r_t = -p_i(t)$ penalises queue accumulation and has been shown to stabilise single-agent training \citep{wei2019presslight}. It was evaluated as an alternative signal but not adopted as the primary reward in this work.
+where $\rho_l$ is vehicle density on lane $l$. The pressure reward $r_t = -p_i(t)$ penalizes queue accumulation and has been shown to stabilize single-agent training \citep{wei2019presslight}. It was evaluated as an alternative signal but not adopted as the primary reward in this work.
 
 \section{Proposed Contributions: FGS and FGSv2}
 \label{sec:Methodology_IndividualContribution}
 
-Figure~\ref{fig:fgs_framework} provides a side-by-side overview of the FGS and FGSv2 architectures described in the following subsections. Both variants operate under the CTDE paradigm: the actor uses only the ego agent's local embedding at execution time, while the centralised critic additionally receives the full graph context and the joint action-probability matrix during training.
+Figure~\ref{fig:fgs_framework} provides a side-by-side overview of the FGS and FGSv2 architectures described in the following subsections. Both variants operate under the CTDE paradigm: the actor uses only the ego agent's local embedding at execution time, while the centralized critic additionally receives the full graph context and the joint action-probability matrix during training.
 
 \begin{figure}[ht]
   \centering
   \includegraphics[width=\textwidth]{Figures/fgs_framework.pdf}
-  \caption{Overview of the FGS (left) and FGSv2 (right) architectures. \textbf{FGS}: the raw node-feature matrix is processed by a shared local encoder (MLP or FRAP), optionally followed by a single GATv2 communication layer. The ego agent's updated embedding feeds the actor; the full graph tensor feeds the centralised critic. \textbf{FGSv2}: the FRAP encoder is tapped before its final scalar projection, producing per-phase action tokens $\mathbf{Z}_i$. A masked mean-pool of these tokens forms the node summary $\mathbf{s}_i$, which enters GATv2 communication and is gated by a learned scalar $\lambda$ (initialised to zero). The action-conditioned actor concatenates the per-phase token with the gated graph context and a one-hot phase identity before producing a logit for each candidate phase.}
+  \caption{Overview of the FGS (left) and FGSv2 (right) architectures. \textbf{FGS}: the raw node-feature matrix is processed by a shared local encoder (MLP or FRAP), optionally followed by a single GATv2 communication layer. The ego agent's updated embedding feeds the actor; the full graph tensor feeds the centralized critic. \textbf{FGSv2}: the FRAP encoder is tapped before its final scalar projection, producing per-phase action tokens $\mathbf{Z}_i$. A masked mean-pool of these tokens forms the node summary $\mathbf{s}_i$, which enters GATv2 communication and is gated by a learned scalar $\lambda$ (initialized to zero). The action-conditioned actor concatenates the per-phase token with the gated graph context and a one-hot phase identity before producing a logit for each candidate phase.}
   \label{fig:fgs_framework}
 \end{figure}
 
 \subsection{FGS: Graph-Aware Multi-Agent SAC}
 \label{sec:Methodology_FGS}
 
-FGS wraps the SAC algorithm with a shared graph encoder that enables each agent to condition its policy on the current state of its neighbours. All agents share a single set of parameters, so the framework scales to networks of arbitrary size without any per-agent parameter budget.
+FGS wraps the SAC algorithm with a shared graph encoder that enables each agent to condition its policy on the current state of its neighbors. All agents share a single set of parameters, so the framework scales to networks of arbitrary size without any per-agent parameter budget.
 
 \paragraph{Graph encoder.}
 The graph encoder $f_\psi$ transforms the dictionary observation into an ego embedding used by the actor and a full graph tensor used by the centralized critic. Given node features $\mathbf{X} \in \mathbb{R}^{N \times d}$, the encoder proceeds as follows:
@@ -300,7 +300,7 @@ The graph encoder $f_\psi$ transforms the dictionary observation into an ego emb
     \mathbf{h}_i = f_{\mathrm{enc}}(\mathbf{x}_i), \quad i = 1,\ldots,N.
   \]
   Two choices of $f_{\mathrm{enc}}$ are evaluated: a two-layer MLP (FGS-MLP) and the FRAP encoder described in Section~\ref{sec:Methodology_FRAP} (FGS-FRAP).
-  \item \textit{Graph communication (optional).} A single GAT or GATv2 layer aggregates messages from neighbours:
+  \item \textit{Graph communication (optional).} A single GAT or GATv2 layer aggregates messages from neighbors:
   \[
     \mathbf{h}_i^{\prime} = \mathrm{GAT}\bigl(\mathbf{h}_i,\; \{\mathbf{h}_j : j \in \mathcal{N}(i)\},\; \{w_{ij}\}\bigr).
   \]
@@ -332,7 +332,7 @@ The critic operates on the full graph tensor and an estimate of all agents' acti
 \]
 where $\boldsymbol{\Pi}_{a}$ substitutes the one-hot for $a$ into the ego row of the joint action-probability matrix $\boldsymbol{\Pi}$. Twin critics are maintained and the minimum is used for target computation as in standard SAC. The joint action structure requires $n$-step = 1 updates to keep the action-probability estimates on-policy. The input dimensionality of this critic and its implications for scalability at large $N$ are derived in Appendix~\ref{sec:Appendix_critic_complexity}.
 
-The four FGS variants investigated in this thesis are summarised in Table~\ref{tab:fgs_variants}.
+The four FGS variants investigated in this thesis are summarized in Table~\ref{tab:fgs_variants}.
 
 \begin{table}[ht]
   \centering
@@ -377,7 +377,7 @@ If $V_{i,a}$ is non-empty, the competition features are pooled and projected int
 \end{equation}
 The full action-token tensor is $\mathbf{Z}_i \in \mathbb{R}^{A_{\max} \times d_z}$, with rows for invalid phases set to zero.
 
-A node summary $\mathbf{s}_i \in \mathbb{R}^{d_z}$ aggregates information across all valid action tokens via masked mean-pooling followed by layer normalisation:
+A node summary $\mathbf{s}_i \in \mathbb{R}^{d_z}$ aggregates information across all valid action tokens via masked mean-pooling followed by layer normalization:
 \begin{equation}
   \mathbf{s}_i =
     \operatorname{LayerNorm}\!\left(
@@ -388,7 +388,7 @@ A node summary $\mathbf{s}_i \in \mathbb{R}^{d_z}$ aggregates information across
 The $\max(\cdot, 1)$ guard prevents division by zero for intersections with no valid phase, which cannot occur during normal operation but ensures numerical safety during graph-padding.
 
 \paragraph{Graph communication and residual gate.}
-GATv2 operates on the node summaries rather than on the full action-token tensors, keeping communication overhead independent of the number of candidate phases. A layer normalisation is applied before the GATv2 input; let $\mathbf{u}_i = \operatorname{LayerNorm}(\mathbf{s}_i)$. The neighbourhood aggregation (self-loops included) is
+GATv2 operates on the node summaries rather than on the full action-token tensors, keeping communication overhead independent of the number of candidate phases. A layer normalization is applied before the GATv2 input; let $\mathbf{u}_i = \operatorname{LayerNorm}(\mathbf{s}_i)$. The neighborhood aggregation (self-loops included) is
 \begin{equation}
   \tilde{\mathbf{g}}_i =
     \operatorname{ReLU}\!\left(
@@ -396,12 +396,12 @@ GATv2 operates on the node summaries rather than on the full action-token tensor
     \right).
   \label{eq:fgsv2_gatv2}
 \end{equation}
-A learned scalar gate $\lambda$ (initialised to zero) controls the contribution of the graph context via an additive residual with layer normalisation:
+A learned scalar gate $\lambda$ (initialized to zero) controls the contribution of the graph context via an additive residual with layer normalization:
 \begin{equation}
   \mathbf{g}_i = \operatorname{LayerNorm}\!\left(\mathbf{s}_i + \lambda\,\tilde{\mathbf{g}}_i\right).
   \label{eq:fgsv2_gate}
 \end{equation}
-Because $\lambda = 0$ at initialisation, the network begins as a purely local policy; the gate learns to incorporate neighbour context only insofar as it reduces the SAC objective. Unlike a bounded gate ($\beta \in [0,1]$), the unconstrained scalar allows the network to amplify communication when it is beneficial.
+Because $\lambda = 0$ at initialization, the network begins as a purely local policy; the gate learns to incorporate neighbor context only insofar as it reduces the SAC objective. Unlike a bounded gate ($\beta \in [0,1]$), the unconstrained scalar allows the network to amplify communication when it is beneficial.
 
 \paragraph{Action-conditioned actor.}
 For each candidate phase $a$, the actor concatenates the corresponding action token $\mathbf{z}_{i,a}$, the gated graph context $\mathbf{g}_i$ (broadcast across all phases), and a one-hot phase identity $\mathbf{e}_a$, before mapping through a two-layer MLP to a scalar logit:
@@ -409,7 +409,7 @@ For each candidate phase $a$, the actor concatenates the corresponding action to
   l_a = \operatorname{MLP}_\phi\!\bigl[\,\mathbf{z}_{i,a}\;\Vert\;\mathbf{g}_i\;\Vert\;\mathbf{e}_a\,\bigr].
   \label{eq:fgsv2_actor}
 \end{equation}
-Stacking over all $a$ gives $\mathbf{l} \in \mathbb{R}^{A_{\max}}$, which is masked and normalised identically to FGS (invalid logits set to $-10^9$, then softmax applied).
+Stacking over all $a$ gives $\mathbf{l} \in \mathbb{R}^{A_{\max}}$, which is masked and normalized identically to FGS (invalid logits set to $-10^9$, then softmax applied).
 
 \paragraph{Centralized action-token critic.}
 The critic extends the FGS design by incorporating the ego action token alongside the full graph context. For each candidate ego action $a$ of agent $k$, the critic input concatenates: the flattened stack of all agents' gated graph contexts $\operatorname{vec}(\mathbf{g}_1,\ldots,\mathbf{g}_N)$; the joint-action context $\mathbf{J}_k^{(a)}$ (the joint action-probability matrix with agent $k$'s row replaced by the one-hot for $a$, using hard replayed actions during TD updates and soft policy probabilities during the actor loss); the ego action token $\mathbf{z}_{k,a}$; the ego graph context $\mathbf{g}_k$; and a one-hot agent identity $\mathbf{e}_k$:
@@ -428,7 +428,7 @@ Twin critics and $n$-step~$=1$ updates are retained from FGS. The use of hard pr
 \subsection{Training Algorithm}
 \label{sec:Methodology_TrainingAlgorithm}
 
-Algorithm~\ref{alg:fgs_training} presents the complete training procedure shared by all FGS and FGSv2 variants. All agents share a single set of actor and critic parameters, so the gradient updates in Lines~\ref{alg:line_critic}--\ref{alg:line_alpha} are computed jointly over all agent--step pairs in the sampled mini-batch. Algorithm~\ref{alg:fgsv2_forward} details the FGSv2 forward pass that maps a graph observation to policy logits and the graph contexts required by the centralised critic during training.
+Algorithm~\ref{alg:fgs_training} presents the complete training procedure shared by all FGS and FGSv2 variants. All agents share a single set of actor and critic parameters, so the gradient updates in Lines~\ref{alg:line_critic}--\ref{alg:line_alpha} are computed jointly over all agent--step pairs in the sampled mini-batch. Algorithm~\ref{alg:fgsv2_forward} details the FGSv2 forward pass that maps a graph observation to policy logits and the graph contexts required by the centralized critic during training.
 
 \begin{algorithm}[ht]
 \caption{FGS / FGSv2 Training (shared procedure)}
@@ -436,9 +436,9 @@ Algorithm~\ref{alg:fgs_training} presents the complete training procedure shared
 \begin{algorithmic}[1]
 \Require SUMO scenario with $N$ intersections; episodes $E$; warm-up steps $T_{\text{warm}}$;
 \Statex \quad batch size $B$; soft-update rate $\tau$; discount $\gamma$; target entropy $\mathcal{H}_{\text{target}}$
-\State \textbf{Initialise} shared actor $\pi_\phi$; twin critics $Q_{\theta_1},Q_{\theta_2}$; target critics $\bar{Q}_j \leftarrow Q_{\theta_j}$, $j\in\{1,2\}$
-\State \textbf{Initialise} log-temperature $\log\alpha$; residual gate $\lambda\leftarrow 0$ \textbf{(FGSv2 only)}
-\State \textbf{Initialise} prioritised replay buffer $\mathcal{D}$ with capacity $C$; global step $t\leftarrow 0$
+\State \textbf{Initialize} shared actor $\pi_\phi$; twin critics $Q_{\theta_1},Q_{\theta_2}$; target critics $\bar{Q}_j \leftarrow Q_{\theta_j}$, $j\in\{1,2\}$
+\State \textbf{Initialize} log-temperature $\log\alpha$; residual gate $\lambda\leftarrow 0$ \textbf{(FGSv2 only)}
+\State \textbf{Initialize} prioritized replay buffer $\mathcal{D}$ with capacity $C$; global step $t\leftarrow 0$
 \For{episode $e = 1,\ldots,E$}
   \State Reset SUMO via TraCI; receive initial graph observation $o_0$
   \For{simulation step $t_{\text{ep}} = 1,\ldots,T_{\text{max}}$}
@@ -506,7 +506,7 @@ Algorithm~\ref{alg:fgs_training} presents the complete training procedure shared
 \Statex \textbf{Phase 3 — GATv2 communication with residual gate}
 \ForAll{$i \in \mathcal{N}$}
   \State $\mathbf{u}_i \leftarrow \operatorname{LayerNorm}(\mathbf{s}_i)$
-  \hfill\(\triangleright\) \textit{pre-normalise before attention}
+  \hfill\(\triangleright\) \textit{pre-normalize before attention}
   \State $\tilde{\mathbf{g}}_i \leftarrow \operatorname{ReLU}\!\bigl(\mathbf{W}_o\;\operatorname{GATv2Conv}(\{\mathbf{u}_j : j \in \mathcal{N}(i)\cup\{i\}\})\bigr)$
   \hfill (Eq.~\ref{eq:fgsv2_gatv2})
   \State $\mathbf{g}_i \leftarrow \operatorname{LayerNorm}(\mathbf{s}_i + \lambda\,\tilde{\mathbf{g}}_i)$

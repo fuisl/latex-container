@@ -1,7 +1,7 @@
 \chapter{Experimental Design}
 \label{ch:ExperimentalDesign}
 
-This chapter describes the simulation scenarios, evaluation metrics, training configuration, and software pipeline used to assess the FGS and FGSv2 frameworks. All experiments are conducted within the RESCO benchmark \citep{ault2021reinforcement}, which provides standardised German traffic scenarios, fixed demand profiles, and reproducible evaluation protocols for comparing traffic signal control methods.
+This chapter describes the simulation scenarios, evaluation metrics, training configuration, and software pipeline used to assess the FGS and FGSv2 frameworks. All experiments are conducted within the RESCO benchmark \citep{ault2021reinforcement}, which provides standardized German traffic scenarios, fixed demand profiles, and reproducible evaluation protocols for comparing traffic signal control methods.
 
 \section{Simulation Scenarios}
 \label{sec:ExperimentalDesign_DatasetMaterialsSystemContext}
@@ -14,7 +14,7 @@ Two real-world German traffic demand models are used, each at multiple network s
 \paragraph{TapasCologne.}
 The Cologne scenarios are derived from the TapasCologne dataset \citep{tapascologne}, a microscopic travel demand simulation for the city of Cologne produced by the German Aerospace Center (DLR). Origin-destination demand is generated from a large-scale activity-based model and mapped to the SUMO road network. Three sub-networks of increasing size are extracted from the full Cologne network and included in the RESCO benchmark:
 \begin{itemize}
-  \item \textbf{cologne1}: a single signalised intersection, used as a single-agent reference.
+  \item \textbf{cologne1}: a single signalized intersection, used as a single-agent reference.
   \item \textbf{cologne3}: a three-intersection arterial corridor.
   \item \textbf{cologne8}: an eight-intersection network, the primary multi-agent test bed for the FGS ablation study.
 \end{itemize}
@@ -22,7 +22,7 @@ The Cologne scenarios are derived from the TapasCologne dataset \citep{tapascolo
 \paragraph{InTAS.}
 The Ingolstadt scenarios are based on the InTAS (Ingolstadt Traffic Scenario) dataset \citep{intasscenario}, a realistic traffic model for the city of Ingolstadt developed in cooperation with local authorities. Three sub-networks are included in the RESCO benchmark:
 \begin{itemize}
-  \item \textbf{ingolstadt1}: a single signalised intersection.
+  \item \textbf{ingolstadt1}: a single signalized intersection.
   \item \textbf{ingolstadt7}: a seven-intersection sub-network.
   \item \textbf{ingolstadt21}: a twenty-one-intersection network, the largest and most topologically complex scenario evaluated.
 \end{itemize}
@@ -34,18 +34,18 @@ Each scenario runs for 3600 simulated seconds (one hour of traffic). Demand file
 
 All scenarios are simulated using SUMO (Simulation of Urban MObility) \citep{lopez2018microscopic}, a microscopic open-source traffic simulator. SUMO models individual vehicles, applies car-following and lane-changing models, and advances the simulation in discrete time steps of one second. Traffic light phases are updated by the RL agent at each decision step via the TraCI (Traffic Control Interface) API, which provides bidirectional communication between the Python training process and the running SUMO instance. At each step, TraCI reports per-lane vehicle counts, speeds, accumulated waiting times, and the current signal state; the RL agent returns the next phase selection, which SUMO applies immediately.
 
-The SUMO-RL library \citep{alegre2021sumorl} wraps this interaction into a PettingZoo-compatible parallel environment, providing standardised observation and reward interfaces that FGSGraphParallelEnv extends with graph-structured observations (see Section~\ref{sec:Methodology_ObservationSpace}).
+The SUMO-RL library \citep{alegre2021sumorl} wraps this interaction into a PettingZoo-compatible parallel environment, providing standardized observation and reward interfaces that FGSGraphParallelEnv extends with graph-structured observations (see Section~\ref{sec:Methodology_ObservationSpace}).
 
 \section{Evaluation Setup}
 \label{sec:ExperimentalDesign_EvaluationSetup}
 
 \paragraph{Training length.}
-Each agent is trained for 200 episodes. Each episode corresponds to one complete 3600-second simulation run. The first 2000 environment steps of training are used for warm-up: experiences are collected but no gradient updates are applied, allowing the prioritised replay buffer to accumulate a sufficient number of transitions before learning begins.
+Each agent is trained for 200 episodes. Each episode corresponds to one complete 3600-second simulation run. The first 2000 environment steps of training are used for warm-up: experiences are collected but no gradient updates are applied, allowing the prioritized replay buffer to accumulate a sufficient number of transitions before learning begins.
 
 \paragraph{Evaluation protocol.}
 A deterministic evaluation episode is run every 5 training episodes. During evaluation the exploration noise of SAC is suppressed by taking the greedy action (highest logit after masking) rather than sampling from the softmax distribution. Evaluation results are logged to Weights \& Biases \citep{wandb} at each checkpoint.
 
-The primary metric reported for each configuration in Chapter~\ref{ch:ResultsAndDiscussion} is the \emph{best-validation waiting time}: the lowest mean waiting time observed across all evaluation checkpoints during the training run, evaluated on a fixed held-out demand seed. This best-checkpoint selection is an optimistic upper bound on deployed performance; a more conservative estimate would average the final 10 evaluation checkpoints after the training curve stabilises. Readers should note that best-checkpoint figures may overstate the algorithm's expected performance on unseen demand, particularly when training runs are short or exhibit high variance.
+The primary metric reported for each configuration in Chapter~\ref{ch:ResultsAndDiscussion} is the \emph{best-validation waiting time}: the lowest mean waiting time observed across all evaluation checkpoints during the training run, evaluated on a fixed held-out demand seed. This best-checkpoint selection is an optimistic upper bound on deployed performance; a more conservative estimate would average the final 10 evaluation checkpoints after the training curve stabilizes. Readers should note that best-checkpoint figures may overstate the algorithm's expected performance on unseen demand, particularly when training runs are short or exhibit high variance.
 
 \paragraph{Seeds and statistical reporting.}
 The intended evaluation protocol targets five independent random seeds drawn from the set $\{0, 1, 2, 3, 4\}$, applied jointly to the Python random number generator, NumPy, PyTorch, and the SUMO simulation. Due to computational resource constraints, the results reported in Chapter~\ref{ch:ResultsAndDiscussion} correspond to single-seed runs (seed~0) for most configurations; multi-seed averaging and standard-deviation reporting were not completed within the available training budget. Performance figures therefore represent point estimates without variance bounds and should be interpreted as indicative rather than statistically conclusive. Completing the five-seed evaluation and adding bootstrap confidence intervals to all comparison tables constitutes a priority for follow-on validation.
@@ -91,7 +91,7 @@ All four metrics are reported for every scenario--method combination. Primary ra
 \section{Hyperparameter Configuration}
 \label{sec:ExperimentalDesign_Hyperparameters}
 
-Table~\ref{tab:hyperparams} summarises the training hyperparameters for all methods evaluated in this thesis. FGS and FGSv2 use lower learning rates than DQN and PPO, reflecting the more complex centralised critic that benefits from slower, more stable updates.
+Table~\ref{tab:hyperparams} summarizes the training hyperparameters for all methods evaluated in this thesis. FGS and FGSv2 use lower learning rates than DQN and PPO, reflecting the more complex centralized critic that benefits from slower, more stable updates.
 
 \begin{table}[ht]
   \centering
@@ -150,12 +150,12 @@ Figure~\ref{fig:system_arch} illustrates the end-to-end pipeline.
 \begin{figure}[ht]
   \centering
   \includegraphics[width=\textwidth]{Figures/system_architecture.pdf}
-  \caption{End-to-end system architecture. The SUMO network file is pre-processed once to build the agent communication graph (\texttt{graph.pkl}); the demand file drives the microscopic simulation via TraCI. \texttt{FGSGraphParallelEnv} augments the SUMO-RL observation with graph tensors (node features, edge index, action masks). The RLlib training loop runs the FGS/FGSv2 model --- comprising the local encoder (FRAP or MLP), optional GATv2 communication, and the SAC actor--critic pair --- updating parameters from a prioritised replay buffer (PER). All episode metrics are logged to Weights~\&~Biases.}
+  \caption{End-to-end system architecture. The SUMO network file is pre-processed once to build the agent communication graph (\texttt{graph.pkl}); the demand file drives the microscopic simulation via TraCI. \texttt{FGSGraphParallelEnv} augments the SUMO-RL observation with graph tensors (node features, edge index, action masks). The RLlib training loop runs the FGS/FGSv2 model --- comprising the local encoder (FRAP or MLP), optional GATv2 communication, and the SAC actor--critic pair --- updating parameters from a prioritized replay buffer (PER). All episode metrics are logged to Weights~\&~Biases.}
   \label{fig:system_arch}
 \end{figure}
 
-The pipeline operates as follows. The SUMO network file (\texttt{.net.xml}) and vehicle demand file (\texttt{.rou.xml}) for the selected RESCO scenario are loaded at startup. A pre-processing step parses the network topology and constructs the agent communication graph (Section~\ref{sec:Methodology_DataPreprocessing}), which is serialised and reloaded for each training run. SUMO is launched as a subprocess and controlled through TraCI. The SUMO-RL environment wrapper translates raw TraCI observations into the structured dictionary format consumed by \texttt{FGSGraphParallelEnv}, which appends the graph tensors and constructs the full observation batch.
+The pipeline operates as follows. The SUMO network file (\texttt{.net.xml}) and vehicle demand file (\texttt{.rou.xml}) for the selected RESCO scenario are loaded at startup. A pre-processing step parses the network topology and constructs the agent communication graph (Section~\ref{sec:Methodology_DataPreprocessing}), which is serialized and reloaded for each training run. SUMO is launched as a subprocess and controlled through TraCI. The SUMO-RL environment wrapper translates raw TraCI observations into the structured dictionary format consumed by \texttt{FGSGraphParallelEnv}, which appends the graph tensors and constructs the full observation batch.
 
-RLlib manages the training loop: it samples rollouts from the environment, stores transitions in the prioritised replay buffer, and dispatches gradient updates to the PyTorch learner. Graph operations in the encoder and communication layers are implemented with PyTorch Geometric. All training metrics—episode reward, evaluation MTT, MWT, TP, and per-agent statistics—are emitted to Weights \& Biases at each logging step, providing real-time monitoring and facilitating cross-run comparison.
+RLlib manages the training loop: it samples rollouts from the environment, stores transitions in the prioritized replay buffer, and dispatches gradient updates to the PyTorch learner. Graph operations in the encoder and communication layers are implemented with PyTorch Geometric. All training metrics—episode reward, evaluation MTT, MWT, TP, and per-agent statistics—are emitted to Weights \& Biases at each logging step, providing real-time monitoring and facilitating cross-run comparison.
 
 The configuration system is managed by Hydra; each experiment is fully specified by a preset YAML file that composes the scenario, algorithm, and model hyperparameters, ensuring reproducibility from a single configuration identifier.
