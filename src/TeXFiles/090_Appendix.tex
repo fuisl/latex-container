@@ -36,7 +36,7 @@ All results from this work are \textit{best-validation} values: the validation c
 % ─────────────────────────────────────────────────────────────────────────────
 \begin{sidewaystable}[p]
 \centering
-\caption{Performance of baseline methods across all six RESCO scenarios (best-validation metrics, single seed unless noted). Columns follow the Single / Corridor / Regional tier classification. Reference results for IDQN, IPPO, and FMA2C are from \citet{ault2021reinforcement} (5-seed averages). DQN, PPO, CoLight, and FRAP are single-seed results from this work. $\circ$ = not run.}
+\caption{Performance of baseline methods across all six RESCO scenarios (best-validation metrics, single seed unless noted). Columns follow the Single / Corridor / Regional tier classification. Reference results for IDQN, IPPO, and FMA2C are from \citet{ault2021reinforcement} (5-seed averages). FixedTime and MaxPressure are 5-episode static baselines from this work. DQN, PPO, IndSAC, CoLight, and FRAP are single-seed learning baselines from this work (best-validation checkpoint). Within each scenario column, \textbf{bold} marks the best value and \underline{underline} marks the second-best value per metric (lower is better for all metrics). $\circ$ = not run or not available.}
 \label{tab:appendix_baselines}
 \scriptsize
 \setlength{\tabcolsep}{4pt}
@@ -49,32 +49,49 @@ All results from this work are \textit{best-validation} values: the validation c
 \midrule
 \multicolumn{8}{l}{\textit{RESCO benchmark reference (5 seeds, best episode) \citep{ault2021reinforcement}}} \\[2pt]
 \multirow{4}{*}{IDQN}
-  & Avg.\ Delay     & 21.48 & 31.19 &  61.11 &  26.05 &  24.55 &  22.06 \\
-  & Avg.\ Trip Time & 35.29 & 68.69 & 198.72 &  43.59 &  59.00 &  86.02 \\
-  & Avg.\ Wait      &  3.93 &  8.71 &  21.36 &   7.98 &   8.50 &   5.46 \\
-  & Avg.\ Queue     &  0.43 &  0.67 &   0.82 &   2.09 &   0.87 &   0.38 \\[4pt]
+  & Avg.\ Delay     & \textbf{21.48} & \textbf{31.19} &  \textbf{61.11} &  26.05 &  24.55 &  22.06 \\
+  & Avg.\ Trip Time & \textbf{35.29} & 68.69 & \textbf{198.72} &  43.59 &  59.00 &  86.02 \\
+  & Avg.\ Wait      &  \textbf{3.93} &  \textbf{8.71} &  \textbf{21.36} &   7.98 &   8.50 &   5.46 \\
+  & Avg.\ Queue     &  \textbf{0.43} &  0.67 &   \textbf{0.82} &   \textbf{2.09} &   0.87 &   0.38 \\[4pt]
 \multirow{4}{*}{IPPO}
-  & Avg.\ Delay     & 21.85 & 32.00 & 369.34 & 209.49 &  58.98 &  21.62 \\
-  & Avg.\ Trip Time & 35.68 & 69.38 & 509.28 & 224.56 &  93.70 &  85.71 \\
-  & Avg.\ Wait      &  4.20 &  8.86 & 315.31 & 193.66 &  43.50 &   5.19 \\
-  & Avg.\ Queue     &  0.49 &  0.74 &   5.45 &  21.86 &   5.73 &   0.36 \\[4pt]
+  & Avg.\ Delay     & \underline{21.85} & \underline{32.00} & 369.34 & 209.49 &  58.98 &  \underline{21.62} \\
+  & Avg.\ Trip Time & 35.68 & 69.38 & 509.28 & 224.56 &  93.70 &  \underline{85.71} \\
+  & Avg.\ Wait      &  \underline{4.20} &  \underline{8.86} & 315.31 & 193.66 &  43.50 &   5.19 \\
+  & Avg.\ Queue     &  \underline{0.49} &  0.74 &   5.45 &  21.86 &   5.73 &   0.36 \\[4pt]
 \multirow{4}{*}{FMA2C}
-  & Avg.\ Delay     & 27.74 & 51.78 &  96.67 &  30.82 &  32.58 &  34.44 \\
-  & Avg.\ Trip Time & 41.40 & 87.75 & 233.04 &  48.07 &  66.83 &  98.68 \\
-  & Avg.\ Wait      &  8.74 & 23.32 &  48.88 &  11.87 &  15.84 &  14.70 \\
+  & Avg.\ Delay     & 27.74 & 51.78 &  \underline{96.67} &  30.82 &  32.58 &  34.44 \\
+  & Avg.\ Trip Time & 41.40 & 87.75 & \underline{233.04} &  48.07 &  66.83 &  98.68 \\
+  & Avg.\ Wait      &  8.74 & 23.32 &  \underline{48.88} &  11.87 &  15.84 &  14.70 \\
   & Avg.\ Queue     &  1.07 &  1.86 &   1.84 &   3.20 &   2.01 &   1.03 \\
 \midrule
-\multicolumn{8}{l}{\textit{Single-seed baselines trained in this work (best-validation checkpoint)}} \\[2pt]
+\multicolumn{8}{l}{\textit{Static baselines --- this work (5-episode validation, no learning)}} \\[2pt]
+\multirow{4}{*}{FixedTime}
+  & Avg.\ Delay     &  40.8 & 122.9 & 145.7 &  54.6 &  63.7 &  51.5 \\
+  & Avg.\ Trip Time &  54.4 & 135.5 & 281.8 &  65.6 &  93.9 & 115.7 \\
+  & Avg.\ Wait      &  20.3 &  66.1 &  96.4 &  28.7 &  43.6 &  30.3 \\
+  & Avg.\ Queue     &  7.36 &  5.16 &  3.17 & 15.53 &  5.68 &  2.18 \\[4pt]
+\multirow{4}{*}{MaxPressure}
+  & Avg.\ Delay     &  25.3 & 212.7 & 214.4 &  24.9 &  56.4 & 257.9 \\
+  & Avg.\ Trip Time &  38.5 &  \textbf{66.9} & 235.5 &  42.5 &  81.6 & 231.4 \\
+  & Avg.\ Wait      &   6.7 &  12.5 &  68.4 &   6.3 &  31.8 & 159.5 \\
+  & Avg.\ Queue     &  1.30 &  \underline{0.49} &  1.23 &  3.12 &  3.37 & 10.58 \\
+\midrule
+\multicolumn{8}{l}{\textit{Learning baselines --- this work (200 episodes, best-validation checkpoint)}} \\[2pt]
 \multirow{4}{*}{DQN}
-  & Avg.\ Delay     &  33.1 &  34.4 & 115.1 & \na   & 127.2 &  25.5 \\
-  & Avg.\ Trip Time &  44.5 &  71.7 & 253.3 & \na   & 140.0 &  89.8 \\
-  & Avg.\ Wait      &  11.9 &   9.4 &  67.0 & \na   &  93.5 &   6.7 \\
-  & Avg.\ Queue     &  1.99 &  0.81 &   1.12 & \na   &  7.64 &  0.46 \\[4pt]
+  & Avg.\ Delay     &  22.1 &  34.4 & 115.1 &  26.0 &  22.2 &  25.6 \\
+  & Avg.\ Trip Time &  36.0 &  71.7 & 253.3 &  43.6 &  58.6 &  89.8 \\
+  & Avg.\ Wait      &   4.8 &   9.4 &  67.0 &   6.9 &   8.1 &   6.7 \\
+  & Avg.\ Queue     &  1.15 &  0.81 &  1.12 &  3.49 &  1.32 &  0.46 \\[4pt]
 \multirow{4}{*}{PPO}
-  & Avg.\ Delay     &  22.4 &  42.3 &  \na  & \na   &  20.3 &  21.9 \\
-  & Avg.\ Trip Time &  36.0 &  77.1 &  \na  & \na   &  56.5 &  86.1 \\
-  & Avg.\ Wait      &   5.2 &  14.7 &  \na  & \na   &   6.5 &   4.9 \\
-  & Avg.\ Queue     &  0.93 &  0.95 &  \na  & \na   &  0.83 &  0.32 \\[4pt]
+  & Avg.\ Delay     &  21.9 &  42.3 & 211.1 &  \textbf{22.1} &  \underline{19.4} &  \textbf{20.8} \\
+  & Avg.\ Trip Time &  \underline{35.6} &  77.1 & 236.2 &  \textbf{39.8} &  \underline{55.6} &  \textbf{85.0} \\
+  & Avg.\ Wait      &   4.8 &  14.7 &  58.4 &   \textbf{4.8} &   \underline{6.0} &   \textbf{4.3} \\
+  & Avg.\ Queue     &  0.93 &  0.95 &  \underline{0.96} &  \underline{2.43} &  \underline{0.83} &  \textbf{0.30} \\[4pt]
+\multirow{4}{*}{IndSAC}
+  & Avg.\ Delay     &  22.3 & 217.8 &  \na  &  \underline{23.0} &  \textbf{18.9} &  21.8 \\
+  & Avg.\ Trip Time &  36.0 &  \underline{68.1} &  \na  &  \underline{40.7} &  \textbf{55.1} &  86.0 \\
+  & Avg.\ Wait      &   4.9 &  13.1 &  \na  &   \underline{5.1} &   \textbf{5.5} &   \underline{4.7} \\
+  & Avg.\ Queue     &  1.08 &  \textbf{0.44} &  \na  &  2.74 &  \textbf{0.77} &  \underline{0.33} \\[4pt]
 \multirow{4}{*}{CoLight}
   & Avg.\ Delay     &  22.4 &  47.0 & 216.8 & \na   &  21.9 &  51.8 \\
   & Avg.\ Trip Time &  36.5 &  78.6 & 302.1 & \na   &  57.7 & 105.7 \\
@@ -168,9 +185,13 @@ $*$ Col.\ Single FGS(FRAP+GAT+SAC) run crashed before producing valid metrics.
   & \textbf{Ing.\ Single} & \textbf{Ing.\ Corr.}  & \textbf{Ing.\ Reg.}
   & \textbf{Col.\ Single} & \textbf{Col.\ Corr.}  & \textbf{Col.\ Reg.} \\
 \midrule
-\multicolumn{7}{l}{\textit{Baseline methods (this work)}} \\[2pt]
-DQN               & 98.9 & 97.6 & 94.1 & \na   & 90.6 & 98.5 \\
+\multicolumn{7}{l}{\textit{Static baselines (this work; throughput metric not logged)}} \\[2pt]
+FixedTime         & \na  & \na  & \na  & \na   & \na  & \na  \\
+MaxPressure       & \na  & \na  & \na  & \na   & \na  & \na  \\
+\multicolumn{7}{l}{\textit{Learning baselines (this work)}} \\[2pt]
+DQN               & \na  & 97.6 & 94.1 & \na   & \na  & 98.5 \\
 PPO               & 99.0 & 97.6 & \na  & \na   & 98.9 & 98.5 \\
+IndSAC            & \na  & \na  & \na  & \na   & \na  & \na  \\
 CoLight           & 99.1 & 97.6 & 93.2 & \na   & 98.8 & 97.9 \\
 FRAP              & 99.1 & \na  & \na  & \na   & 97.7 & 97.8 \\
 \midrule
@@ -186,5 +207,5 @@ FGS(FRAP+GATv2+PPO) & \na  & \na  & 60.7      & \na   & \na   & 98.5 \\
 \vspace{4pt}
 
 \footnotesize
-$\circ$ Not yet run.\quad $\dagger$ Partial run.\quad $*$ Crashed before producing valid metrics.
+$\circ$ Not yet run or throughput metric not available for this run.\quad $\dagger$ Partial run.\quad $*$ Crashed before producing valid metrics.
 \end{sidewaystable}
