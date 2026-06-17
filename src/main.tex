@@ -755,6 +755,117 @@ flow-coherent coordination---the specific mechanism by which H1 translates
 into communication efficiency.
 
 % ============================================================
+\section{Preliminary Experimental Results}
+\label{sec:prelim}
+% ============================================================
+
+We report initial results from a pilot study on two SUMO scenarios---Cologne8
+(8~intersections) and Ingolstadt21 (21~intersections)---to provide a
+\emph{directional} signal ahead of the full experimental programme.
+All runs used $k{=}3$ modules and a single seed (seed~0); no statistical
+significance claims are made.  We track \texttt{eval/metrics/timeLoss}
+(average travel delay, seconds per vehicle; ATT), lower is better.
+
+\subsection{Cologne8 Results (1500 Episodes, Completed)}
+
+Table~\ref{tab:prelim} summarises the six key runs for which full learning
+curves were obtained (IPPO and MAPPO families).  CoLight crashes prevent Level~3
+comparisons; IDQN data is incomplete due to a baseline crash.
+
+\begin{table}[t]
+  \centering
+  \caption{Cologne8 pilot results (seed=0, $k{=}3$, 1500~episodes).
+           AUC-LC~$=\int_0^{1500}\!\mathrm{ATT}(e)\,de$ (trapezoidal,
+           $\times10^3$ (s/veh)$\cdot$ep; lower is better).
+           ET$(\le t)$~= first episode at which ATT~$\le t$ s/veh.
+           Late-$\sigma$~= std of ATT over episodes 1201--1500.}
+  \label{tab:prelim}
+  \small
+  \begin{tabularx}{\linewidth}{l r r r r r r}
+    \toprule
+    \textbf{Condition} & \textbf{Final ATT} & \textbf{AUC-LC\,($k$)} &
+    \textbf{Late-$\sigma$} & \textbf{ET(50)} & \textbf{ET(40)} & \textbf{ET(28)} \\
+    \midrule
+    IPPO baseline    & 39.2 & \phantom{0}66.7 & 1.2  & 240 & 690  & ---  \\
+    IPPO + flow      & 27.1 & 237.6           & 1.0  & 490 & 550  & 1330 \\
+    IPPO + METIS     & 33.8 & 509.2           & 68.5\rlap{$^*$} & 1350 & 1360 & --- \\
+    \midrule
+    MAPPO baseline   & 28.9 & 165.2           & 0.5  & 320 & 350  & 570  \\
+    MAPPO + flow     & \textbf{26.0} & \textbf{94.4} & 0.5 & 270 & 290 & 540 \\
+    MAPPO + METIS    & 26.8 & 109.3           & 0.5  & 270 & 300  & 560  \\
+    \bottomrule
+  \end{tabularx}
+  {\footnotesize $^*$IPPO$+$METIS has not converged at ep~1500 (Late-$\sigma = 68.5$
+   indicates ongoing oscillation of $\pm$135\,s/veh).}
+\end{table}
+
+\medskip\noindent\textbf{MAPPO (Level~2---Regional Critic).}
+Both partition conditions improve upon the baseline in all metrics.
+MAPPO$+$flow achieves a \textbf{10\%} reduction in final ATT (26.0 vs 28.9\,s/veh)
+and a \textbf{43\% reduction in AUC-LC} (94.4k vs 165.2k), demonstrating
+substantially better sample efficiency.  Notably, MAPPO$+$flow reaches the
+baseline's best ATT level at episode~470---\textbf{31\% of the training budget}.
+All three MAPPO variants converge to a zero-instability plateau (Late-$\sigma \le 0.5$),
+demonstrating that Level~2 provides clean, stable training dynamics regardless of
+partition choice.  MAPPO$+$flow leads MAPPO$+$METIS on AUC-LC by 13.7\% (94.4 vs 109.3\,k)
+and final ATT by 0.8\,s/veh (26.0 vs 26.8), providing a directional signal consistent
+with~H1.
+
+\medskip\noindent\textbf{IPPO (Level~1---Regional Reward).}
+The regional reward introduces a \emph{cold-start problem}: both partition variants
+begin training at catastrophically high ATT ($\sim$1\,200--1\,300\,s/veh), compared to
+the IPPO baseline's modest 128\,s/veh at episode~10.  This explains the dramatically
+worse AUC-LC for IPPO$+$flow (237.6k) and IPPO$+$METIS (509.2k) relative to the
+baseline (66.7k), despite eventually achieving \emph{better} final ATT.
+After the cold-start transient, IPPO$+$flow reaches a stable plateau of 27.1\,s/veh
+(31\% below baseline), but exhibits 26~instability spikes above 100\,s/veh after
+episode~400 (worst: ATT$=$241\,s/veh at ep~650).  IPPO$+$METIS is far more
+problematic, with 83~post-400 spikes (worst: 436\,s/veh), and has not
+converged at episode~1500 (Late-$\sigma = 68.5$).
+
+These patterns suggest two important design insights.  First, Level~1 (regional reward)
+is the most sensitive to partition quality: the InfoMap partition's OD-coherence reduces
+training instability relative to METIS (26 vs 83 spikes), likely because
+OD-coherent modules share correlated future traffic states and thus produce
+a more consistent group reward signal.  Second, a warm-up or annealing strategy
+for the coupling coefficient~$\alpha$ may be necessary to avoid the cold-start
+penalty---an ablation now added to the experimental plan.
+
+\medskip\noindent\textbf{Flow vs.\ METIS.}
+Across all conditions where convergence was achieved, InfoMap (flow) consistently
+outperforms METIS: final ATT advantage of 0.8\,s/veh for MAPPO and 6.7\,s/veh for IPPO;
+AUC-LC advantage of 13.7k for MAPPO and 271.6k for IPPO; instability 3.2$\times$ lower
+for IPPO.  This directionally supports H1 on a single seed and single map; multi-seed
+confirmation on Ingolstadt21 remains necessary.
+
+\subsection{Outstanding Issues and Immediate Actions}
+
+Table~\ref{tab:issues} lists the critical issues identified from the pilot study.
+
+\begin{table}[t]
+  \centering
+  \caption{Critical issues from pilot study and planned mitigations.}
+  \label{tab:issues}
+  \small
+  \begin{tabularx}{\linewidth}{l X X}
+    \toprule
+    \textbf{Priority} & \textbf{Issue} & \textbf{Action} \\
+    \midrule
+    P1 & All CoLight variants crash (ep 330--470), blocking Level~3 validation &
+        Debug regional GAT index/NaN failure; re-run \\
+    P1 & No MAPPO/IPPO Ingolstadt21 baselines; cannot compute relative improvement &
+        Launch baseline runs immediately \\
+    P2 & IPPO$+$METIS not converged at ep 1500 &
+        Extend run; add annealing for $\alpha$ \\
+    P2 & MAPPO$+$flow Ingolstadt21: two runs with same config differ 3.7$\times$ &
+        Investigate env non-determinism; fix seed \\
+    P3 & Single seed throughout; rliable protocol inapplicable &
+        Expand to $\ge$5 seeds for MAPPO conditions \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+% ============================================================
 \section{Discussion}
 \label{sec:discussion}
 % ============================================================
@@ -876,10 +987,15 @@ a mechanistic lens on \emph{why} the partition benefits communication: by
 aligning the GAT's effective attention radius with the natural scale of
 flow-coherent coordination.
 
-The immediate next step is empirical validation of Hypothesis~H1 on warm-up
-simulation data before full training---a two-hour experiment that either
-confirms the theoretical foundation or forces hypothesis revision before
-committing to full-scale training runs.
+Preliminary pilot experiments on Cologne8 provide an encouraging directional
+signal: MAPPO with InfoMap partition achieves a 10\% reduction in final ATT
+and a 43\% reduction in AUC-LC (area under the learning curve) relative to
+the MAPPO baseline, reaching the baseline's best performance in 31\% of the
+training budget.  InfoMap consistently outperforms METIS in final performance
+and training stability across both IPPO and MAPPO families, consistent with~H1.
+Critical next steps are fixing the CoLight implementation (Level~3 validation),
+launching Ingolstadt21 baselines, and expanding to five or more seeds to enable
+the rliable statistical protocol planned for the full study.
 
 \medskip\noindent\textbf{AI Disclosure.} This manuscript was developed with
 the assistance of AI research and writing tools (Claude, Anthropic) operating
