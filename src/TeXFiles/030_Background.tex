@@ -251,11 +251,11 @@ In the context of traffic signal control, dynamic attention allows an intersecti
 \subsection{Movements and Phases}
 \label{sec:TheoreticalBackground_Movements}
 
-The fundamental unit of signalized intersection control is the \emph{movement}: a directional traffic flow from one approach lane to one or more exit lanes. At a standard four-leg intersection with one lane per approach, up to twelve movements can be identified: three per leg (left turn, through, right turn). Movements are labelled by the leg they originate from and the direction they take.
+The fundamental unit of signalized intersection control is the \emph{movement}: a directional traffic flow from one approach lane to one or more exit lanes \citep{koonce2008signal}. At a standard four-leg intersection with one lane per approach, up to twelve movements can be identified: three per leg (left turn, through, right turn). Movements are labelled by the leg they originate from and the direction they take.
 
-Two movements \emph{conflict} if they cannot proceed simultaneously without risk of collision. For example, a through movement on the east--west axis conflicts with a left-turn movement from the north or south. The set of all conflict relationships forms the \emph{conflict matrix} of the intersection, which encodes the physical geometry of the road.
+Two movements \emph{conflict} if they cannot proceed simultaneously without risk of collision \citep{koonce2008signal}. For example, a through movement on the east--west axis conflicts with a left-turn movement from the north or south. The set of all conflict relationships forms the \emph{conflict matrix} of the intersection, which encodes the physical geometry of the road.
 
-A \emph{phase} is a set of non-conflicting movements that are served simultaneously under a green signal. The controller selects a sequence of phases, one at a time, cycling through them to serve all movement demands. Because real intersections group compatible movements into phase programmes defined in the signal plan, each phase corresponds to a discrete action in the RL action space: the agent chooses which phase to activate next.
+A \emph{phase} is a set of non-conflicting movements that are served simultaneously under a green signal \citep{koonce2008signal}. The controller selects a sequence of phases, one at a time, cycling through them to serve all movement demands. Because real intersections group compatible movements into phase programmes defined in the signal plan, each phase corresponds to a discrete action in the RL action space: the agent chooses which phase to activate next.
 
 Figure~\ref{fig:traffic_movements_phases} illustrates these concepts for a standard four-arm intersection with three lanes per approach. Panel~(a) shows the eight numbered lanes; panel~(b) enumerates the twelve possible traffic movements; panel~(c) lists eight common phases (A–H), each activating a compatible subset of those movements; panel~(d) shows the sequential phase-selection decision, where the controller picks one phase at each time step $t$.
 
@@ -269,14 +269,14 @@ Figure~\ref{fig:traffic_movements_phases} illustrates these concepts for a stand
 \subsection{Phase Timing and Transitions}
 \label{sec:TheoreticalBackground_Phases}
 
-Between two consecutive phases, the intersection must display transitional signals to clear conflicting traffic. The standard transition sequence is:
+Between two consecutive phases, the intersection must display transitional signals to clear conflicting traffic \citep{koonce2008signal}. The standard transition sequence is:
 \begin{enumerate}
   \item \emph{Yellow} (typically 3--5 s): warns drivers that the green is ending; crossing vehicles with right-of-way may complete their movement.
   \item \emph{All-red} (typically 1--2 s): all approaches display red, providing a safety clearance interval before the new phase begins.
 \end{enumerate}
-The SUMO simulator applies these transition intervals automatically based on the signal plan; the RL agent does not control them directly. The \emph{minimum green time} — the shortest duration a phase must remain active before the agent can switch — prevents premature phase changes that would cause vehicles to stop mid-intersection.
+The SUMO simulator applies these transition intervals automatically based on the signal plan; the RL agent does not control them directly. The \emph{minimum green time} \citep{koonce2008signal} — the shortest duration a phase must remain active before the agent can switch — prevents premature phase changes that would cause vehicles to stop mid-intersection.
 
-Several time quantities characterize the overall signal programme:
+Several time quantities characterize the overall signal programme \citep{koonce2008signal}:
 \begin{itemize}
   \item \emph{Cycle length}: the total time for all phases (and their transitions) to complete one rotation. Webster's formula \citep{webster1958traffic} provides an analytical optimum for fixed-time cycle lengths under stationary demand.
   \item \emph{Green split}: the fraction of the cycle allocated to each phase, determining how much capacity each movement receives.
@@ -290,7 +290,7 @@ Several time quantities characterize the overall signal programme:
 In fixed-time control, the phase sequence, green splits, and cycle length are pre-computed from historical demand data and applied without feedback. Webster's method minimizes average vehicle delay by balancing the green time according to the relative flow on each approach. Fixed-time plans are simple and predictable, but they cannot adapt to non-stationary demand (incidents, events, off-peak anomalies) or to the spatial spillback that occurs when queues at one intersection block upstream approaches.
 
 \paragraph{Actuated and adaptive control.}
-Vehicle-actuated controllers extend green phases when detectors sense approaching vehicles, and terminate phases early if no vehicles are detected. More sophisticated adaptive systems such as SCOOT and SCATS maintain a real-time estimate of occupancy and adjust timing continuously. These systems outperform fixed-time control under variable demand but rely on extensive detector infrastructure and expert-tuned parameters that may not generalize across networks.
+Vehicle-actuated controllers extend green phases when detectors sense approaching vehicles, and terminate phases early if no vehicles are detected \citep{koonce2008signal}. More sophisticated adaptive systems such as SCOOT \citep{hunt1981scoot} and SCATS \citep{lowrie1990scats} maintain a real-time estimate of occupancy and adjust timing continuously. These systems outperform fixed-time control under variable demand but rely on extensive detector infrastructure and expert-tuned parameters that may not generalize across networks.
 
 \paragraph{Reinforcement learning for TSC.}
 RL-based control recasts phase selection as a sequential decision problem, learning directly from simulation feedback without requiring a hand-crafted model of traffic dynamics. The agent observes sensor measurements (queue length, occupancy, current phase), selects the next phase, and receives a reward that quantifies the quality of that decision. Because RL learns a \emph{policy} rather than a fixed plan, it can in principle adapt to any traffic condition within the distribution seen during training.
