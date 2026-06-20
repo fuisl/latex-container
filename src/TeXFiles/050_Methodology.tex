@@ -661,6 +661,8 @@ where $W_{\mathrm{comm}} \in \mathbb{R}^{d_c \times (C + d_{pe})}$ is a learnabl
 where $\lambda$ is initialized to zero as in FGSv2. The actor remains unchanged from FGSv2 (Equation~\ref{eq:fgsv2_actor}).
 
 \paragraph{Module~III — Factored neighborhood critic.}
+The standard CTDE critic design \citep{lowe2017multi} assigns each agent a centralized Q-function conditioned on the full joint state and all agents' actions, producing an input dimension that grows linearly with $N$. This design reflects the general CTDE philosophy that centralized training should exploit all available global information; Zhou et al. \citep{zhou2023cadp} argue that even this level of centralization is insufficient, as agent policies still assume mutual independence during training. In large-scale spatial networks, however, the opposite constraint dominates: at $N=21$ intersections, the $O(N)$ critic input exhausts available GPU memory, terminating training after only 17 episodes (Section~\ref{sec:ResultsAndDiscussion_ConvergenceAnalysis}). For graph-structured Dec-POMDPs with spatially local rewards, the full-$N$ conditioning is also unnecessary: an intersection's waiting time is determined by phase decisions within 1--2 network hops, not by the global joint state. FGSv3 exploits this spatial locality as an inductive bias — restricting the critic to aggregate only from the direct neighborhood of each agent, yielding a constant input dimension independent of $N$.
+
 FGSv3 replaces the $O(N)$ centralized critic with a factored critic that aggregates only over the direct neighbors of ego agent $k$:
 \begin{equation}
   \mathbf{h}_{\mathrm{nbr},k}

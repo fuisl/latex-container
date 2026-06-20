@@ -257,6 +257,15 @@ Two movements \emph{conflict} if they cannot proceed simultaneously without risk
 
 A \emph{phase} is a set of non-conflicting movements that are served simultaneously under a green signal. The controller selects a sequence of phases, one at a time, cycling through them to serve all movement demands. Because real intersections group compatible movements into phase programmes defined in the signal plan, each phase corresponds to a discrete action in the RL action space: the agent chooses which phase to activate next.
 
+Figure~\ref{fig:traffic_movements_phases} illustrates these concepts for a standard four-arm intersection with three lanes per approach. Panel~(a) shows the eight numbered lanes; panel~(b) enumerates the twelve possible traffic movements; panel~(c) lists eight common phases (A–H), each activating a compatible subset of those movements; panel~(d) shows the sequential phase-selection decision, where the controller picks one phase at each time step $t$.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\textwidth]{Figures/pre.pdf}
+  \caption{Key traffic signal control concepts at a four-arm intersection. (a)~Physical layout with numbered lanes (left, through, right per approach). (b)~The twelve directional traffic movements, grouped by conflict colour. (c)~Eight phases (A–H), each activating a non-conflicting subset of movements for simultaneous service under a green signal. (d)~Sequential phase-selection: the RL agent selects one phase per time step. Figure adapted from \citet{ruan2024coslight}.}
+  \label{fig:traffic_movements_phases}
+\end{figure}
+
 \subsection{Phase Timing and Transitions}
 \label{sec:TheoreticalBackground_Phases}
 
