@@ -15,7 +15,7 @@ The earliest principled approach to signal timing is Webster's analytical formul
 
 Vehicle-actuated control partially addresses this by extending green phases when loop detectors sense arriving vehicles and terminating phases early when queues are absent. More sophisticated adaptive systems such as SCOOT \citep{hunt1981scoot} and SCATS \citep{lowrie1990scats} estimate real-time occupancy from detector data and continuously adjust timing plans across a network. Both systems have been deployed at city scale and have demonstrated meaningful reductions in average delay compared to fixed-time control. However, they rely on dense detector infrastructure, require expert parameter tuning for each deployment, and optimize within a fixed phase sequence — they cannot discover phase orderings or combinations outside the hand-crafted programme.
 
-Max pressure control \citep{varaiya2013max} takes a different approach: rather than optimizing timing within a fixed plan, it selects at each step the phase that maximizes the difference between vehicle counts on incoming and outgoing lanes, a quantity called \emph{pressure}. This policy is provably throughput-optimal under mild assumptions — it maximizes the set of demand rates for which the network remains stable — and requires no pre-calibration. However, max pressure minimizes global queue imbalance rather than individual vehicle waiting time, and its greedy single-step decisions can accumulate unnecessary delay when a suboptimal phase is forced by the pressure criterion. Both of these limitations are relevant to the German RESCO scenarios evaluated in this thesis.
+Max pressure control \citep{varaiya2013max} takes a different approach: rather than optimizing timing within a fixed plan, it selects at each step the phase that maximizes the difference between vehicle counts on incoming and outgoing lanes, a quantity called \emph{pressure}. This policy is provably throughput-optimal under mild assumptions — it maximizes the set of demand rates for which the network remains stable, and requires no pre-calibration. However, max pressure minimizes global queue imbalance rather than individual vehicle waiting time, and its greedy single-step decisions can accumulate unnecessary delay when a suboptimal phase is forced by the pressure criterion. Both of these limitations are relevant to the German RESCO scenarios evaluated in this thesis.
 
 \subsection{Reinforcement Learning for Single-Agent TSC}
 \label{sec:LiteratureReview_RLTSC}
@@ -63,14 +63,14 @@ The second formulation is \emph{duration assignment}: the agent selects how long
 
 On-policy methods such as PPO \citep{schulman2017proximal} require that the data used for each gradient update was collected under the current policy. This guarantees that the policy improvement is grounded in the agent's actual behavior distribution, but it also means that collected experience cannot be reused: after each policy update, all stored transitions are discarded. In TSC, where each training episode requires running a full 3600-second SUMO simulation, discarding experience after each update is costly. PPO mitigates this with multiple epochs of mini-batch updates over the same rollout batch, but the fundamental constraint remains.
 
-Off-policy methods decouple data collection from policy optimization by storing transitions in a replay buffer and sampling arbitrary past experience for updates. DQN and SAC are both off-policy, and the prioritized experience replay \citep{schaul2016prioritized} used by both in this thesis further improves data efficiency by sampling transitions in proportion to their temporal-difference error, focusing learning on the transitions that are currently most informative. The key trade-off is stability: because the replay buffer may contain transitions from outdated policies, off-policy methods can be prone to divergence if the policy changes too rapidly. SAC's entropy regularization implicitly stabilizes training by preventing sudden policy collapses, which is one reason it is chosen as the core algorithm for FGS.
+Off-policy methods decouple data collection from policy optimization by storing transitions in a replay buffer and sampling arbitrary past experience for updates. DQN and SAC are both off-policy, and the prioritized experience replay \citep{schaul2016prioritized} used by both in this thesis further improves data efficiency by sampling transitions in proportion to their temporal-difference error, focusing learning on the transitions that are currently most informative. The key trade-off is stability: because the replay buffer may contain transitions from outdated policies, off-policy methods can be prone to divergence if the policy changes too rapidly \citep{sutton2018reinforcement}. SAC's entropy regularization implicitly stabilizes training by preventing sudden policy collapses \citep{haarnoja2018soft}, which is one reason it is chosen as the core algorithm for FGS.
 
 %──────────────────────────────────────────────────────────────────────────────
 \section{Graph Machine Learning for Traffic Networks}
 \label{sec:LiteratureReview_GraphMLVariants}
 %──────────────────────────────────────────────────────────────────────────────
 
-Road networks are canonical examples of spatial graphs, and graph-based machine learning has been applied to traffic problems long before its adoption in RL-TSC. Early work applied Graph Convolutional Networks \citep{kipf2017semi} to traffic flow forecasting \citep{yu2018spatio}: predicting future speeds or volumes at sensors across a network by propagating historical observations along the road graph. These applications demonstrated that GCN-style message passing captures spatial correlations more effectively than treating each sensor independently or using a global mean aggregation. The fixed, degree-normalized aggregation of GCN is, however, suboptimal when neighbors have very different relevance to the prediction — a property that varies dynamically with traffic conditions.
+Road networks are canonical examples of spatial graphs, and graph-based machine learning has been applied to traffic problems long before its adoption in RL-TSC. Early work applied Graph Convolutional Networks \citep{kipf2017semi} to traffic flow forecasting \citep{yu2018spatio}: predicting future speeds or volumes at sensors across a network by propagating historical observations along the road graph. These applications demonstrated that GCN-style message passing captures spatial correlations more effectively than treating each sensor independently or using a global mean aggregation. The fixed, degree-normalized aggregation of GCN is, however, suboptimal when neighbors have very different relevance to the prediction — a property that varies dynamically with traffic conditions \citep{velickovic2018graph}.
 
 Graph Attention Networks \citep{velickovic2018graph} replace fixed aggregation weights with content-dependent attention coefficients, allowing the model to focus on the most informative neighbors at each time step. CoLight \citep{wei2019colight} applied this idea to RL-TSC and showed that attention-weighted communication reduces average travel time more than fixed-weight communication. As established in Section~\ref{sec:TheoreticalBackground_GATv2}, however, GAT's attention scores are a static function of projected features — the ranking of neighbors cannot change depending on the target node's own state \citep{brody2022how}. GATv2 resolves this limitation via a non-linearity inserted before the attention scoring, making coefficients depend jointly on both source and target features. FGSv2 adopts GATv2 as its communication layer for this expressiveness advantage: in heterogeneous traffic networks where congestion levels differ sharply across intersections, target-dependent attention is expected to enable more selective message passing.
 
@@ -101,9 +101,7 @@ The RESCO benchmark \citep{ault2021reinforcement} was introduced specifically to
 All major MARL-TSC methods reviewed above use either DQN (off-policy, discrete, value-based) or PPO (on-policy, policy gradient). SAC offers a different profile: off-policy sample efficiency, entropy-regularized exploration, and actor-critic separation that allows the actor and critic to be designed independently. In multi-agent settings, SAC's entropy bonus may produce more diverse joint policies than DQN's epsilon-greedy exploration, which could be beneficial when coordination strategies differ across network regions. No published work evaluates SAC with graph-based inter-agent communication on any RESCO scenario.
 
 \paragraph{FRAP and graph communication have not been combined in a principled framework.}
-CoLight uses GAT communication but with a generic MLP encoder. FRAP uses a phase-competition encoder but with independent-agent DQN and no inter-agent communication. The FGS framework proposed in this thesis combines both: a phase-aware encoder (either MLP or FRAP) with graph attention communication and off-policy SAC training, evaluated on German RESCO scenarios. FGSv2 extends this further by replacing the single node embedding with per-action tokens, connecting FRAP's phase-competition representation directly to the actor's action-selection head. This combination has not been studied, and its effect on performance, training stability, and encoder–communication interaction across different network topologies is the central empirical question of this thesis.
-
-Table~\ref{tab:related_work} summarizes how the most closely related methods compare along the key design dimensions.
+CoLight uses GAT communication but with a generic MLP encoder. FRAP uses a phase-competition encoder but with independent-agent DQN and no inter-agent communication. The FGS framework proposed in this thesis combines both: a phase-aware encoder (either MLP or FRAP) with graph attention communication and off-policy SAC training, evaluated on German RESCO scenarios. FGSv2 extends this by replacing the single node embedding with per-action tokens, connecting FRAP's phase-competition representation directly to the actor's action-selection head. FGSv3 further refines the communication signal to carry demand state rather than competition scores and introduces a factored neighborhood critic that enables training at $N=21$. Table~\ref{tab:related_work} places these contributions in the context of the methods reviewed above.
 
 \begin{table}[ht]
   \centering
@@ -111,18 +109,20 @@ Table~\ref{tab:related_work} summarizes how the most closely related methods com
   \label{tab:related_work}
   \begin{tabular}{lccccc}
     \hline
-    Method              & RL algo & Encoder    & Graph comm. & Ger.       & Reference                   \\
+    Method               & RL algo  & Encoder     & Graph comm. & Ger.       & Reference                        \\
     \hline
-    Max pressure        & --      & pressure   & --          & \checkmark & \cite{varaiya2013max}       \\
-    IndDQN              & DQN     & MLP        & --          & \checkmark & \cite{mnih2015humanlevel}   \\
-    IndPPO              & PPO     & MLP        & --          & \checkmark & \cite{schulman2017proximal} \\
-    PressLight          & DQN     & pressure   & --          & --         & \cite{wei2019presslight}    \\
-    FRAP                & DQN     & FRAP       & --          & --         & \cite{zheng2019learning}    \\
-    CoLight             & DQN     & MLP        & GAT         & --         & \cite{wei2019colight}       \\
-    MPLight             & DQN     & pressure   & --          & --         & \cite{chen2020toward}       \\
+    Max pressure         & --       & pressure    & --          & \checkmark & \cite{varaiya2013max}            \\
+    IDQN                 & DQN      & MLP         & --          & \checkmark & \cite{mnih2015humanlevel}        \\
+    IPPO                 & PPO      & MLP         & --          & \checkmark & \cite{schulman2017proximal}      \\
+    IndSAC               & SAC      & MLP         & --          & \checkmark & \cite{christodoulou2019soft}     \\
+    PressLight           & DQN      & pressure    & --          & --         & \cite{wei2019presslight}         \\
+    FRAP                 & DQN      & FRAP        & --          & --         & \cite{zheng2019learning}         \\
+    CoLight              & DQN      & MLP         & GAT         & --         & \cite{wei2019colight}            \\
+    MPLight              & DQN      & pressure    & --          & --         & \cite{chen2020toward}            \\
     \hline
-    FGS (this thesis)   & SAC     & MLP/FRAP   & GAT/GATv2   & \checkmark & --                          \\
-    FGSv2 (this thesis) & SAC     & FRAP-token & GATv2       & \checkmark & --                          \\
+    FGS (this thesis)    & SAC/PPO  & MLP/FRAP    & GATv2       & \checkmark & --                               \\
+    FGSv2 (this thesis)  & SAC      & FRAP-token  & GATv2       & \checkmark & --                               \\
+    FGSv3 (this thesis)  & SAC/PPO  & FRAP-token  & GATv2(D)    & \checkmark & --                               \\
     \hline
   \end{tabular}
 \end{table}

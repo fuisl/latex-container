@@ -46,23 +46,32 @@ The work reported in this thesis pursues five interconnected objectives:
 \section{Research Questions and Hypotheses}
 \label{sec:Introduction_ResearchQuestions}
 
-The empirical investigation is organized around three primary research questions and one exploratory question.
+The empirical investigation is organized around one overarching main research question, three focused sub-questions that operationalize it, and one exploratory question.
 
 \medskip
-\noindent\textbf{RQ1:} \textit{How do FGS pipeline instantiations perform compared with classical traffic-control methods and deep RL baselines across German RESCO traffic scenarios?}
+\noindent\textbf{Main Research Question (MRQ):}
+\begin{quote}
+  \textit{Can a modular three-module MARL pipeline — combining a local encoder, graph-attention communication, and an RL algorithm as independently configurable choices — provide competitive and scalable traffic signal control on real-world German road networks, and which design dimensions are the primary determinants of performance across network scales from single intersections to 21-agent regional clusters?}
+\end{quote}
 
 \medskip
-\noindent\textbf{RQ2:} \textit{What is the effect of local encoder design and graph-attention communication on traffic signal control performance and training stability?}
+The MRQ is operationalized through three sub-questions and one exploratory question. Each sub-question addresses a distinct epistemic dimension: external validity (SQ1), internal design analysis (SQ2), and boundary conditions across scale (SQ3).
 
 \medskip
-\noindent\textbf{RQ3:} \textit{How does the proposed framework behave across traffic networks of different sizes and topologies, such as the Cologne and Ingolstadt scenarios with varying numbers of intersections?}
+\noindent\textbf{SQ1} \textit{(Baseline comparison):} \textit{How do FGS pipeline instantiations compare in performance with classical traffic-control methods and deep RL baselines across the three German RESCO scale tiers?}
 
 \medskip
-\noindent\textbf{RQ4} \textit{(exploratory):} \textit{To what extent can the learned multi-agent control behavior be interpreted as decentralized self-organization that produces network-level coordination?}
+\noindent\textbf{SQ2} \textit{(Design-space analysis):} \textit{How do encoder choice (MLP vs.\ FRAP) and graph-attention mechanism (GAT vs.\ GATv2) affect traffic signal control performance and training stability within the FGS pipeline?}
+
+\medskip
+\noindent\textbf{SQ3} \textit{(Scale and topology dependency):} \textit{How does the benefit of each design component vary with network scale and topology, from Single-intersection to Regional ($N=21$) scenarios?}
+
+\medskip
+\noindent\textbf{SQ4} \textit{(Exploratory):} \textit{To what extent can the learned multi-agent control behavior be interpreted as decentralized self-organization that produces network-level coordination?}
 
 \medskip
 
-Four hypotheses guide the experimental design. They are stated as testable propositions, not guarantees; the experiments may confirm, partially support, or refute each one.
+Four hypotheses guide the experimental design; they are stated as testable propositions, not guarantees. H1 and H4 inform SQ3; H2 and H3 inform SQ2; all four bear collectively on the MRQ.
 
 \medskip
 \noindent\textbf{H1:} \textit{Graph-aware communication improves coordination between neighboring intersections compared with independent-agent methods, as reflected in lower network-level mean travel time and waiting time.}
@@ -117,7 +126,7 @@ The remainder of this thesis is organized as follows.
 
 \textbf{Chapter~\ref{ch:TheoreticalBackground}} establishes the mathematical and conceptual foundations: Markov Decision Processes, partially observable and multi-agent extensions, the progression from dynamic programming to deep RL and entropy-regularized actor-critic methods, graph neural network message passing, and the traffic engineering concepts required to interpret the experiments.
 
-\textbf{Chapter~\ref{ch:Methodology}} describes the FGS and FGSv2 frameworks in detail: observation space, action space, graph construction, baseline algorithms, reward function, and the full architectural specifications of both proposed variants.
+\textbf{Chapter~\ref{ch:Methodology}} describes the FGS framework in detail: observation space, action space, graph construction, baseline algorithms, reward function, and the full architectural specifications of both proposed variants.
 
 \textbf{Chapter~\ref{ch:ExperimentalDesign}} specifies the experimental setup: the TapasCologne and InTAS demand models, SUMO simulation parameters, evaluation metrics and protocols, training hyperparameters, and the end-to-end software pipeline.
 

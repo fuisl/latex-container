@@ -331,14 +331,14 @@ Phase transition constraints (minimum green time, yellow interval) are enforced 
 \subsubsection{Differential Waiting Time}
 \label{sec:Methodology_DiffWaitingTime}
 
-All experiments use the differential waiting time reward:
+All experiments use the differential waiting time reward introduced by the RESCO benchmark \citep{ault2021reinforcement}, defined as the signed change in accumulated waiting time between consecutive decision steps. Cabrejas-Egea et al.\ \citep{cabrejas2020assessment} compare several RL-TSC reward formulations under real-world limitations and find that difference-based waiting-time signals provide stable gradients across varied demand conditions, supporting its adoption here.
 \begin{equation}
   r_t = W_{t-1} - W_t,
   \qquad
   W_t = \frac{1}{100}\sum_{l \in \mathcal{L}}\sum_{v \in l} w_v(t),
   \label{eq:reward}
 \end{equation}
-where $\mathcal{L}$ is the set of incoming lanes controlled by the traffic signal, $v$ indexes vehicles, and $w_v(t)$ is the accumulated waiting time of vehicle $v$ at step $t$ as reported by SUMO via the TraCI interface. A positive value of $r_t$ indicates that total waiting time at the intersection decreased relative to the previous step. Dividing by 100 normalizes the scale across scenarios that differ in traffic volume. Appendix~\ref{sec:Appendix_reward_telescope} proves that maximizing the discounted sum of this reward is equivalent to minimizing a discounted sum of waiting times.
+where $\mathcal{L}$ is the set of incoming lanes controlled by the traffic signal, $v$ indexes vehicles, and $w_v(t)$ is the accumulated waiting time of vehicle $v$ at step $t$ as reported by SUMO via the TraCI interface. The term \emph{differential} follows RESCO's \texttt{diff-waiting-time} naming convention and refers to the finite difference $W_{t-1} - W_t$, not a calculus derivative. A positive value of $r_t$ indicates that total waiting time at the intersection decreased relative to the previous step. Dividing by 100 normalizes the scale across scenarios that differ in traffic volume. Appendix~\ref{sec:Appendix_reward_telescope} proves that maximizing the discounted sum of this reward is equivalent to minimizing a discounted sum of waiting times.
 
 This reward is local to each agent, which aligns with the CTDE assumption: the reward does not require knowledge of the global joint state at execution time, so decentralized policies remain valid after training.
 
