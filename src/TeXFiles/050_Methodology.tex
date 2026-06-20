@@ -2,7 +2,7 @@
 \chaptermark{Methodology}
 \label{ch:Methodology}
 
-The proposed framework, referred to as \emph{FGS} (FRAP-Graph-SAC), extends the multi-agent Soft Actor-Critic algorithm with graph-based inter-agent communication and phase-aware local encoding. Its second-generation variant, \emph{FGSv2}, replaces the single node embedding produced by the local encoder with a set of per-action tokens, enabling richer action-conditioned reasoning at both the actor and the centralized critic. Both variants follow the \emph{centralized training with decentralized execution} (CTDE) paradigm \citep{lowe2017multi}: at execution time each agent acts solely on its own local observation, while training exploits a centralized critic that has access to the joint state of all agents.
+The proposed framework, referred to as \emph{FGS} (FRAP-Graph-SAC), extends the multi-agent Soft Actor-Critic algorithm with graph-based inter-agent communication and phase-aware local encoding. Its second-generation variant, \emph{FGSv2}, replaces the single node embedding produced by the local encoder with a set of per-action tokens, enabling richer action-conditioned reasoning at both the actor and the centralized critic. A third-generation variant, \emph{FGSv3}, further refines the communication signal and replaces the centralized critic with a factored neighborhood critic that scales independently of network size. All three variants follow the CTDE paradigm introduced in Section~\ref{sec:TheoreticalBackground_POMDP}: the actor uses only the ego agent's local observation at execution time, while the centralized critic has access to the joint state during training.
 
 \section{Problem Formulation}
 \label{sec:Methodology_ProblemFormulation}
@@ -32,8 +32,8 @@ The remaining fields in the observation dictionary are:
   \item \textit{Ego index}: the integer identifying which row of $\mathbf{X}$ corresponds to the acting agent.
   \item \textit{Action mask}: a binary vector of length $A_{\max}$ indicating the phases that are valid for the ego agent.
   \item \textit{Phase-pair mask} $\mathbf{M}_{\mathrm{pair}} \in \{0,1\}^{N \times A_{\max} \times M}$: for each agent and candidate phase, indicates the subset of traffic movements that phase controls.
-  \item \textit{Phase-competition mask} $\mathbf{M}_{\mathrm{comp}} \in \{0,1,2,3\}^{N \times A_{\max} \times (A_{\max}-1)}$: encodes one of four predefined movement-conflict relation types between phase $a$ and each of its $A_{\max}-1$ competitors; the self-competition entry is absent by construction.
-  \item \textit{Previous joint action} $\mathbf{a}_{t-1} \in \{0,1\}^{N \times A_{\max}}$: one-hot encoding of all agents' actions at the preceding step.
+  \item \textit{Phase-competition mask} $\mathbf{M}_{\mathrm{comp}} \in \{0,1,2,3\}^{N \times A_{\max} \times (A_{\max}-1)}$: encodes one of four movement-conflict relation types between phase $a$ and each competitor $b$, following the FRAP relation taxonomy \citep{zheng2019learning}: type~0 — no shared movement conflicts (the two phases are non-competing); type~1 — one shared conflicting movement; type~2 — two shared conflicting movements; type~3 — the phases serve directly opposing movements on the same approach. The self-competition entry is absent by construction.
+  \item \textit{Previous joint action} $\mathbf{a}_{t-1} \in \{0,1\}^{N \times A_{\max}}$: one-hot encoding of all agents' actions at the preceding step. This field provides each agent with knowledge of the phase active at neighboring intersections at the prior step, supporting the demand-aware coordination introduced in FGSv3 (Section~\ref{sec:Methodology_FGSv3}).
 \end{itemize}
 
 \section{Action Space}
@@ -67,7 +67,7 @@ The resulting graph is serialized to disk as a pre-processing artefact and loade
 \section{Baseline Algorithms}
 \label{sec:Methodology_ModelsAlgorithmsFrameworks}
 
-The following algorithms serve as baselines or as the algorithmic foundation of the proposed framework.
+The following algorithms serve as baselines or as the algorithmic foundation of the proposed framework. In the multi-intersection setting, each intersection runs an independent copy of the single-agent algorithm with no inter-agent communication. Following the RESCO benchmark terminology \citep{ault2021reinforcement}, the independent-agent variant of DQN is referred to as \textbf{IDQN} (Independent DQN) and the independent-agent variant of PPO is referred to as \textbf{IPPO} (Independent PPO).
 
 \subsection{Deep Q-Network}
 \label{sec:Methodology_DQN}
@@ -78,7 +78,7 @@ Deep Q-Network (DQN) \citep{mnih2015humanlevel} approximates the action-value fu
     \mathbb{E}_{(s,a,r,s') \sim \mathcal{D}}
     \!\left[\left(r + \gamma \max_{a'} Q_{\bar\theta}(s', a') - Q_\theta(s, a)\right)^2\right],
 \end{equation}
-where $\mathcal{D}$ is a replay buffer and $\bar\theta$ are the parameters of a periodically updated target network. Each intersection runs an independent DQN with no inter-agent communication, forming a fully decentralized value-based baseline.
+where $\mathcal{D}$ is a replay buffer and $\bar\theta$ are the parameters of a periodically updated target network. Each intersection runs an independent DQN (IDQN) with no inter-agent communication, forming a fully decentralized value-based baseline.
 
 \subsection{Proximal Policy Optimization}
 \label{sec:Methodology_PPO}
@@ -93,7 +93,7 @@ Proximal Policy Optimization (PPO) \citep{schulman2017proximal} is an on-policy 
       \right)
     \right],
 \end{equation}
-where $r_t(\theta) = \pi_\theta(a_t|s_t) / \pi_{\theta_{\mathrm{old}}}(a_t|s_t)$ is the probability ratio and $\hat{A}_t$ is an advantage estimate. PPO is used as an independent-agent on-policy baseline.
+where $r_t(\theta) = \pi_\theta(a_t|s_t) / \pi_{\theta_{\mathrm{old}}}(a_t|s_t)$ is the probability ratio and $\hat{A}_t$ is an advantage estimate. PPO is used as an independent-agent on-policy baseline (IPPO).
 
 \subsection{Soft Actor-Critic}
 \label{sec:Methodology_SAC}
@@ -146,19 +146,7 @@ where $\mathcal{H}_{\mathrm{target}} = -\!\log(1/A_{\mathrm{valid}})$ is the ent
 \subsection{Graph Attention Layer}
 \label{sec:Methodology_GAT}
 
-Both FGS and FGSv2 use GATv2 \citep{brody2022how} as the graph communication operator. For context, the original CoLight method \citep{wei2019colight} employed a scaled dot-product attention mechanism in which the coefficient weighting the message from neighbor $j$ to ego $i$ is
-\begin{equation}
-  e_{ij} =
-    \frac{
-      \exp\!\left(\mathbf{p}_i^\top \mathbf{p}_j / \sqrt{h_d}\right)
-    }{
-      \sum_{k \in \mathcal{N}(i)} \exp\!\left(\mathbf{p}_i^\top \mathbf{p}_k / \sqrt{h_d}\right)
-    },
-  \label{eq:colight_attn}
-\end{equation}
-where $\mathbf{p}_i$ are projected representations of head dimension $h_d$ and $\mathcal{N}(i)$ is the neighborhood of $i$ in $\mathcal{G}$. This dot-product form cannot vary its attention coefficients based on the query node independently of the key, a limitation identified by \citet{brody2022how}.
-
-GATv2 corrects this with an additive attention formulation that is strictly more expressive:
+Both FGS and FGSv2 use GATv2 \citep{brody2022how} as the graph communication operator. As discussed in Sections~\ref{sec:TheoreticalBackground_GATv2} and~\ref{sec:LiteratureReview_GraphMLVariants}, GATv2 addresses the static-attention limitation of the original GAT by inserting a non-linearity before the attention scoring, enabling attention coefficients to depend jointly on both the source and the target node's features. The normalized attention coefficient for edge $(i,j)$ is computed as
 \begin{equation}
   \alpha_{ij} =
     \frac{
@@ -176,7 +164,7 @@ where $\mathbf{W}$ and $\mathbf{a}$ are learnable parameters, $\Vert$ denotes co
 
 FRAP \citep{zheng2019learning} encodes the competition between candidate signal phases by explicitly comparing each phase against every competitor and pooling the results. Throughout this section the intersection subscript $i$ is suppressed for clarity; all tensors and indices belong to a single intersection.
 
-Let the intersection have $M$ incoming traffic movements and $A$ candidate phases. The phase-movement mask $\mathbf{P} \in \{0,1\}^{A \times M}$ sets $P_{am}=1$ if movement $m$ is served by phase $a$. The phase-competition relation $R_{ab} \in \{0,1,2,3\}$ encodes one of four predefined conflict types between each ordered pair $(a, b)$ of distinct phases; type~0 indicates no movement conflict.
+Let the intersection have $M$ incoming traffic movements and $A$ candidate phases. The phase-movement mask $\mathbf{P} \in \{0,1\}^{A \times M}$ sets $P_{am}=1$ if movement $m$ is served by phase $a$. The phase-competition relation $R_{ab} \in \{0,1,2,3\}$ encodes one of four movement-conflict types between each ordered pair $(a, b)$ of distinct phases, as defined in Section~\ref{sec:Methodology_ObservationSpace} (types~0--3 range from no shared conflict to directly opposing movements).
 
 \paragraph{Step 1: Movement embedding.}
 For each movement $m$, a phase indicator $p_m\in\{0,1\}$ (whether $m$ is currently green) and a demand scalar $d_m$ (lane queue length or vehicle density) are embedded separately and fused:
@@ -343,6 +331,8 @@ The four FGS variants investigated in this thesis are summarized in Table~\ref{t
 
 \subsection{FGSv2: Action-Token Architecture}
 \label{sec:Methodology_FGSv2}
+
+FGS produces a single node embedding per intersection before graph communication and actor computation, collapsing all phase-level distinctions into one vector. This discards the per-phase competition information that FRAP's encoder captures — precisely the information the actor needs to distinguish between candidate phases. FGSv2 addresses this by replacing the single embedding with a set of per-phase \emph{action tokens}, one per candidate phase, and carrying those tokens through to the actor head.
 
 FGSv2 preserves FRAP's phase-competition structure not as a final scalar score but as a set of intermediate \emph{action tokens}, one token per candidate phase. This changes the information topology of the architecture: rather than collapsing phase-level information into a single node embedding before graph communication and actor computation, the action tokens carry phase-specific features through to the actor head.
 

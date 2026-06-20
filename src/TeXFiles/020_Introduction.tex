@@ -40,7 +40,7 @@ The work reported in this thesis pursues five interconnected objectives:
 
   \item \textbf{Study RL optimization schemes.} Compare discrete-action SAC, DQN, and PPO as RL algorithms within the same MARL-TSC framework, examining sample efficiency, stability, and final performance.
 
-  \item \textbf{Evaluate across German RESCO scenarios.} Assess the complete FGS and FGSv2 frameworks against classical and deep RL baselines on the German RESCO benchmark, characterizing performance, scalability, and the contribution of individual architectural components.
+  \item \textbf{Evaluate across German RESCO scenarios.} Assess the complete FGS, FGSv2, and FGSv3 frameworks against classical and deep RL baselines on the German RESCO benchmark, characterizing performance, scalability, and the contribution of individual architectural components. FGSv3 emerged during the investigation to address scalability limitations identified in the FGSv2 evaluation; it is included as a third architectural contribution.
 \end{enumerate}
 
 \section{Research Questions and Hypotheses}
@@ -84,9 +84,9 @@ Four hypotheses guide the experimental design. They are stated as testable propo
 
 This thesis focuses on the design, implementation, and empirical evaluation of a graph-aware MARL framework for signalized intersection control. The scope encompasses:
 \begin{itemize}
-  \item Control algorithm design: the FGS and FGSv2 architectural variants described in Chapter~\ref{ch:Methodology}.
+  \item Control algorithm design: the FGS, FGSv2, and FGSv3 architectural variants described in Chapter~\ref{ch:Methodology}.
   \item Algorithm analysis: ablation across encoder types, communication mechanisms, and RL algorithms.
-  \item Empirical comparison: six German RESCO scenarios across three scale tiers — \textbf{Single-intersection} (cologne1, ingolstadt1), \textbf{Corridor} (cologne3, ingolstadt7), and \textbf{Regional} (cologne8, ingolstadt21) — against a standardized set of classical and deep RL baselines. FGS-variant results for the ingolstadt7 Corridor scenario were not available at the time of writing and are omitted from the FGS comparison columns; baseline results for that scenario are included for reference.
+  \item Empirical comparison: six German RESCO scenarios across three scale tiers — \textbf{Single-intersection} (cologne1, ingolstadt1), \textbf{Corridor} (cologne3, ingolstadt7), and \textbf{Regional} (cologne8, ingolstadt21) — against a standardized set of classical and deep RL baselines. This tier classification is used consistently throughout the thesis. FGS-variant results for the ingolstadt7 Corridor scenario were not available at the time of writing and are omitted from the FGS comparison columns; baseline results for that scenario are included for reference.
 \end{itemize}
 
 \subsection{Limitations}

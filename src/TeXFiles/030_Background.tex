@@ -67,7 +67,7 @@ Finding the optimal joint policy for a Dec-POMDP is NEXP-complete in general \ci
   \item \emph{Fully decentralized execution}: each agent conditions its policy only on its own observation history, making the problem tractable but potentially limiting coordination.
   \item \emph{Centralized Training with Decentralized Execution} (CTDE): during training, agents have access to the global state or joint observations, enabling a centralized critic to guide learning. At execution, each agent acts solely on its local observation. This separates the hard coordination problem (handled offline during training) from the real-time execution problem (where full state is unavailable).
 \end{enumerate}
-FGS adopts CTDE: a centralized joint-action critic is trained with access to all agents' graph embeddings, while the decentralized actor uses only the ego agent's observation.
+FGS adopts CTDE: a centralized joint-action critic is trained with access to all agents' graph embeddings, while the decentralized actor uses only the \emph{ego agent}'s observation. Throughout this thesis, the term \emph{ego agent} denotes the specific agent for which an action is currently being selected, as distinguished from its neighbors in the communication graph.
 
 %──────────────────────────────────────────────────────────────────────────────
 \section{From Dynamic Programming to Deep Reinforcement Learning}
