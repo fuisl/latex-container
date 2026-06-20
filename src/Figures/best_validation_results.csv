@@ -1,0 +1,68 @@
+scenario,method,wait_s,delay_s,trip_s,queue
+cologne1,CoLight,15.92,36.96,53.54,8.17
+cologne1,DQN,5.25,22.75,40.14,2.91
+cologne1,FGS(FRAP+GAT+SAC),162.05,851.94,179.95,43.26
+cologne1,FGS(MLP+GAT+SAC),5.32,22.7,40.36,2.6
+cologne1,FGS(MLP+GATv2+SAC),5.39,23.05,40.65,2.63
+cologne1,FRAP,10.56,31.72,49.31,4.86
+cologne1,Fixed Time,28.62,54.4,65.54,15.49
+cologne1,IndSAC,5.23,22.7,40.52,2.72
+cologne1,Max Pressure,5.85,24.2,41.78,2.91
+cologne1,PPO,5.08,22.35,40.08,2.83
+cologne3,CoLight,6.61,20.91,56.96,0.88
+cologne3,DQN,6.23,19.88,55.76,0.76
+cologne3,FGS(FRAP+GAT+SAC),460.76,1270.36,478.98,34.72
+cologne3,FGS(MLP+GAT+SAC),74.6,103.14,120.39,5.24
+cologne3,FGS(MLP+GATv2+SAC),7.0,20.85,56.52,0.74
+cologne3,FRAP,18.56,39.84,71.13,2.78
+cologne3,Fixed Time,43.59,63.65,93.85,5.68
+cologne3,IndSAC,6.76,20.74,56.86,0.89
+cologne3,Max Pressure,31.79,56.37,81.59,3.37
+cologne3,PPO,6.45,20.29,56.54,0.83
+cologne8,CoLight,22.91,41.51,105.6,1.59
+cologne8,DQN,6.43,32.13,96.07,0.45
+cologne8,FGS(FRAP+GAT+SAC),87.61,222.87,169.48,6.11
+cologne8,FGS(FRAP+GATv2+PPO),10.65,29.01,93.54,0.75
+cologne8,FGS(FRAP+GATv2+SAC),123.35,177.89,212.95,8.69
+cologne8,FGS(MLP+GAT+SAC),5.46,23.52,87.79,0.38
+cologne8,FGS(MLP+GATv2+PPO),7.83,26.72,90.96,0.54
+cologne8,FGS(MLP+GATv2+SAC),5.48,23.47,87.75,0.37
+cologne8,FGSv2-SAC,6.04,23.56,87.89,0.4
+cologne8,FGSv3-PPO,5.34,23.09,87.66,0.36
+cologne8,FGSv3-SAC,6.63,29.06,93.39,0.46
+cologne8,FRAP,8.83,28.39,92.63,0.62
+cologne8,Fixed Time,30.27,51.52,115.66,2.18
+cologne8,IndSAC,4.8,22.57,86.82,0.33
+cologne8,Max Pressure,159.54,257.9,231.4,10.58
+cologne8,PPO,4.86,21.86,86.11,0.32
+ingolstadt1,CoLight,8.61,27.69,41.33,2.0
+ingolstadt1,DQN,6.91,25.49,38.84,1.38
+ingolstadt1,FGS(FRAP+GAT+SAC),78.09,590.7,94.96,2.55
+ingolstadt1,FGS(MLP+GAT+SAC),4.83,22.61,35.83,0.94
+ingolstadt1,FGS(MLP+GATv2+SAC),5.46,23.0,36.82,1.08
+ingolstadt1,FRAP,7.34,26.63,40.1,1.67
+ingolstadt1,Fixed Time,20.28,40.78,54.42,7.36
+ingolstadt1,IndSAC,6.57,25.57,38.53,1.29
+ingolstadt1,Max Pressure,6.66,25.25,38.53,1.3
+ingolstadt1,PPO,5.22,22.45,36.02,0.93
+ingolstadt21,CoLight,198.85,271.49,371.16,3.82
+ingolstadt21,DQN,41.24,85.63,226.23,2.1
+ingolstadt21,FGS(FRAP+GATv2+PPO),460.66,617.0,614.76,7.77
+ingolstadt21,FGS(MLP+GAT+SAC),481.36,749.21,632.67,9.29
+ingolstadt21,FGS(MLP+GATv2+PPO),161.33,288.33,322.54,3.64
+ingolstadt21,FGS(MLP+GATv2+SAC),905.78,1274.92,989.0,10.29
+ingolstadt21,FGSv2-SAC,79.96,125.2,272.55,4.44
+ingolstadt21,FGSv3-PPO,26.33,83.72,214.73,6.34
+ingolstadt21,FGSv3-SAC,42.87,91.07,232.12,3.22
+ingolstadt21,FRAP,72.48,133.71,264.36,2.13
+ingolstadt21,Fixed Time,96.38,145.72,281.83,3.17
+ingolstadt21,IndSAC,34.25,77.17,220.9,1.24
+ingolstadt21,Max Pressure,68.35,214.41,235.51,1.23
+ingolstadt21,PPO,25.75,67.16,207.0,4.77
+ingolstadt7,CoLight,31.68,99.13,93.61,2.1
+ingolstadt7,DQN,12.33,38.09,75.76,1.12
+ingolstadt7,FRAP,18.91,44.31,77.17,15.16
+ingolstadt7,Fixed Time,66.09,122.88,135.53,5.16
+ingolstadt7,IndSAC,7.19,28.15,68.92,0.53
+ingolstadt7,Max Pressure,12.32,214.66,66.51,0.5
+ingolstadt7,PPO,11.01,45.3,70.91,0.62
