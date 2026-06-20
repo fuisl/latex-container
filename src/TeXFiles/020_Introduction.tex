@@ -22,9 +22,9 @@ First, the dominant evaluation environments in MARL-TSC research are synthetic g
 
 Second, the RL algorithms used in MARL-TSC are almost exclusively value-based (DQN and its variants) or on-policy (PPO). Soft Actor-Critic \citep{haarnoja2018soft}, which offers off-policy sample efficiency and entropy-regularized exploration, has not been systematically evaluated in a graph-aware multi-agent setting for traffic control. SAC's entropy bonus may be particularly beneficial in multi-agent environments, where diverse policies reduce the risk that agents converge to coordination patterns that perform well in training scenarios but fail under distribution shift.
 
-Third, no published method combines all three of the following properties in a single framework: (i) a phase-aware local encoder that models phase competition explicitly \citep{zheng2019learning}; (ii) graph-attention communication between neighboring intersections; and (iii) discrete-action SAC as the RL algorithm. The interaction between these components — whether phase-aware encoding complements or competes with graph communication, and whether entropy regularization helps or hinders convergence in this setting — is unknown.
+Third, the design space of MARL-TSC architectures — encoder type, communication mechanism, and RL algorithm — has not been systematically mapped or ablated on German road networks. Whether phase-aware encoding complements graph attention, whether entropy regularization helps or hinders convergence in multi-agent German scenarios, and at what network scales each component provides consistent benefit are open empirical questions. No published method treats these three dimensions as independently configurable choices and evaluates their interactions on the German RESCO benchmark.
 
-This thesis addresses all three gaps by designing, implementing, and evaluating the FGS (FRAP-Graph-SAC) framework: a graph-aware MARL system for traffic signal control that combines local phase-aware encoders, GATv2-based inter-agent communication, and discrete-action SAC, evaluated on six German RESCO scenarios spanning three scale tiers: Single-intersection (cologne1, ingolstadt1), Corridor (cologne3, ingolstadt7), and Regional (cologne8, ingolstadt21).
+This thesis addresses all three gaps through the FGS (\textbf{F}ramework for \textbf{G}raph-aware \textbf{S}ignal control): a modular three-module pipeline that decouples encoder, graph communication, and RL algorithm as independent design choices, implemented across three successive generations (FGS, FGSv2, FGSv3) and evaluated on six German RESCO scenarios spanning three scale tiers: Single-intersection (cologne1, ingolstadt1), Corridor (cologne3, ingolstadt7), and Regional (cologne8, ingolstadt21).
 
 \section{Research Objectives}
 \label{sec:Introduction_ResearchObjectives}
@@ -40,7 +40,7 @@ The work reported in this thesis pursues five interconnected objectives:
 
   \item \textbf{Study RL optimization schemes.} Compare discrete-action SAC, DQN, and PPO as RL algorithms within the same MARL-TSC framework, examining sample efficiency, stability, and final performance.
 
-  \item \textbf{Evaluate across German RESCO scenarios.} Assess the complete FGS, FGSv2, and FGSv3 frameworks against classical and deep RL baselines on the German RESCO benchmark, characterizing performance, scalability, and the contribution of individual architectural components. FGSv3 emerged during the investigation to address scalability limitations identified in the FGSv2 evaluation; it is included as a third architectural contribution.
+  \item \textbf{Evaluate across German RESCO scenarios.} Assess FGS, FGSv2, and FGSv3 pipeline instantiations against classical and deep RL baselines on the German RESCO benchmark, characterizing performance, scalability, and the contribution of individual architectural choices. FGSv2 and FGSv3 emerged iteratively: each generation targets a specific interface failure identified in evaluation of the preceding one, providing both improved performance and empirically grounded design guidelines.
 \end{enumerate}
 
 \section{Research Questions and Hypotheses}
@@ -49,7 +49,7 @@ The work reported in this thesis pursues five interconnected objectives:
 The empirical investigation is organized around three primary research questions and one exploratory question.
 
 \medskip
-\noindent\textbf{RQ1:} \textit{How does the proposed graph-aware multi-agent SAC framework perform compared with classical traffic-control methods and deep RL baselines across German RESCO traffic scenarios?}
+\noindent\textbf{RQ1:} \textit{How do FGS pipeline instantiations perform compared with classical traffic-control methods and deep RL baselines across German RESCO traffic scenarios?}
 
 \medskip
 \noindent\textbf{RQ2:} \textit{What is the effect of local encoder design and graph-attention communication on traffic signal control performance and training stability?}

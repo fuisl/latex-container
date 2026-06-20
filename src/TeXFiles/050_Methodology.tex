@@ -4,7 +4,7 @@
 
 A survey of MARL-TSC literature reveals that published methods — IntelliLight \citep{wei2018intellilight}, PressLight \citep{wei2019presslight}, FRAP \citep{zheng2019learning}, CoLight \citep{wei2019colight}, and MPLight \citep{chen2020toward} — all process each agent's local observation through three successive operations, even though individual papers rarely describe their architectures in these unified terms. First, a \emph{local encoder} maps raw traffic measurements to a feature vector capturing demand and phase state at one intersection. Second, an optional \emph{communication layer} aggregates neighbor embeddings over the road graph to introduce spatial context. Third, an \emph{RL optimizer} uses the resulting representation to select a phase and update the policy.
 
-This thesis formalizes that implicit structure as the \textbf{FGS pipeline}: a three-module design space in which every MARL-TSC architecture is fully characterized by three independent choices — encoder, communication, and RL algorithm — as illustrated in Figure~\ref{fig:fgs_pipeline}. The FGS (FRAP-Graph-SAC) framework explores the particular combination that remained unstudied: a phase-competition encoder (FRAP), dynamic graph-attention communication (GATv2), and entropy-regularized off-policy learning (SAC). Three successive variants — FGS, FGSv2, and FGSv3 — iterate on specific failure modes identified in evaluation, each keeping the pipeline structure fixed while refining one or more module designs.
+This thesis formalizes that implicit structure as the \textbf{FGS pipeline} (\textbf{F}ramework for \textbf{G}raph-aware \textbf{S}ignal control): a three-module design space in which every MARL-TSC architecture is fully characterized by three independent choices — encoder, communication, and RL algorithm — as illustrated in Figure~\ref{fig:fgs_pipeline}. Three successive instantiations — FGS, FGSv2, and FGSv3 — explore this design space through an ablation-driven iteration: each generation is motivated by a specific module-interface failure identified in evaluation of the preceding one, keeping the pipeline structure fixed while refining one or more module designs. The trajectory is thus not haphazard iteration but a principled, empirically grounded diagnosis-and-repair cycle.
 
 The remainder of this chapter follows the pipeline structure. Section~\ref{sec:Methodology_ProblemFormulation} states the formal problem. Section~\ref{sec:Methodology_Pipeline} introduces the general framework, its design table, and how prior work maps onto it. Sections~\ref{sec:Methodology_Encoder}--\ref{sec:Methodology_RLModule} describe each module's design choices in depth. Section~\ref{sec:Methodology_IndividualContribution} specifies the FGS, FGSv2, and FGSv3 instantiations together with the shared training algorithm. All three variants follow the CTDE paradigm introduced in Section~\ref{sec:TheoreticalBackground_POMDP}: the actor uses only the ego agent's local observation at execution time, while the centralized critic has access to the joint state during training.
 
@@ -131,11 +131,11 @@ Figure~\ref{fig:fgs_pipeline} depicts the general framework. At each decision st
 \node[font=\footnotesize\sffamily, anchor=west] at (9.1,-3.2) {This thesis (FGS family)};
 
 \end{tikzpicture}
-\caption{The general MARL-TSC pipeline. Every signalized-network controller can be described by three independent module choices: a local \emph{encoder} that maps raw traffic observations to per-intersection features, an optional \emph{communication} layer that shares embeddings over the road graph, and an \emph{RL optimizer} that learns the phase-selection policy. Prior work uses different combinations; FGS is the first framework to combine FRAP-style encoding, GATv2 dynamic attention, and discrete-action SAC within a unified CTDE architecture.}
+\caption{The FGS three-module pipeline. Every signalized-network controller can be described by three independent design choices: a local \emph{encoder} (Module~I) that maps raw traffic observations to per-intersection features, an optional \emph{communication} layer (Module~II) that shares embeddings over the road graph, and an \emph{RL optimizer} (Module~III) that learns the phase-selection policy. Prior work fixes specific combinations; the FGS framework treats all three as independently configurable and systematically ablates their interactions on German RESCO scenarios.}
 \label{fig:fgs_pipeline}
 \end{figure}
 
-Table~\ref{tab:pipeline_design_space} maps representative prior methods and the three FGS variants onto this design space, making the gap that this thesis addresses explicit. Every prior graph-based method (CoLight) uses GAT with an MLP encoder and DQN; every method using a phase-competition encoder (standalone FRAP) uses no graph communication. No published method combines all three of FRAP-style encoding, GATv2 attention, and SAC.
+Table~\ref{tab:pipeline_design_space} maps representative prior methods and the three FGS instantiations onto this design space. Every prior graph-based method (CoLight) uses GAT with an MLP encoder and DQN; every method using a phase-competition encoder (standalone FRAP) uses no graph communication. No prior work treats all three module choices as variables and ablates their interactions on German RESCO scenarios — that systematic characterization is the primary contribution of this thesis.
 
 \begin{table}[ht]
 \centering
@@ -442,11 +442,11 @@ where $\mathcal{H}_{\mathrm{target}} = -\!\log(1/A_{\mathrm{valid}})$ is the ent
 \label{sec:Methodology_IndividualContribution}
 %──────────────────────────────────────────────────────────────────────────────
 
-The three-module framework defines a design space; the FGS family of architectures represents three specific paths through it, each motivated by a limitation identified in the previous generation. Table~\ref{tab:fgs_generation_summary} summarizes the generation-over-generation changes at the module level.
+The three-module framework defines a design space; the FGS family represents three successive instantiations of it, each motivated by a specific module-interface failure identified in evaluation of the preceding generation. FGSv1 establishes the baseline and exposes two failures: the Module-I→Module-II boundary discards per-phase information when FRAP's scalar projection is applied before graph aggregation, and the Module-III centralized critic's $O(Nd)$ input exhausts resources before SAC can learn at $N=21$. FGSv2 fixes the encoder–communication boundary. FGSv3 fixes the communication signal (competition scores → demand state) and the remaining scalability barrier (centralized → factored critic). Table~\ref{tab:fgs_generation_summary} summarizes these transitions.
 
 \begin{table}[ht]
 \centering
-\caption{Generation-level changes across the FGS family. Each row shows which module changed and why.}
+\caption{Successive FGS instantiations and the module-interface failure each addresses. Each generation keeps the pipeline structure fixed and modifies only the components implicated by the preceding evaluation.}
 \label{tab:fgs_generation_summary}
 \small
 \setlength{\tabcolsep}{5pt}
