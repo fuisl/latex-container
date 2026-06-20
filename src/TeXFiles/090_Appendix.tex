@@ -273,7 +273,72 @@ For FGSv2 (Equation~\ref{eq:fgsv2_critic}), the critic input concatenates: (i) f
                        = O\!\bigl(N(d_{h'} + A_{\max})\bigr).
   \label{eq:critic_dim}
 \end{equation}
-At ingolstadt21 ($N=21$, $d_{h'}=128$, $A_{\max}=6$): $d_{\mathrm{critic}} \approx 21\times 134 + 277 = 3{,}091$. Twin critics, per-agent evaluation, and a PER replay batch multiply effective memory consumption considerably, which is the proximate cause of resource exhaustion reported in Section~\ref{sec:ResultsAndDiscussion_Convergence}. PPO's per-agent value function has input dimension $O(d_{h'})$, independent of $N$, explaining its ability to complete 200 training episodes at $N=21$ where SAC cannot.
+At ingolstadt21 ($N=21$, $d_{h'}=128$, $A_{\max}=6$): $d_{\mathrm{critic}} \approx 21\times 134 + 277 = 3{,}091$. Twin critics, per-agent evaluation, and a PER replay batch multiply effective memory consumption considerably, which is the proximate cause of the resource exhaustion reported in Section~\ref{sec:ResultsAndDiscussion_Convergence} for the original FGS(MLP+GATv2+SAC) run on ingolstadt21, which terminated after 17 of 200 training episodes. PPO's per-agent value function has input dimension $O(d_{h'})$, independent of $N$, giving it a substantially smaller memory footprint at regional scale.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{FGSv3: Factored Critic Input-Dimension Bound}
+\label{sec:Appendix_fgsv3_critic_complexity}
+% ─────────────────────────────────────────────────────────────────────────────
+
+The FGSv3 factored neighborhood critic (Equation~\ref{eq:fgsv3_critic}) replaces the full graph-context concatenation of FGSv2 with a sum-pooled neighborhood aggregate. For ego agent $k$, the critic input is:
+\begin{enumerate}
+  \item[(i)] the ego action token $\mathbf{z}_{k,a}$ ($d_z$ dims);
+  \item[(ii)] the ego gated graph context $\mathbf{g}_k$ ($d_c$ dims);
+  \item[(iii)] the neighbor graph-context pool $\mathbf{h}_{\mathrm{nbr},k} = \sum_{j \in \mathcal{N}(k)} \tilde{w}_{kj}\,\mathbf{g}_j$ ($d_c$ dims);
+  \item[(iv)] the neighbor action pool $\mathbf{a}_{\mathrm{nbr},k} = \sum_{j \in \mathcal{N}(k)} \tilde{w}_{kj}\,\mathbf{a}_{t-1,j}$ ($A_{\max}$ dims);
+  \item[(v)] the candidate-action identity $\mathbf{e}_a$ ($A_{\max}$ dims).
+\end{enumerate}
+
+\begin{proposition}[Factored critic input dimension]
+\label{prop:fgsv3_critic_dim}
+The FGSv3 factored critic input dimension is
+\begin{equation}
+  d_{\mathrm{critic}}^{v3} = d_z + 2d_c + 2A_{\max} = O\!\bigl(d_c + A_{\max}\bigr),
+  \label{eq:fgsv3_critic_dim}
+\end{equation}
+independent of the number of agents $N$.
+\end{proposition}
+
+\begin{proof}
+Items (iii) and (iv) above are computed by weighted sum-pooling over $\mathcal{N}(k)$. Since each sum produces a single vector in $\mathbb{R}^{d_c}$ (resp.\ $\mathbb{R}^{A_{\max}}$), the output dimension is independent of $|\mathcal{N}(k)|$ and therefore independent of $N$. Items (i)--(v) contribute $d_z + d_c + d_c + A_{\max} + A_{\max} = d_z + 2d_c + 2A_{\max}$. With $d_z$ and $d_c$ fixed hyperparameters, the expression is $O(d_c + A_{\max})$. \qedhere
+\end{proof}
+
+\paragraph{Numerical comparison.}
+At ingolstadt21 ($N=21$, $d_z=d_c=64$, $A_{\max}=6$):
+\[
+  d_{\mathrm{critic}}^{v3} = 64 + 2(64) + 2(6) = 204,
+\]
+compared to $d_{\mathrm{critic}}^{v2} = 3{,}091$ from Equation~\eqref{eq:critic_dim}. The factored critic reduces the input dimension by a factor of approximately 15. Note that FGSv3 narrows the adapter (action-token) dimension from $d_z=128$ (FGSv2) to $d_z=64$ to match the demand communication dimension $d_c$; this joint choice yields the 204-dimensional input above. Empirically, FGSv2-SAC completes 200 training episodes on ingolstadt21 with a best-validation delay of 53.7~s; FGSv3-SAC achieves 45.3~s — a 16\% improvement — while operating with a 15$\times$ smaller critic input.
+
+\paragraph{Information loss relative to centralized critic.}
+The factored critic observes the graph contexts and previous actions of direct neighbors only, not of all agents. Any coordination signal that requires $k$ to be informed about agents more than one hop away is lost. However, FGSv3's GATv2 layer already aggregates two-hop contextual information into $\mathbf{g}_k$ (one hop of message-passing updates $\mathbf{g}_k$ from its direct neighbors, each of which has already aggregated from \emph{their} neighbors via the shared FRAP--GATv2 pipeline). The factored critic therefore has access to two-hop demand information implicitly through $\mathbf{g}_k$, even though it only inspects one-hop neighbor contexts $\{\mathbf{g}_j : j \in \mathcal{N}(k)\}$ explicitly. This argument does not constitute a formal equivalence — the centralized critic can in principle learn coordination functions that the factored critic cannot — but it motivates the factored critic as a practical approximation \citep{lowe2017multi}.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{FGSv3: Demand Communication Branch Equivariance}
+\label{sec:Appendix_fgsv3_equivariance}
+% ─────────────────────────────────────────────────────────────────────────────
+
+\begin{proposition}[Demand branch node-permutation equivariance]
+\label{prop:fgsv3_node_equivariance}
+Let $P$ be a permutation of the $N$ agent indices and let $P\mathcal{E}$ denote the correspondingly relabelled edge set. The FGSv3 demand communication branch $\mathbf{d}: \mathbb{R}^{N \times \ldots} \to \mathbb{R}^{N \times d_c}$ satisfies
+\[
+  \mathbf{d}(P\mathbf{X}, P\mathcal{E}) = P\,\mathbf{d}(\mathbf{X}, \mathcal{E}),
+\]
+i.e.\ the demand embeddings are permuted consistently with the node relabelling.
+\end{proposition}
+
+\begin{proof}
+The demand branch (Equation~\ref{eq:fgsv3_demand}) applies the same computation to each node $i$ independently: $\mathbf{d}_i = \operatorname{LayerNorm}(\operatorname{ReLU}(W_{\mathrm{comm}}[\bar{\boldsymbol{\phi}}_i \,\Vert\, \operatorname{Emb}_{\mathrm{phase}}(a_{t-1,i})]))$. Because the weights $W_{\mathrm{comm}}$, $\operatorname{LayerNorm}$, and $\operatorname{Emb}_{\mathrm{phase}}$ are shared across all nodes, relabelling node $i \mapsto Pi$ yields $\mathbf{d}_{Pi}(\mathbf{X}) = \mathbf{d}_i(\mathbf{X})$ evaluated at the feature row of $Pi$, which equals $\mathbf{d}_i(P\mathbf{X})_{Pi}$. Hence $\mathbf{d}(P\mathbf{X}, P\mathcal{E})_i = \mathbf{d}(X, \mathcal{E})_{P^{-1}i}$, i.e.\ $\mathbf{d}(P\mathbf{X}, P\mathcal{E}) = P\,\mathbf{d}(\mathbf{X}, \mathcal{E})$. \qedhere
+\end{proof}
+
+\paragraph{Phase-permutation equivariance.}
+The mean-pooling in Equation~\eqref{eq:fgsv3_phi_mean} is invariant under phase permutations $P_A$: $\bar{\boldsymbol{\phi}}_i$ equals the mean of the relabelled phase embeddings, which equals the mean of the original embeddings since the mean is unordered. Therefore the demand branch is phase-permutation \emph{invariant} (the output $\mathbf{d}_i$ does not depend on the phase ordering), subject to the same caveat as FGSv2 (Section~\ref{sec:Appendix_FRAP_equivariance}): the previous-action embedding $\operatorname{Emb}_{\mathrm{phase}}(a_{t-1,i})$ is indexed by phase label, so formal equivariance under phase relabelling requires the embedding table to transform consistently with $P_A$.
+
+\paragraph{Node-permutation equivariance of the full FGSv3 pipeline.}
+Combining Proposition~\ref{prop:fgsv3_node_equivariance} with the existing results for FRAP action tokens (Section~\ref{sec:Appendix_FRAP_equivariance}) and GATv2 (Section~\ref{sec:Appendix_GATv2_properties}): (i) the demand branch is node-equivariant; (ii) GATv2 applied to $\{\mathbf{d}_i\}$ with the permuted edge set $P\mathcal{E}$ is node-equivariant (by the GATv2 equivariance proof); (iii) the FRAP action tokens $\{\mathbf{z}_{i,a}\}$ are node-equivariant by shared-weight computation; (iv) the actor applies the same MLP independently per valid phase; and (v) the factored critic aggregates from a local unordered neighbor set, which is permutation-invariant. The complete FGSv3 forward pass therefore satisfies node-permutation equivariance, enabling parameter sharing across all $N$ intersections.
+
+\paragraph{Convergence disclaimer.}
+The FGSv3 system inherits the convergence disclaimer of Section~\ref{sec:Appendix_convergence_disclaimer}. The soft Bellman contraction (Theorem~\ref{thm:bellman_contraction}) and soft policy improvement (Proposition) hold at the algorithm level and are unaffected by the architectural changes to the communication branch or the critic structure. The practical convergence of FGSv3 on ingolstadt21 is empirically assessed through training curves and validation metrics (Section~\ref{sec:ResultsAndDiscussion_Convergence}).
 
 % ─────────────────────────────────────────────────────────────────────────────
 \section{Soft Bellman Contraction and Policy Improvement}

@@ -437,7 +437,7 @@ Algorithm~\ref{alg:fgs_training} presents the complete training procedure shared
 \Require SUMO scenario with $N$ intersections; episodes $E$; warm-up steps $T_{\text{warm}}$;
 \Statex \quad batch size $B$; soft-update rate $\tau$; discount $\gamma$; target entropy $\mathcal{H}_{\text{target}}$
 \State \textbf{Initialize} shared actor $\pi_\phi$; twin critics $Q_{\theta_1},Q_{\theta_2}$; target critics $\bar{Q}_j \leftarrow Q_{\theta_j}$, $j\in\{1,2\}$
-\State \textbf{Initialize} log-temperature $\log\alpha$; residual gate $\lambda\leftarrow 0$ \textbf{(FGSv2 only)}
+\State \textbf{Initialize} log-temperature $\log\alpha$; residual gate $\lambda\leftarrow 0$ \textbf{(FGSv2 and FGSv3 only)}
 \State \textbf{Initialize} prioritized replay buffer $\mathcal{D}$ with capacity $C$; global step $t\leftarrow 0$
 \For{episode $e = 1,\ldots,E$}
   \State Reset SUMO via TraCI; receive initial graph observation $o_0$
@@ -525,4 +525,178 @@ Algorithm~\ref{alg:fgs_training} presents the complete training procedure shared
 \EndFor
 \State \Return $\pi_k(\cdot\mid o) = \operatorname{softmax}(\mathbf{l}_k)$; also $\{\mathbf{z}_{i,a}\},\{\mathbf{g}_i\}$ for critic (Eq.~\ref{eq:fgsv2_critic})
 \end{algorithmic}
+\end{algorithm}
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{FGSv3: Demand-Aware Communication with Factored Neighborhood Critic}
+\label{sec:Methodology_FGSv3}
+% ─────────────────────────────────────────────────────────────────────────────
+
+FGSv2 communicates the node summary $\mathbf{s}_i$ (Equation~\ref{eq:fgsv2_summary}) to neighboring agents via GATv2. As discussed in Section~\ref{sec:Methodology_FGSv2}, $\mathbf{s}_i$ is obtained by two successive mean-pooling operations over the FRAP feature hierarchy: first over competitors ($\mathbf{c}_{i,a,b} \to \mathbf{z}_{i,a}$, Level~C$\to$D) and then over valid phases ($\mathbf{z}_{i,a} \to \mathbf{s}_i$, Level~D$\to$E). The resulting vector encodes an aggregated preference signal — \emph{which phase is most competitive at intersection $i$} — rather than the traffic demand state. A neighboring agent receiving $\mathbf{s}_i$ therefore learns about $i$'s internal phase rankings, not about how congested $i$'s approach lanes are or which movements $i$ is currently serving. This semantic mismatch limits the utility of graph communication for coordination, because what a downstream intersection needs is: \emph{how much traffic is about to arrive from $i$, and which direction is $i$ currently clearing?}
+
+FGSv3 addresses this by splitting the FRAP encoder into two branches. The decision branch remains unchanged: action tokens $\mathbf{z}_{i,a}$ (Level~D) flow into the actor exactly as in FGSv2, preserving FRAP's local competition prior for phase selection. A new \emph{demand communication branch} taps FRAP at Level~B (the phase demand embedding $\boldsymbol{\phi}_{i,a}$, Line~2 of Algorithm~\ref{alg:fgsv2_forward}), combines it with a learned embedding of the previous action, and produces a compact demand vector $\mathbf{d}_i$ that is then used as the GATv2 communication signal. In addition, the centralized critic is replaced by a factored neighborhood critic whose input dimension is bounded by the graph degree rather than by $N$, removing the scalability barrier that prevented SAC from completing training on ingolstadt21 ($N=21$) under FGSv2.
+
+\paragraph{Demand communication branch.}
+Let $V_i = \{a \mid m_{i,a} = 1\}$ be the set of valid phases for intersection $i$. The mean phase demand embedding across valid phases is
+\begin{equation}
+  \bar{\boldsymbol{\phi}}_i
+  = \frac{1}{|V_i|} \sum_{a \in V_i} \boldsymbol{\phi}_{i,a}
+  \;\in \mathbb{R}^{C},
+  \label{eq:fgsv3_phi_mean}
+\end{equation}
+where $\boldsymbol{\phi}_{i,a} \in \mathbb{R}^C$ is the FRAP phase demand embedding (Level~B, Algorithm~\ref{alg:fgsv2_forward} Line~2). To append information about which phase intersection $i$ is currently executing, a learned phase-index embedding $\operatorname{Emb}_{\mathrm{phase}}(a_{t-1,i}) \in \mathbb{R}^{d_{pe}}$ is concatenated with $\bar{\boldsymbol{\phi}}_i$ and projected to the communication space:
+\begin{equation}
+  \mathbf{d}_i
+  = \operatorname{LayerNorm}\!\left(
+  \operatorname{ReLU}\!\left(
+  W_{\mathrm{comm}}
+  \bigl[\,\bar{\boldsymbol{\phi}}_i \;\Vert\; \operatorname{Emb}_{\mathrm{phase}}(a_{t-1,i})\,\bigr]
+  \right)
+  \right)
+  \;\in \mathbb{R}^{d_c},
+  \label{eq:fgsv3_demand}
+\end{equation}
+where $W_{\mathrm{comm}} \in \mathbb{R}^{d_c \times (C + d_{pe})}$ is a learnable projection matrix and $d_c$ is the communication embedding dimension. The vector $\mathbf{d}_i$ encodes both the demand state of all valid phases (via $\bar{\boldsymbol{\phi}}_i$) and the current execution context (via $\operatorname{Emb}_{\mathrm{phase}}(a_{t-1,i})$), providing the inter-agent information content that neighbors require for demand-aware coordination.
+
+\paragraph{GATv2 on demand features.}
+GATv2 communication proceeds identically to FGSv2 (Equation~\ref{eq:gatv2_attn}) except that the input is $\mathbf{d}_i$ in place of the node summary $\mathbf{s}_i$. A layer normalization is applied before the attention:
+\begin{equation}
+  \mathbf{u}_i = \operatorname{LayerNorm}(\mathbf{d}_i).
+  \label{eq:fgsv3_gatv2_input}
+\end{equation}
+The neighborhood aggregation with self-loops follows Equation~\eqref{eq:fgsv2_gatv2} with $\mathbf{u}_i$ substituted:
+\begin{equation}
+  \tilde{\mathbf{g}}_i
+  = \operatorname{ReLU}\!\left(
+  \mathbf{W}_o\,\operatorname{GATv2Conv}\!\left(\{\mathbf{u}_j : j \in \mathcal{N}(i) \cup \{i\}\}\right)
+  \right).
+  \label{eq:fgsv3_gatv2}
+\end{equation}
+The residual gate retains the same structure as FGSv2, with the residual now anchored to $\mathbf{d}_i$ rather than $\mathbf{s}_i$:
+\begin{equation}
+  \mathbf{g}_i = \operatorname{LayerNorm}\!\left(\mathbf{d}_i + \lambda\,\tilde{\mathbf{g}}_i\right),
+  \label{eq:fgsv3_gate}
+\end{equation}
+where $\lambda$ is a learned scalar initialized to zero. Because $\lambda=0$ at initialization, early training is dominated by the purely local demand signal; neighborhood context is incorporated only as $\lambda$ grows during optimization.
+
+\paragraph{Action-conditioned actor (unchanged from FGSv2).}
+The actor in FGSv3 is identical to FGSv2 (Equation~\ref{eq:fgsv2_actor}). Each candidate phase $a$ receives its FRAP action token $\mathbf{z}_{i,a}$, the gated graph context $\mathbf{g}_i$ (which now reflects demand-aware communication), and the one-hot phase identity $\mathbf{e}_a$:
+\[
+  l_a = \operatorname{MLP}_\phi\!\bigl[\,\mathbf{z}_{i,a}\;\Vert\;\mathbf{g}_i\;\Vert\;\mathbf{e}_a\,\bigr].
+\]
+FRAP's local competition prior is fully preserved in the action-token path; only the communication signal flowing through $\mathbf{g}_i$ changes.
+
+\paragraph{Factored neighborhood critic.}
+The FGSv2 centralized critic (Equation~\ref{eq:fgsv2_critic}) concatenates the gated graph contexts of \emph{all} $N$ agents, producing an input of dimension $O\!\bigl(N(d_{h'} + A_{\max})\bigr)$ that grows with network size (Appendix~\ref{sec:Appendix_critic_complexity}). FGSv3 replaces this with a factored critic that aggregates only over the direct neighbors of ego agent $k$ in the communication graph. Define the weighted neighbor context and weighted neighbor action as
+\begin{equation}
+  \mathbf{h}_{\mathrm{nbr},k}
+  = \sum_{j \in \mathcal{N}(k)} \tilde{w}_{kj}\,\mathbf{g}_j,
+  \qquad
+  \mathbf{a}_{\mathrm{nbr},k}
+  = \sum_{j \in \mathcal{N}(k)} \tilde{w}_{kj}\,\mathbf{a}_{t-1,j},
+  \label{eq:fgsv3_nbr_context}
+\end{equation}
+where $\tilde{w}_{kj} = w_{kj} / \sum_{l \in \mathcal{N}(k)} w_{kl}$ are the normalized edge weights and $\mathbf{a}_{t-1,j} \in \mathbb{R}^{A_{\max}}$ is the one-hot action taken by neighbor $j$ at the previous step. The factored critic evaluates the Q-value for ego agent $k$ choosing action $a$ as
+\begin{equation}
+  Q_k(a) = f_Q\!\Bigl[\,
+    \mathbf{z}_{k,a}\;\Vert\;
+    \mathbf{g}_k\;\Vert\;
+    \mathbf{h}_{\mathrm{nbr},k}\;\Vert\;
+    \mathbf{a}_{\mathrm{nbr},k}\;\Vert\;
+    \mathbf{e}_a
+    \,\Bigr].
+  \label{eq:fgsv3_critic}
+\end{equation}
+The input dimension is $d_z + 2d_c + 2A_{\max}$, which is independent of $N$ (Appendix~\ref{sec:Appendix_fgsv3_critic_complexity}). At ingolstadt21 with $d_z = d_c = 64$ and $A_{\max} = 6$, this yields $64 + 128 + 12 = 204$ dimensions, a fourteen-fold reduction from the 3{,}091 required by FGSv2. Twin critics are maintained and the minimum is used for target and actor-loss computation, following the SAC convention \citep{haarnoja2018soft}.
+
+Table~\ref{tab:fgsv3_vs_fgsv2} summarizes the component-level changes between FGSv2 and FGSv3.
+
+\begin{table}[ht]
+  \centering
+  \caption{FGSv3 vs.\ FGSv2 component changes. The actor and the FRAP competition path (Levels~C--D) are unchanged; both modifications affect the communication pathway and the critic.}
+  \label{tab:fgsv3_vs_fgsv2}
+  \begin{tabular}{lll}
+    \hline
+    Component                        & FGSv2                                         & FGSv3                                    \\
+    \hline
+    Communication signal             & $\mathbf{s}_i$ (Level~E, two poolings)        & $\mathbf{d}_i$ (Level~B + phase intent)  \\
+    FRAP tap for comm.\              & Level~D$\to$E (competition $\to$ summary)     & Level~B (phase demand)                   \\
+    GATv2 input                      & $\operatorname{LayerNorm}(\mathbf{s}_i)$      & $\operatorname{LayerNorm}(\mathbf{d}_i)$ \\
+    Action tokens $\mathbf{z}_{i,a}$ & Competition path (Levels C--D)                & Unchanged                                \\
+    Actor                            & Action-conditioned (Eq.~\ref{eq:fgsv2_actor}) & Unchanged                                \\
+    Critic type                      & Centralized ($O(N d_{h'})$ input)             & Factored neighborhood ($O(d_c)$ input)   \\
+    Critic dim.\ at $N=21$           & $\approx 3{,}091$                             & $\approx 204$                            \\
+    Residual gate $\lambda$          & Scalar, init $= 0$                            & Unchanged                                \\
+    \hline
+  \end{tabular}
+\end{table}
+
+Algorithm~\ref{alg:fgsv3_forward} details the FGSv3 forward pass. Phases~1 and~2 of the FRAP encoding are identical to Algorithm~\ref{alg:fgsv2_forward}; the demand communication branch (Phase~2b) is new; Phase~3 (GATv2) is structurally identical to FGSv2 but operates on $\mathbf{d}_i$; Phase~4 (actor) is unchanged; and Phase~5 introduces the factored critic computation.
+
+\begin{algorithm}[ht]
+  \caption{FGSv3 Forward Pass}
+  \label{alg:fgsv3_forward}
+  \begin{algorithmic}[1]
+    \Require Graph observation $o = \{\mathbf{X},\mathcal{E},\mathbf{W},\mathbf{M}_{\text{pair}},\mathbf{M}_{\text{comp}},\mathbf{m},\mathbf{a}_{t-1}\}$; ego index $k$
+    \Ensure Policy distribution $\pi_k(\cdot\mid o)$; graph contexts $\{\mathbf{g}_i\}$ and action tokens $\{\mathbf{z}_{i,a}\}$ (training)
+    \Statex \rule{\linewidth}{0.3pt}
+    \Statex \textbf{Phase 1 — FRAP action-token encoding (identical to Alg.~\ref{alg:fgsv2_forward} Phases~1--2)}
+    \ForAll{intersection $i \in \mathcal{N}$ \textbf{and} movement $u$}
+    \State $\mathbf{e}_{i,u} \leftarrow \operatorname{ReLU}\!\bigl(W_{\text{lane}}\bigl[\sigma(\operatorname{Emb}_{\text{phase}}(p_{i,u})),\;\sigma(W_d\,d_{i,u})\bigr]\bigr)$
+    \hfill\(\triangleright\) \textit{lane embedding (Level A)}
+    \EndFor
+    \ForAll{$i \in \mathcal{N}$, valid phase $a$ ($m_{i,a}=1$)}
+    \State $\boldsymbol{\phi}_{i,a} \leftarrow \sum_u w_{i,a,u}\,\mathbf{e}_{i,u}$
+    \hfill\(\triangleright\) \textit{phase demand embedding (Level B)}
+    \ForAll{competitor $b \in V_{i,a}$}
+    \State $\mathbf{c}_{i,a,b} \leftarrow \operatorname{ReLU}\!\bigl(\operatorname{Conv}_{\text{hid}}([\boldsymbol{\phi}_{i,a},\boldsymbol{\phi}_{i,b}] \odot \mathbf{r}_{i,a,b})\bigr)$
+    \hfill\(\triangleright\) \textit{competition feature (Level C)}
+    \EndFor
+    \If{$|V_{i,a}| > 0$}
+    \State $\mathbf{z}_{i,a} \leftarrow \operatorname{LayerNorm}\!\bigl(\operatorname{ReLU}\!\bigl(\operatorname{Adapter}(\tfrac{1}{|V_{i,a}|}\textstyle\sum_{b} \mathbf{c}_{i,a,b})\bigr)\bigr)$
+    \hfill\(\triangleright\) \textit{action token (Level D, Eq.~\ref{eq:fgsv2_token})}
+    \Else
+    \State $\mathbf{z}_{i,a} \leftarrow \mathbf{0}$
+    \EndIf
+    \EndFor
+    \State Set $\mathbf{z}_{i,a} \leftarrow \mathbf{0}$ for all invalid phases ($m_{i,a}=0$)
+    \Statex \rule{\linewidth}{0.3pt}
+    \Statex \textbf{Phase 2b — Demand communication branch (NEW in FGSv3)}
+    \ForAll{$i \in \mathcal{N}$}
+    \State $\bar{\boldsymbol{\phi}}_i \leftarrow \tfrac{1}{|V_i|}\textstyle\sum_{a \in V_i} \boldsymbol{\phi}_{i,a}$
+    \hfill\(\triangleright\) \textit{mean phase demand (Eq.~\ref{eq:fgsv3_phi_mean})}
+    \State $\mathbf{d}_i \leftarrow \operatorname{LayerNorm}\!\bigl(\operatorname{ReLU}\!\bigl(W_{\mathrm{comm}}[\bar{\boldsymbol{\phi}}_i \,\Vert\, \operatorname{Emb}_{\mathrm{phase}}(a_{t-1,i})]\bigr)\bigr)$
+    \hfill\(\triangleright\) \textit{demand comm.\ embedding (Eq.~\ref{eq:fgsv3_demand})}
+    \EndFor
+    \Statex \rule{\linewidth}{0.3pt}
+    \Statex \textbf{Phase 3 — GATv2 communication on demand features}
+    \ForAll{$i \in \mathcal{N}$}
+    \State $\mathbf{u}_i \leftarrow \operatorname{LayerNorm}(\mathbf{d}_i)$
+    \hfill\(\triangleright\) \textit{pre-normalize (Eq.~\ref{eq:fgsv3_gatv2_input})}
+    \State $\tilde{\mathbf{g}}_i \leftarrow \operatorname{ReLU}\!\bigl(\mathbf{W}_o\;\operatorname{GATv2Conv}(\{\mathbf{u}_j : j \in \mathcal{N}(i)\cup\{i\}\})\bigr)$
+    \hfill (Eq.~\ref{eq:fgsv3_gatv2})
+    \State $\mathbf{g}_i \leftarrow \operatorname{LayerNorm}(\mathbf{d}_i + \lambda\,\tilde{\mathbf{g}}_i)$
+    \hfill (Eq.~\ref{eq:fgsv3_gate})
+    \EndFor
+    \Statex \rule{\linewidth}{0.3pt}
+    \Statex \textbf{Phase 4 — Action-conditioned actor for ego agent $k$ (unchanged from FGSv2)}
+    \ForAll{phase $a = 1,\ldots,A_{\max}$}
+    \If{$m_{k,a} = 1$}
+    \State $l_a \leftarrow \operatorname{MLP}_\phi[\mathbf{z}_{k,a}\;\Vert\;\mathbf{g}_k\;\Vert\;\mathbf{e}_a]$
+    \hfill (Eq.~\ref{eq:fgsv2_actor})
+    \Else
+    \State $l_a \leftarrow -10^9$
+    \EndIf
+    \EndFor
+    \Statex \rule{\linewidth}{0.3pt}
+    \Statex \textbf{Phase 5 — Factored neighborhood critic for ego agent $k$ (NEW in FGSv3)}
+    \State $\mathbf{h}_{\mathrm{nbr},k} \leftarrow \sum_{j \in \mathcal{N}(k)} \tilde{w}_{kj}\,\mathbf{g}_j$;
+    \quad $\mathbf{a}_{\mathrm{nbr},k} \leftarrow \sum_{j \in \mathcal{N}(k)} \tilde{w}_{kj}\,\mathbf{a}_{t-1,j}$
+    \hfill (Eq.~\ref{eq:fgsv3_nbr_context})
+    \ForAll{phase $a = 1,\ldots,A_{\max}$}
+    \State $Q_k(a) \leftarrow f_Q[\mathbf{z}_{k,a}\;\Vert\;\mathbf{g}_k\;\Vert\;\mathbf{h}_{\mathrm{nbr},k}\;\Vert\;\mathbf{a}_{\mathrm{nbr},k}\;\Vert\;\mathbf{e}_a]$
+    \hfill (Eq.~\ref{eq:fgsv3_critic})
+    \EndFor
+    \State \Return $\pi_k(\cdot\mid o) = \operatorname{softmax}(\mathbf{l}_k)$; also $\{\mathbf{z}_{i,a}\},\{\mathbf{g}_i\}$ for critic (Eq.~\ref{eq:fgsv3_critic})
+  \end{algorithmic}
 \end{algorithm}
