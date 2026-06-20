@@ -32,7 +32,7 @@ The remaining fields in the observation dictionary are:
   \item \textit{Ego index}: the integer identifying which row of $\mathbf{X}$ corresponds to the acting agent.
   \item \textit{Action mask}: a binary vector of length $A_{\max}$ indicating the phases that are valid for the ego agent.
   \item \textit{Phase-pair mask} $\mathbf{M}_{\mathrm{pair}} \in \{0,1\}^{N \times A_{\max} \times M}$: for each agent and candidate phase, indicates the subset of traffic movements that phase controls.
-  \item \textit{Phase-competition mask} $\mathbf{M}_{\mathrm{comp}} \in \{0,1\}^{N \times A_{\max} \times (A_{\max}-1)}$: encodes movement conflicts between phase $a$ and each of its $A_{\max}-1$ competitors; the self-competition entry is absent by construction.
+  \item \textit{Phase-competition mask} $\mathbf{M}_{\mathrm{comp}} \in \{0,1,2,3\}^{N \times A_{\max} \times (A_{\max}-1)}$: encodes one of four predefined movement-conflict relation types between phase $a$ and each of its $A_{\max}-1$ competitors; the self-competition entry is absent by construction.
   \item \textit{Previous joint action} $\mathbf{a}_{t-1} \in \{0,1\}^{N \times A_{\max}}$: one-hot encoding of all agents' actions at the preceding step.
 \end{itemize}
 
@@ -174,73 +174,64 @@ where $\mathbf{W}$ and $\mathbf{a}$ are learnable parameters, $\Vert$ denotes co
 \subsection{FRAP Encoder}
 \label{sec:Methodology_FRAP}
 
-FRAP \citep{zheng2019learning} encodes the competition between candidate signal phases by explicitly comparing each phase against every competing phase and pooling the competition results. The following description adopts the notation used by FGS and FGSv2; specifically, the hidden competition feature $\mathbf{c}_{i,a,b}$ produced in Step~3 is the tensor at which FGSv2 taps the encoder (Section~\ref{sec:Methodology_FGSv2}).
+FRAP \citep{zheng2019learning} encodes the competition between candidate signal phases by explicitly comparing each phase against every competitor and pooling the results. Throughout this section the intersection subscript $i$ is suppressed for clarity; all tensors and indices belong to a single intersection.
 
-Let intersection $i$ have $M_i$ incoming traffic movements and $A_i$ candidate phases. The phase-pair mask $\mathbf{P}_i \in \{0,1\}^{A_i \times M_i}$ sets $P_{i,a,u}=1$ if movement $u$ is served by phase $a$. The phase-competition mask $\mathbf{M}_{\mathrm{comp}} \in \{0,1,2,3\}^{A_i \times (A_i-1)}$ encodes one of four predefined relation types between each ordered pair $(a, b)$ of distinct phases; type~0 indicates no movement conflict.
+Let the intersection have $M$ incoming traffic movements and $A$ candidate phases. The phase-movement mask $\mathbf{P} \in \{0,1\}^{A \times M}$ sets $P_{am}=1$ if movement $m$ is served by phase $a$. The phase-competition relation $R_{ab} \in \{0,1,2,3\}$ encodes one of four predefined conflict types between each ordered pair $(a, b)$ of distinct phases; type~0 indicates no movement conflict.
 
-\paragraph{Step 1: Movement demand embedding.}
-For each movement $u$, a phase indicator $p_{i,u}\in\{0,1\}$ (whether $u$ is currently green) and a demand scalar $d_{i,u}$ (lane queue length or vehicle density) are embedded separately, then fused through a shared lane-embedding layer:
+\paragraph{Step 1: Movement embedding.}
+For each movement $m$, a phase indicator $p_m\in\{0,1\}$ (whether $m$ is currently green) and a demand scalar $d_m$ (lane queue length or vehicle density) are embedded separately and fused:
 \begin{equation}
-  \mathbf{e}_{i,u} =
+  \mathbf{e}_m =
     \operatorname{ReLU}\!\Bigl(
       W_{\text{lane}}\bigl[
-        \sigma\!\bigl(\operatorname{Emb}_{\text{phase}}(p_{i,u})\bigr),\;
-        \sigma(W_d\,d_{i,u})
+        \sigma\!\bigl(\operatorname{Emb}_p(p_m)\bigr),\;
+        \sigma(W_d\,d_m)
       \bigr]
     \Bigr) \in \mathbb{R}^{C},
   \label{eq:frap_movement_emb}
 \end{equation}
-where $\operatorname{Emb}_{\text{phase}}$ is a learnable phase embedding, $W_d$ is a demand projection, and $\sigma$ is the sigmoid function.
+where $\operatorname{Emb}_p$ is a learnable phase-state embedding, $W_d$ is a demand projection, and $\sigma$ is the sigmoid function.
 
-\paragraph{Step 2: Phase-pair embedding.}
-For each candidate phase $a$, the phase-pair embedding aggregates the movement embeddings of the movements it controls via a scaled sum:
+\paragraph{Step 2: Phase embedding.}
+For each candidate phase $a$, the movement embeddings of the movements it controls are aggregated via a scaled sum:
 \begin{equation}
-  \boldsymbol{\phi}_{i,a} = \sum_{u} w_{i,a,u}\,\mathbf{e}_{i,u} \in \mathbb{R}^{C},
+  \boldsymbol{\phi}_a = \sum_{m=1}^{M} w_{am}\,\mathbf{e}_m \in \mathbb{R}^{C},
   \label{eq:frap_phase_emb}
 \end{equation}
-where the weight $w_{i,a,u} = P_{i,a,u}\cdot\min(\sum_v P_{i,a,v},\,2)\,/\,\max(\sum_v P_{i,a,v},\,1)$ normalizes each phase's contribution to the expected two-movement sum, ensuring that phases controlling different numbers of movements are represented on a comparable scale.
+where $w_{am} = P_{am}\cdot\min(\sum_{m'} P_{am'},\,2)\,/\,\max(\sum_{m'} P_{am'},\,1)$ normalizes each phase's contribution to the expected two-movement sum, ensuring comparability across phases controlling different numbers of movements.
 
 \paragraph{Step 3: Pairwise competition feature.}
-For each ordered competitor pair $(a, b)$ with $b \ne a$, a hidden competition feature $\mathbf{c}_{i,a,b}$ is computed in three sub-steps. First, the concatenated phase-pair embeddings pass through a $1{\times}1$ convolutional layer to produce a latent interaction:
-\begin{equation}
-  \mathbf{h}_{i,a,b} =
+For each ordered competitor pair $(a, b)$ with $b \ne a$:
+\begin{align}
+  \mathbf{h}_{ab} &=
     \operatorname{ReLU}\!\bigl(
-      \operatorname{Conv}_{\text{phase}}\bigl([\boldsymbol{\phi}_{i,a} \;\Vert\; \boldsymbol{\phi}_{i,b}]\bigr)
-    \bigr) \in \mathbb{R}^{C}.
-  \label{eq:frap_h}
-\end{equation}
-Second, the relation type $R_{i,a,b}$ is projected to a relation embedding:
-\begin{equation}
-  \mathbf{r}_{i,a,b} =
+      \operatorname{Conv}_{\text{pair}}\bigl([\boldsymbol{\phi}_a \;\Vert\; \boldsymbol{\phi}_b]\bigr)
+    \bigr) \in \mathbb{R}^{C}, \label{eq:frap_h} \\
+  \mathbf{r}_{ab} &=
     \operatorname{ReLU}\!\bigl(
-      \operatorname{Conv}_{\text{rel}}\bigl(\operatorname{Emb}_{\text{rel}}(R_{i,a,b})\bigr)
-    \bigr) \in \mathbb{R}^{C}.
-  \label{eq:frap_r}
-\end{equation}
-Third, the interaction and relation are fused element-wise and passed through a second $1{\times}1$ convolution:
-\begin{equation}
-  \mathbf{c}_{i,a,b} =
+      \operatorname{Conv}_{\text{rel}}\bigl(\operatorname{Emb}_{\text{rel}}(R_{ab})\bigr)
+    \bigr) \in \mathbb{R}^{C}, \label{eq:frap_r} \\
+  \mathbf{c}_{ab} &=
     \operatorname{ReLU}\!\bigl(
-      \operatorname{Conv}_{\text{hid}}\bigl(\mathbf{h}_{i,a,b} \odot \mathbf{r}_{i,a,b}\bigr)
-    \bigr) \in \mathbb{R}^{C}.
-  \label{eq:frap_c}
-\end{equation}
-The tensor $\mathbf{c}_{i,a,b}$ is the \emph{phase-competition representation} — a rich, per-competitor feature that captures both the relative demand between two phases and the structural movement-conflict type between them.
+      \operatorname{Conv}_{\text{hid}}\bigl(\mathbf{h}_{ab} \odot \mathbf{r}_{ab}\bigr)
+    \bigr) \in \mathbb{R}^C. \label{eq:frap_c}
+\end{align}
+The relation embedding $\mathbf{r}_{ab}$ captures the movement-conflict type; the Hadamard product gates the phase-pair interaction by this structure. The vector $\mathbf{c}_{ab}$ is the \emph{phase-competition representation} — a per-competitor feature encoding both relative demand and structural conflict.
 
 \paragraph{Step 4: Phase score (original FRAP output).}
 In the original FRAP, a final $1{\times}1$ convolution projects each competition feature to a scalar:
 \begin{equation}
-  s_{i,a,b} = \operatorname{Conv}_{1\times1}(\mathbf{c}_{i,a,b}) \in \mathbb{R}.
+  s_{ab} = \operatorname{Conv}_{1\times1}(\mathbf{c}_{ab}) \in \mathbb{R}.
   \label{eq:frap_scalar}
 \end{equation}
-The phase score for candidate phase $a$ is obtained by summing over all valid competitors $V_{i,a} = \{b \mid b\ne a,\, m_{i,b}=1\}$:
+The phase score for candidate phase $a$ is obtained by summing over all valid competitors $V_a = \{b \mid b\ne a,\, m_b=1\}$:
 \begin{equation}
-  f_i(a) = \sum_{b \in V_{i,a}} s_{i,a,b},
+  s_a = \sum_{b \in V_a} s_{ab},
   \label{eq:frap_score}
 \end{equation}
 yielding one scalar per candidate phase that directly serves as a Q-value estimate in the original FRAP policy.
 
-FGSv2 \emph{replaces} Steps 4a--4b entirely: instead of projecting $\mathbf{c}_{i,a,b}$ to a scalar, it mean-pools $\mathbf{c}_{i,a,b}$ across valid competitors to produce a rich action token $\mathbf{z}_{i,a}$, retaining the $C$-dimensional feature vector for downstream graph communication and action-conditioned actor computation (Equation~\ref{eq:fgsv2_token}).
+FGSv2 \emph{replaces} Step~4 entirely: instead of projecting $\mathbf{c}_{ab}$ to a scalar, it mean-pools $\mathbf{c}_{ab}$ across valid competitors to produce a rich action token $\mathbf{z}_{i,a}$ (restoring the intersection subscript $i$), retaining the $C$-dimensional feature vector for downstream graph communication and action-conditioned actor computation (Equation~\ref{eq:fgsv2_token}).
 
 The overall design is permutation-equivariant with respect to phase ordering: reordering the candidate phases produces a correspondingly reordered output vector, which supports generalization across intersections with heterogeneous phase counts and movement configurations.
 
@@ -356,7 +347,7 @@ The four FGS variants investigated in this thesis are summarized in Table~\ref{t
 FGSv2 preserves FRAP's phase-competition structure not as a final scalar score but as a set of intermediate \emph{action tokens}, one token per candidate phase. This changes the information topology of the architecture: rather than collapsing phase-level information into a single node embedding before graph communication and actor computation, the action tokens carry phase-specific features through to the actor head.
 
 \paragraph{FRAP action-token encoder.}
-The encoder is tapped at the phase-competition representation block of FRAP, before the $1{\times}1$ convolution that would otherwise produce a scalar pairwise-competition result. For action $a$ at intersection $i$, let $c_{i,a,b}$ denote the feature vector produced by the hidden competition layer for competitor $b$. The valid competitor set is
+The encoder is tapped at the phase-competition representation block of FRAP, before the $1{\times}1$ convolution that would otherwise produce a scalar pairwise-competition result. For action $a$ at intersection $i$, the phase-competition representation $\mathbf{c}_{ab}$ (Equation~\ref{eq:frap_c}) is produced by the hidden competition layer for each competitor $b$. The valid competitor set is
 \[
   V_{i,a} = \{b \mid b \neq a,\; m_{i,b} = 1\}.
 \]
@@ -367,7 +358,7 @@ If $V_{i,a}$ is non-empty, the competition features are pooled and projected int
     \operatorname{LayerNorm}\!\Bigl(
       \operatorname{ReLU}\!\Bigl(
         \operatorname{Adapter}\!\Bigl(
-          \dfrac{1}{|V_{i,a}|}\sum_{b \in V_{i,a}} c_{i,a,b}
+          \dfrac{1}{|V_{i,a}|}\sum_{b \in V_{i,a}} \mathbf{c}_{ab}
         \Bigr)
       \Bigr)
     \Bigr) & \text{if } m_{i,a}=1 \text{ and } |V_{i,a}|>0, \\[6pt]
@@ -478,20 +469,21 @@ Algorithm~\ref{alg:fgs_training} presents the complete training procedure shared
 \Ensure Policy distribution $\pi_k(\cdot\mid o)$; graph contexts $\{\mathbf{g}_i\}$ and action tokens $\{\mathbf{z}_{i,a}\}$ (training)
 \Statex \rule{\linewidth}{0.3pt}
 \Statex \textbf{Phase 1 — FRAP action-token encoding}
-\ForAll{intersection $i \in \mathcal{N}$ \textbf{and} movement $u$}
-  \State $\mathbf{e}_{i,u} \leftarrow \operatorname{ReLU}\!\bigl(W_{\text{lane}}\bigl[\sigma(\operatorname{Emb}_{\text{phase}}(p_{i,u})),\;\sigma(W_d\,d_{i,u})\bigr]\bigr)$
-  \hfill\(\triangleright\) \textit{lane embedding}
+\ForAll{intersection $i \in \mathcal{N}$ \textbf{and} movement $m$}
+  \State $\mathbf{e}_{i,m} \leftarrow \operatorname{ReLU}\!\bigl(W_{\text{lane}}\bigl[\sigma(\operatorname{Emb}_p(p_{i,m})),\;\sigma(W_d\,d_{i,m})\bigr]\bigr)$
+  \hfill\(\triangleright\) \textit{movement embedding (Eq.~\ref{eq:frap_movement_emb})}
 \EndFor
 \ForAll{$i \in \mathcal{N}$, valid phase $a$ ($m_{i,a}=1$)}
-  \State $\boldsymbol{\phi}_{i,a} \leftarrow \sum_u w_{i,a,u}\,\mathbf{e}_{i,u}$
-  \hfill\(\triangleright\) \textit{phase-pair embedding (scaled sum over movements)}
+  \State $\boldsymbol{\phi}_{i,a} \leftarrow \sum_m w_{am}\,\mathbf{e}_{i,m}$
+  \hfill\(\triangleright\) \textit{phase embedding (Eq.~\ref{eq:frap_phase_emb})}
   \ForAll{competitor $b \in V_{i,a}$}
-    \State $\mathbf{r}_{i,a,b} \leftarrow \operatorname{ReLU}(\operatorname{Conv}_{\text{rel}}(\operatorname{Emb}_{\text{rel}}(R_{i,a,b})))$
-    \State $\mathbf{c}_{i,a,b} \leftarrow \operatorname{ReLU}\!\bigl(\operatorname{Conv}_{\text{hid}}([\boldsymbol{\phi}_{i,a},\boldsymbol{\phi}_{i,b}] \odot \mathbf{r}_{i,a,b})\bigr)$
-    \hfill\(\triangleright\) \textit{competition feature}
+    \State $\mathbf{h}_{ab} \leftarrow \operatorname{ReLU}\!\bigl(\operatorname{Conv}_{\text{pair}}([\boldsymbol{\phi}_{i,a} \;\Vert\; \boldsymbol{\phi}_{i,b}])\bigr)$
+    \State $\mathbf{r}_{ab} \leftarrow \operatorname{ReLU}\!\bigl(\operatorname{Conv}_{\text{rel}}(\operatorname{Emb}_{\text{rel}}(R_{ab}))\bigr)$
+    \State $\mathbf{c}_{ab} \leftarrow \operatorname{ReLU}\!\bigl(\operatorname{Conv}_{\text{hid}}(\mathbf{h}_{ab} \odot \mathbf{r}_{ab})\bigr)$
+    \hfill\(\triangleright\) \textit{competition feature (Eqs.~\ref{eq:frap_h}--\ref{eq:frap_c})}
   \EndFor
   \If{$|V_{i,a}| > 0$}
-    \State $\mathbf{z}_{i,a} \leftarrow \operatorname{LayerNorm}\!\bigl(\operatorname{ReLU}\!\bigl(\operatorname{Adapter}(\tfrac{1}{|V_{i,a}|}\textstyle\sum_{b} \mathbf{c}_{i,a,b})\bigr)\bigr)$ \hfill (Eq.~\ref{eq:fgsv2_token})
+    \State $\mathbf{z}_{i,a} \leftarrow \operatorname{LayerNorm}\!\bigl(\operatorname{ReLU}\!\bigl(\operatorname{Adapter}(\tfrac{1}{|V_{i,a}|}\textstyle\sum_{b} \mathbf{c}_{ab})\bigr)\bigr)$ \hfill (Eq.~\ref{eq:fgsv2_token})
   \Else
     \State $\mathbf{z}_{i,a} \leftarrow \mathbf{0}$ \hfill\(\triangleright\) \textit{no competitors: single valid phase}
   \EndIf
@@ -532,9 +524,9 @@ Algorithm~\ref{alg:fgs_training} presents the complete training procedure shared
 \label{sec:Methodology_FGSv3}
 % ─────────────────────────────────────────────────────────────────────────────
 
-FGSv2 communicates the node summary $\mathbf{s}_i$ (Equation~\ref{eq:fgsv2_summary}) to neighboring agents via GATv2. As discussed in Section~\ref{sec:Methodology_FGSv2}, $\mathbf{s}_i$ is obtained by two successive mean-pooling operations over the FRAP feature hierarchy: first over competitors ($\mathbf{c}_{i,a,b} \to \mathbf{z}_{i,a}$, Level~C$\to$D) and then over valid phases ($\mathbf{z}_{i,a} \to \mathbf{s}_i$, Level~D$\to$E). The resulting vector encodes an aggregated preference signal — \emph{which phase is most competitive at intersection $i$} — rather than the traffic demand state. A neighboring agent receiving $\mathbf{s}_i$ therefore learns about $i$'s internal phase rankings, not about how congested $i$'s approach lanes are or which movements $i$ is currently serving. This semantic mismatch limits the utility of graph communication for coordination, because what a downstream intersection needs is: \emph{how much traffic is about to arrive from $i$, and which direction is $i$ currently clearing?}
+FGSv2 communicates the node summary $\mathbf{s}_i$ (Equation~\ref{eq:fgsv2_summary}) to neighboring agents via GATv2. As discussed in Section~\ref{sec:Methodology_FGSv2}, $\mathbf{s}_i$ is obtained by two successive mean-pooling operations: first over competitors ($\mathbf{c}_{ab} \to \mathbf{z}_{i,a}$, Equation~\ref{eq:fgsv2_token}) and then over valid phases ($\mathbf{z}_{i,a} \to \mathbf{s}_i$, Equation~\ref{eq:fgsv2_summary}). The resulting vector encodes an aggregated preference signal — \emph{which phase is most competitive at intersection $i$} — rather than the traffic demand state. A neighboring agent receiving $\mathbf{s}_i$ therefore learns about $i$'s internal phase rankings, not about how congested $i$'s approach lanes are or which movements $i$ is currently serving. This semantic mismatch limits the utility of graph communication for coordination, because what a downstream intersection needs is: \emph{how much traffic is about to arrive from $i$, and which direction is $i$ currently clearing?}
 
-FGSv3 addresses this by splitting the FRAP encoder into two branches. The decision branch remains unchanged: action tokens $\mathbf{z}_{i,a}$ (Level~D) flow into the actor exactly as in FGSv2, preserving FRAP's local competition prior for phase selection. A new \emph{demand communication branch} taps FRAP at Level~B (the phase demand embedding $\boldsymbol{\phi}_{i,a}$, Line~2 of Algorithm~\ref{alg:fgsv2_forward}), combines it with a learned embedding of the previous action, and produces a compact demand vector $\mathbf{d}_i$ that is then used as the GATv2 communication signal. In addition, the centralized critic is replaced by a factored neighborhood critic whose input dimension is bounded by the graph degree rather than by $N$, removing the scalability barrier that prevented SAC from completing training on ingolstadt21 ($N=21$) under FGSv2.
+FGSv3 addresses this by splitting the FRAP encoder into two branches. The decision branch remains unchanged: action tokens $\mathbf{z}_{i,a}$ (Equation~\ref{eq:fgsv2_token}) flow into the actor exactly as in FGSv2, preserving FRAP's local competition prior for phase selection. A new \emph{demand communication branch} taps FRAP at Step~2 (the phase demand embedding $\boldsymbol{\phi}_{i,a}$, Equation~\ref{eq:frap_phase_emb}), combines it with a learned embedding of the previous action, and produces a compact demand vector $\mathbf{d}_i$ that is then used as the GATv2 communication signal. In addition, the centralized critic is replaced by a factored neighborhood critic whose input dimension is bounded by the graph degree rather than by $N$, removing the scalability barrier that prevented SAC from completing training on ingolstadt21 ($N=21$) under FGSv2.
 
 \paragraph{Demand communication branch.}
 Let $V_i = \{a \mid m_{i,a} = 1\}$ be the set of valid phases for intersection $i$. The mean phase demand embedding across valid phases is
@@ -544,7 +536,7 @@ Let $V_i = \{a \mid m_{i,a} = 1\}$ be the set of valid phases for intersection $
   \;\in \mathbb{R}^{C},
   \label{eq:fgsv3_phi_mean}
 \end{equation}
-where $\boldsymbol{\phi}_{i,a} \in \mathbb{R}^C$ is the FRAP phase demand embedding (Level~B, Algorithm~\ref{alg:fgsv2_forward} Line~2). To append information about which phase intersection $i$ is currently executing, a learned phase-index embedding $\operatorname{Emb}_{\mathrm{phase}}(a_{t-1,i}) \in \mathbb{R}^{d_{pe}}$ is concatenated with $\bar{\boldsymbol{\phi}}_i$ and projected to the communication space:
+where $\boldsymbol{\phi}_{i,a} \in \mathbb{R}^C$ is the FRAP phase demand embedding (Step~2, Equation~\ref{eq:frap_phase_emb}). To append information about which phase intersection $i$ is currently executing, a learned phase-index embedding $\operatorname{Emb}_{\mathrm{phase}}(a_{t-1,i}) \in \mathbb{R}^{d_{pe}}$ is concatenated with $\bar{\boldsymbol{\phi}}_i$ and projected to the communication space:
 \begin{equation}
   \mathbf{d}_i
   = \operatorname{LayerNorm}\!\left(
@@ -613,16 +605,16 @@ Table~\ref{tab:fgsv3_vs_fgsv2} summarizes the component-level changes between FG
 
 \begin{table}[ht]
   \centering
-  \caption{FGSv3 vs.\ FGSv2 component changes. The actor and the FRAP competition path (Levels~C--D) are unchanged; both modifications affect the communication pathway and the critic.}
+  \caption{FGSv3 vs.\ FGSv2 component changes. The actor and the FRAP competition path (Steps~3--4) are unchanged; both modifications affect the communication pathway and the critic.}
   \label{tab:fgsv3_vs_fgsv2}
   \begin{tabular}{lll}
     \hline
     Component                        & FGSv2                                         & FGSv3                                    \\
     \hline
-    Communication signal             & $\mathbf{s}_i$ (Level~E, two poolings)        & $\mathbf{d}_i$ (Level~B + phase intent)  \\
-    FRAP tap for comm.\              & Level~D$\to$E (competition $\to$ summary)     & Level~B (phase demand)                   \\
+    Communication signal             & $\mathbf{s}_i$ (mean-pool of action tokens)   & $\mathbf{d}_i$ (phase demand + intent)   \\
+    FRAP tap for comm.\              & Steps~3--4 ($\mathbf{c}_{ab}{\to}\mathbf{z}_{i,a}{\to}\mathbf{s}_i$) & Step~2 ($\boldsymbol{\phi}_{i,a}$) \\
     GATv2 input                      & $\operatorname{LayerNorm}(\mathbf{s}_i)$      & $\operatorname{LayerNorm}(\mathbf{d}_i)$ \\
-    Action tokens $\mathbf{z}_{i,a}$ & Competition path (Levels C--D)                & Unchanged                                \\
+    Action tokens $\mathbf{z}_{i,a}$ & Competition path (Steps~3--4)                 & Unchanged                                \\
     Actor                            & Action-conditioned (Eq.~\ref{eq:fgsv2_actor}) & Unchanged                                \\
     Critic type                      & Centralized ($O(N d_{h'})$ input)             & Factored neighborhood ($O(d_c)$ input)   \\
     Critic dim.\ at $N=21$           & $\approx 3{,}091$                             & $\approx 204$                            \\
@@ -641,20 +633,22 @@ Algorithm~\ref{alg:fgsv3_forward} details the FGSv3 forward pass. Phases~1 and~2
     \Ensure Policy distribution $\pi_k(\cdot\mid o)$; graph contexts $\{\mathbf{g}_i\}$ and action tokens $\{\mathbf{z}_{i,a}\}$ (training)
     \Statex \rule{\linewidth}{0.3pt}
     \Statex \textbf{Phase 1 — FRAP action-token encoding (identical to Alg.~\ref{alg:fgsv2_forward} Phases~1--2)}
-    \ForAll{intersection $i \in \mathcal{N}$ \textbf{and} movement $u$}
-    \State $\mathbf{e}_{i,u} \leftarrow \operatorname{ReLU}\!\bigl(W_{\text{lane}}\bigl[\sigma(\operatorname{Emb}_{\text{phase}}(p_{i,u})),\;\sigma(W_d\,d_{i,u})\bigr]\bigr)$
-    \hfill\(\triangleright\) \textit{lane embedding (Level A)}
+    \ForAll{intersection $i \in \mathcal{N}$ \textbf{and} movement $m$}
+    \State $\mathbf{e}_{i,m} \leftarrow \operatorname{ReLU}\!\bigl(W_{\text{lane}}\bigl[\sigma(\operatorname{Emb}_p(p_{i,m})),\;\sigma(W_d\,d_{i,m})\bigr]\bigr)$
+    \hfill\(\triangleright\) \textit{movement embedding (Eq.~\ref{eq:frap_movement_emb})}
     \EndFor
     \ForAll{$i \in \mathcal{N}$, valid phase $a$ ($m_{i,a}=1$)}
-    \State $\boldsymbol{\phi}_{i,a} \leftarrow \sum_u w_{i,a,u}\,\mathbf{e}_{i,u}$
-    \hfill\(\triangleright\) \textit{phase demand embedding (Level B)}
+    \State $\boldsymbol{\phi}_{i,a} \leftarrow \sum_m w_{am}\,\mathbf{e}_{i,m}$
+    \hfill\(\triangleright\) \textit{phase embedding (Eq.~\ref{eq:frap_phase_emb})}
     \ForAll{competitor $b \in V_{i,a}$}
-    \State $\mathbf{c}_{i,a,b} \leftarrow \operatorname{ReLU}\!\bigl(\operatorname{Conv}_{\text{hid}}([\boldsymbol{\phi}_{i,a},\boldsymbol{\phi}_{i,b}] \odot \mathbf{r}_{i,a,b})\bigr)$
-    \hfill\(\triangleright\) \textit{competition feature (Level C)}
+    \State $\mathbf{h}_{ab} \leftarrow \operatorname{ReLU}\!\bigl(\operatorname{Conv}_{\text{pair}}([\boldsymbol{\phi}_{i,a} \;\Vert\; \boldsymbol{\phi}_{i,b}])\bigr)$
+    \State $\mathbf{r}_{ab} \leftarrow \operatorname{ReLU}\!\bigl(\operatorname{Conv}_{\text{rel}}(\operatorname{Emb}_{\text{rel}}(R_{ab}))\bigr)$
+    \State $\mathbf{c}_{ab} \leftarrow \operatorname{ReLU}\!\bigl(\operatorname{Conv}_{\text{hid}}(\mathbf{h}_{ab} \odot \mathbf{r}_{ab})\bigr)$
+    \hfill\(\triangleright\) \textit{competition feature (Eqs.~\ref{eq:frap_h}--\ref{eq:frap_c})}
     \EndFor
     \If{$|V_{i,a}| > 0$}
-    \State $\mathbf{z}_{i,a} \leftarrow \operatorname{LayerNorm}\!\bigl(\operatorname{ReLU}\!\bigl(\operatorname{Adapter}(\tfrac{1}{|V_{i,a}|}\textstyle\sum_{b} \mathbf{c}_{i,a,b})\bigr)\bigr)$
-    \hfill\(\triangleright\) \textit{action token (Level D, Eq.~\ref{eq:fgsv2_token})}
+    \State $\mathbf{z}_{i,a} \leftarrow \operatorname{LayerNorm}\!\bigl(\operatorname{ReLU}\!\bigl(\operatorname{Adapter}(\tfrac{1}{|V_{i,a}|}\textstyle\sum_{b} \mathbf{c}_{ab})\bigr)\bigr)$
+    \hfill\(\triangleright\) \textit{action token (Eq.~\ref{eq:fgsv2_token})}
     \Else
     \State $\mathbf{z}_{i,a} \leftarrow \mathbf{0}$
     \EndIf
