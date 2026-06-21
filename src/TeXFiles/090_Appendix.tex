@@ -417,10 +417,11 @@ This appendix presents complete numerical results across all six German RESCO sc
   \item \textbf{Regional} (\textit{Reg.}): ingolstadt21 ($N=21$) and cologne8 ($N=8$).
 \end{itemize}
 
-All results from this work are \textit{best-validation} values: the validation checkpoint with minimum mean waiting time observed during training, evaluated on a fixed held-out demand seed. Results marked $\circ$ indicate scenarios where the method was not yet run or crashed before producing valid metrics; these cells are candidates for re-run. Results marked $\dagger$ are from a partially trained run (FGS(MLP+GATv2+SAC) on Ing.~Reg.\ terminated after 17 of 200 training episodes due to resource exhaustion) and should not be compared directly to converged results. RESCO reference values (IDQN, IPPO, FMA2C) are reproduced from the original paper \citep{ault2021reinforcement} and represent best-episode averages over five random seeds.
+All results from this work are \textit{best-validation} values: the validation checkpoint with minimum mean waiting time observed during training, evaluated on a fixed held-out demand seed. Results marked $\circ$ indicate scenarios where the method was not yet run or crashed before producing valid metrics; these cells are candidates for re-run. Results marked $\dagger$ are from a partially trained run (FGS(MLP+GATv2+SAC) on Ing.~Reg.\ terminated after 17 of 200 training episodes due to resource exhaustion) and should not be compared directly to converged results. Results marked $\ddagger$ are early-training transients (best checkpoint at a very early episode with a single eval episode); their wait and queue metrics are internally inconsistent and are excluded from Bold comparisons. RESCO reference values (IDQN, IPPO, FMA2C) are reproduced from the original paper \citep{ault2021reinforcement} and represent best-episode averages over five random seeds.
 
 \providecommand{\na}{$\circ$}        % missing / not run
 \providecommand{\pt}{$^\dagger$}     % partial run
+\providecommand{\pdd}{$^\ddagger$}   % early-training transient
 
 % ─────────────────────────────────────────────────────────────────────────────
 %  Table A.1  –  Baseline methods
@@ -502,7 +503,7 @@ All results from this work are \textit{best-validation} values: the validation c
 % ─────────────────────────────────────────────────────────────────────────────
 \begin{sidewaystable}[p]
 \centering
-\caption{Performance of FGS framework variants across all six RESCO scenarios (best-validation metrics, single seed). Encoder: MLP = two-layer MLP; FRAP = phase-competition encoder \citep{zheng2019learning}. Graph: GAT = dot-product attention; GATv2 = dynamic additive attention \citep{brody2022how}. RL: SAC = discrete soft actor-critic \citep{christodoulou2019soft}; PPO = proximal policy optimization \citep{schulman2017proximal}. $\circ$ = not yet run; $\dagger$ = terminated early (17\,/\,200 episodes).}
+\caption{Performance of FGS framework variants across all six RESCO scenarios (best-validation metrics, single seed). Encoder: MLP = two-layer MLP; FRAP = phase-competition encoder \citep{zheng2019learning}. Graph: GAT = dot-product attention; GATv2 = dynamic additive attention \citep{brody2022how}. RL: SAC = discrete soft actor-critic \citep{christodoulou2019soft}; PPO = proximal policy optimization \citep{schulman2017proximal}. $\circ$ = not yet run; $\dagger$ = terminated early (17\,/\,200 episodes); $\ddagger$ = early-training transient (single eval episode; wait and queue mutually inconsistent; see Table~\ref{tab:main_results} notes).}
 \label{tab:appendix_fgs}
 \scriptsize
 \setlength{\tabcolsep}{4pt}
@@ -532,10 +533,10 @@ All results from this work are \textit{best-validation} values: the validation c
   & Avg.\ Wait      &  \na  &  \na  & 261.2 & \na   & \na   &   6.7 \\
   & Avg.\ Queue     &  \na  &  \na  &  4.93 & \na   & \na   &  0.47 \\[4pt]
 \multirow{4}{*}{FGS(MLP+GATv2+PPO)}
-  & Avg.\ Delay     &  \na  &  \na  & 234.9 & \na   & \na   &  24.0 \\
-  & Avg.\ Trip Time &  \na  &  \na  & 253.5 & \na   & \na   &  88.3 \\
-  & Avg.\ Wait      &  \na  &  \na  &  88.6 & \na   & \na   &   6.3 \\
-  & Avg.\ Queue     &  \na  &  \na  &  2.58 & \na   & \na   &  0.44 \\
+  & Avg.\ Delay     & 18.0\pdd & 26.1  & 234.9 & 12.5\pdd & 6.9\pdd  &  24.0 \\
+  & Avg.\ Trip Time & 27.9\pdd & 66.5  & 253.5 & 26.4\pdd & 37.7\pdd &  88.3 \\
+  & Avg.\ Wait      &  2.7\pdd &  6.8  &  88.6 &  1.1\pdd &  0.1\pdd &   6.3 \\
+  & Avg.\ Queue     & 2.54\pdd &  0.50 &  2.58 & {---}\pdd & {---}\pdd &  0.44 \\
 \midrule
 \multicolumn{8}{l}{\textit{FRAP encoder + SAC}} \\[2pt]
 \multirow{4}{*}{FGS(FRAP+GAT+SAC)}
@@ -550,14 +551,35 @@ All results from this work are \textit{best-validation} values: the validation c
   & Avg.\ Trip Time &  \na  &  \na  & 614.8 & \na   & \na   &  88.9 \\
   & Avg.\ Wait      &  \na  &  \na  & 460.7 & \na   & \na   &   6.7 \\
   & Avg.\ Queue     &  \na  &  \na  &  7.77 & \na   & \na   &  0.47 \\
+\midrule
+\multicolumn{8}{l}{\textit{FGS generation 2 (action-token interface fix)}} \\[2pt]
+\multirow{4}{*}{FGSv2-SAC}
+  & Avg.\ Delay     & 17.4\pdd &  \na  & 53.7\pdd  & 12.0\pdd &  \na   &  23.6 \\
+  & Avg.\ Trip Time & 27.4\pdd &  \na  & 191.4\pdd & 33.7\pdd &  \na   &  87.9 \\
+  & Avg.\ Wait      &  2.1\pdd &  \na  &  13.9\pdd &  0.4\pdd &  \na   &   6.0 \\
+  & Avg.\ Queue     &  2.55\pdd &  \na  &  12.90\pdd & {---}\pdd &  \na  &  0.40 \\
+\midrule
+\multicolumn{8}{l}{\textit{FGS generation 3 (demand-aware signal + factored critic)}} \\[2pt]
+\multirow{4}{*}{FGSv3-PPO}
+  & Avg.\ Delay     &  \na  &  \na  &  68.4 &  \na  &  \na  &  21.6 \\
+  & Avg.\ Trip Time &  \na  &  \na  & 203.9 &  \na  &  \na  &  86.0 \\
+  & Avg.\ Wait      &  \na  &  \na  &  22.9 &  \na  &  \na  &   4.8 \\
+  & Avg.\ Queue     &  \na  &  \na  &  0.71 &  \na  &  \na  &  0.33 \\[4pt]
+\multirow{4}{*}{FGSv3-SAC}
+  & Avg.\ Delay     & 17.4\pdd &  \na  & 45.3\pdd  & 12.0\pdd &  \na  &  27.9 \\
+  & Avg.\ Trip Time & 27.4\pdd &  \na  & 179.2\pdd & 33.7\pdd &  \na  &  92.1 \\
+  & Avg.\ Wait      &  2.1\pdd &  \na  &  11.1\pdd &  0.4\pdd &  \na  &   6.0 \\
+  & Avg.\ Queue     & 2.55\pdd &  \na  & 12.41\pdd & {---}\pdd &  \na  &  0.42 \\
 \bottomrule
 \end{tabular}
 \vspace{6pt}
 
 \footnotesize
-$\circ$ Not yet run; pending re-run.\quad
+$\circ$ Not yet run.\quad
 $\dagger$ Partial: 17 of 200 training episodes completed (resource exhaustion).\quad
-$*$ Col.\ Single FGS(FRAP+GAT+SAC) run crashed before producing valid metrics.
+$\ddagger$ Early-training transient (single eval episode; wait and queue mutually inconsistent; excluded from comparison).\quad
+$*$ Col.\ Single FGS(FRAP+GAT+SAC) run crashed before producing valid metrics.\quad
+FGSv2-SAC and FGSv3-SAC produce identical metrics on Single-intersection scenarios ($N=1$): the GATv2 graph module has no neighbors to aggregate, so both generations reduce to the same single-agent controller.
 \end{sidewaystable}
 
 % ─────────────────────────────────────────────────────────────────────────────
