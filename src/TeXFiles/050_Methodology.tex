@@ -19,121 +19,79 @@ A signalized road network with $N$ intersections is modelled as a Decentralized 
 \section{The Three-Module Framework}
 \label{sec:Methodology_Pipeline}
 %──────────────────────────────────────────────────────────────────────────────
-
-Figure~\ref{fig:fgs_pipeline} depicts the general framework. At each decision step, the SUMO environment emits a graph-structured observation $o_i \in \mathbb{R}^d$ for each agent $i$. The three modules process it sequentially.
-
 \begin{figure}[t]
 \centering
 \begin{tikzpicture}[
-  % ── Node styles ───────────────────────────────────────────────────────
   envbox/.style={
     rectangle, rounded corners=4pt,
-    draw=black!50, fill=gray!10, thick,
+    draw=black!45, fill=gray!8, thick,
     align=center, font=\small\sffamily\bfseries,
-    minimum height=1.15cm, minimum width=2.0cm
+    minimum height=1.2cm, minimum width=2.1cm
   },
   modbox/.style={
     rectangle, rounded corners=4pt,
-    draw=black!75, fill=white, very thick,
+    draw=black!70, fill=white, very thick,
     align=center, font=\small\sffamily\bfseries,
-    minimum height=1.15cm, minimum width=2.5cm
+    minimum height=1.2cm, minimum width=2.6cm
   },
   outbox/.style={
-    rectangle, rounded corners=4pt,
-    draw=black!60, fill=white, thick,
-    align=center, font=\normalsize\bfseries,
-    minimum height=1.0cm, minimum width=1.0cm
+    circle,
+    draw=black!55, fill=gray!8, thick,
+    align=center, font=\normalsize\sffamily\bfseries,
+    minimum size=1.0cm
   },
-  % ── Design-choice node styles ─────────────────────────────────────────
-  priorbox/.style={
-    rectangle, rounded corners=3pt,
-    draw=gray!60, fill=gray!5,
-    align=center, font=\footnotesize\sffamily,
-    minimum height=0.72cm, minimum width=1.55cm
-  },
-  proposedbox/.style={
-    rectangle, rounded corners=3pt,
-    draw=blue!65!black, fill=blue!9, thick,
-    align=center, font=\footnotesize\sffamily\bfseries,
-    minimum height=0.72cm, minimum width=1.55cm
-  },
-  % ── Arrow styles ──────────────────────────────────────────────────────
-  mainarrow/.style={->, >=Stealth, very thick, black!85, line width=1.3pt},
-  droparrow/.style={->, >=Stealth, thin, gray!55},
-  evolvearrow/.style={->, >=Stealth, dashed, gray!70, thin},
+  mainarrow/.style={->, >=Stealth, very thick, black!80, line width=1.4pt},
 ]
 
-% ═════════════════════════════════════════════════════════════════════════
-% ROW 1 — Main pipeline
-% ═════════════════════════════════════════════════════════════════════════
-\node[envbox] (env) at (0,    0) {SUMO / Env\\\footnotesize$o_i \in \mathbb{R}^d$};
-\node[modbox] (enc) at (3.2,  0) {Module~I\\\footnotesize Encoder};
-\node[modbox] (com) at (6.5,  0) {Module~II\\\footnotesize Communication};
-\node[modbox] (rl)  at (9.8,  0) {Module~III\\\footnotesize RL Optimizer};
-\node[outbox] (pi)  at (12.0, 0) {$\pi_i$};
+\node[envbox] (env) at (0,   0) {SUMO\\\footnotesize$\mathbf{x}_i \in \mathbb{R}^d$};
+\node[modbox] (enc) at (3.0, 0) {Module~I\\\footnotesize Encoder};
+\node[modbox] (com) at (6.2, 0) {Module~II\\\footnotesize Communication};
+\node[modbox] (rl)  at (9.4, 0) {Module~III\\\footnotesize RL Optimizer};
+\node[outbox] (pi)  at (11.6,0) {$\pi_i$};
 
 \draw[mainarrow] (env) -- (enc);
 \draw[mainarrow] (enc) -- (com);
 \draw[mainarrow] (com) -- (rl);
 \draw[mainarrow] (rl)  -- (pi);
 
-% Role labels
-\node[font=\scriptsize\itshape, text=gray!70!black] at (3.2, -0.85) {Feature Extraction};
-\node[font=\scriptsize\itshape, text=gray!70!black] at (6.5, -0.85) {Feature Sharing};
-\node[font=\scriptsize\itshape, text=gray!70!black] at (9.8, -0.85) {Policy Optimization};
-
-% ═════════════════════════════════════════════════════════════════════════
-% Divider
-% ═════════════════════════════════════════════════════════════════════════
-\draw[gray!35, line width=0.8pt] (1.0, -1.35) -- (12.6, -1.35)
-  node[pos=0, left, font=\scriptsize\itshape, text=gray!60] {};
-\node[font=\scriptsize\sffamily, text=gray!60] at (1.9,-1.18) {Design choices $\downarrow$};
-
-% ═════════════════════════════════════════════════════════════════════════
-% ROW 2 — Design choices per module
-% ═════════════════════════════════════════════════════════════════════════
-
-%── Encoder ──────────────────────────────────────────────────────────────
-\node[priorbox]    (mlp)   at (2.3,  -2.15) {MLP};
-\node[proposedbox] (frap)  at (4.05, -2.15) {FRAP};
-
-%── Communication ────────────────────────────────────────────────────────
-\node[priorbox]    (nocom) at (5.25, -2.15) {None};
-\node[priorbox]    (gat)   at (6.65, -2.15) {GAT};
-\node[proposedbox] (gatv2) at (8.1,  -2.15) {GATv2};
-
-%── RL ───────────────────────────────────────────────────────────────────
-\node[priorbox]    (dqn)   at (8.95, -2.15) {DQN};
-\node[priorbox]    (ppo)   at (10.2, -2.15) {PPO};
-\node[proposedbox] (sac)   at (11.45,-2.15) {SAC};
-
-%── Drop-down connectors ──────────────────────────────────────────────────
-\draw[droparrow] (enc.south) -- ++(0,-0.28) -| (mlp.north);
-\draw[droparrow] (enc.south) -- ++(0,-0.28) -| (frap.north);
-
-\draw[droparrow] (com.south) -- ++(0,-0.28) -| (nocom.north);
-\draw[droparrow] (com.south) -- ++(0,-0.28) -| (gat.north);
-\draw[droparrow] (com.south) -- ++(0,-0.28) -| (gatv2.north);
-
-\draw[droparrow] (rl.south) -- ++(0,-0.28) -| (dqn.north);
-\draw[droparrow] (rl.south) -- ++(0,-0.28) -| (ppo.north);
-\draw[droparrow] (rl.south) -- ++(0,-0.28) -| (sac.north);
-
-%── Evolution arrows ──────────────────────────────────────────────────────
-\draw[evolvearrow] (gat.east) to node[above, font=\scriptsize, text=gray!70] {$\to$v2} (gatv2.west);
-
-% ═════════════════════════════════════════════════════════════════════════
-% Legend
-% ═════════════════════════════════════════════════════════════════════════
-\node[priorbox,    minimum width=0.85cm, minimum height=0.48cm] at (5.5,-3.2) {};
-\node[font=\footnotesize\sffamily, anchor=west] at (6.0,-3.2) {Prior work};
-\node[proposedbox, minimum width=0.85cm, minimum height=0.48cm] at (8.6,-3.2) {};
-\node[font=\footnotesize\sffamily, anchor=west] at (9.1,-3.2) {This thesis (FGS family)};
+\node[font=\scriptsize\itshape, text=gray!65!black] at (3.0, -0.85) {Feature Extraction};
+\node[font=\scriptsize\itshape, text=gray!65!black] at (6.2, -0.85) {Feature Sharing};
+\node[font=\scriptsize\itshape, text=gray!65!black] at (9.4, -0.85) {Policy Optimization};
 
 \end{tikzpicture}
-\caption{The FGS three-module pipeline. Every signalized-network controller can be described by three independent design choices: a local \emph{encoder} (Module~I) that maps raw traffic observations to per-intersection features, an optional \emph{communication} layer (Module~II) that shares embeddings over the road graph, and an \emph{RL optimizer} (Module~III) that learns the phase-selection policy. Prior work fixes specific combinations; the FGS framework treats all three as independently configurable and systematically ablates their interactions on German RESCO scenarios.}
+\caption{The FGS three-module pipeline. Each agent $i$ receives a node feature vector $\mathbf{x}_i \in \mathbb{R}^d$ from the environment. Module~I (Encoder) maps $\mathbf{x}_i$ to a local embedding; Module~II (Communication) propagates embeddings over the road graph; Module~III (RL Optimizer) produces the phase-selection policy $\pi_i$.}
 \label{fig:fgs_pipeline}
 \end{figure}
+
+\paragraph{Notation.}
+Indices $i,j\in\mathcal{N}$ denote intersections; $a,b$ denote phases; $m$ denotes a traffic movement; $k$ identifies the ego agent. The phase validity flag $m_{i,a}\in\{0,1\}$ equals 1 if phase $a$ is available at intersection $i$ (formally defined in Section~\ref{sec:Methodology_ObservationSpace}). Within the FRAP encoder (Section~\ref{sec:Methodology_FRAP}) the intersection subscript is suppressed. The termination flag in SAC is written $d^{\mathrm{ep}}\in\{0,1\}$ to avoid clash with the observation dimension $d$. Concatenation is $[\,\cdot\;\Vert\;\cdot\,]$. Table~\ref{tab:notation} lists principal intermediate features.
+
+\begin{table}[ht]
+  \centering
+  \caption{Principal feature symbols used in this chapter. Each symbol is first introduced in the cited equation or section.}
+  \label{tab:notation}
+  \small
+  \setlength{\tabcolsep}{5pt}
+  \begin{tabular}{clll}
+    \toprule
+    \textbf{Symbol}           & \textbf{Shape}     & \textbf{Description}                & \textbf{First defined}                         \\
+    \midrule
+    $\mathbf{x}_i$            & $\mathbb{R}^d$     & Raw node feature vector             & Eq.~\ref{eq:node_feature}                      \\
+    $m_{i,a}$                 & $\{0,1\}$          & Phase validity flag                 & Sec.~\ref{sec:Methodology_ObservationSpace}    \\
+    $\mathbf{h}_i$            & $\mathbb{R}^{d_h}$ & Local embedding (FGS Module~I)      & Sec.~\ref{sec:Methodology_MLP}                 \\
+    $\boldsymbol{\phi}_{i,a}$ & $\mathbb{R}^C$     & Per-phase demand embedding (FRAP)   & Eq.~\ref{eq:frap_phase_emb}                    \\
+    $\mathbf{z}_{i,a}$        & $\mathbb{R}^{d_z}$ & Per-phase action token (FGSv2/v3)   & Eq.~\ref{eq:fgsv2_token}                       \\
+    $\mathbf{s}_i$            & $\mathbb{R}^{d_z}$ & Node summary (FGSv2 comm.\ input)   & Eq.~\ref{eq:fgsv2_summary}                     \\
+    $\mathbf{d}_i$            & $\mathbb{R}^{d_c}$ & Demand comm.\ embedding (FGSv3)     & Eq.~\ref{eq:fgsv3_demand}                      \\
+    $\mathbf{g}_i$            & $\mathbb{R}^{d_c}$ & Gated graph context (Module~II out) & Eqs.~\ref{eq:fgsv2_gate},\,\ref{eq:fgsv3_gate} \\
+    $\alpha_{ij}$             & $\mathbb{R}$       & GATv2 attention weight              & Eq.~\ref{eq:gatv2_attn}                        \\
+    $\alpha$                  & $\mathbb{R}_{>0}$  & SAC temperature                     & Eq.~\ref{eq:sac_objective}                     \\
+    $d^{\mathrm{ep}}$         & $\{0,1\}$          & Episode-termination flag            & Eq.~\ref{eq:sac_td_target}                     \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Figure~\ref{fig:fgs_pipeline} depicts the general framework. At each decision step, SUMO emits a graph-structured observation $o_i$ for each agent $i$; the node feature vector $\mathbf{x}_i \in \mathbb{R}^d$ is one component of $o_i$ (see Eq.~\ref{eq:node_feature}). The three modules process it sequentially.
 
 Table~\ref{tab:pipeline_design_space} maps representative prior methods and the three FGS instantiations onto this design space. Every prior graph-based method (CoLight) uses GAT with an MLP encoder and DQN; every method using a phase-competition encoder (standalone FRAP) uses no graph communication. No prior work treats all three module choices as variables and ablates their interactions on German RESCO scenarios — that systematic characterization is the primary contribution of this thesis.
 
@@ -183,14 +141,14 @@ The node feature matrix $\mathbf{X} \in \mathbb{R}^{N \times d}$ stacks the feat
            \mathbf{q}^{(i)}\,\bigr] \in \mathbb{R}^{d},
   \label{eq:node_feature}
 \end{equation}
-where $\mathbf{e}_{\mathrm{phase}}^{(i)}$ is a one-hot vector encoding the current active phase, $t_{\mathrm{green}}^{(i)}$ is the time elapsed since the last phase change normalized by the minimum green time, and $\boldsymbol{\rho}^{(i)}, \mathbf{q}^{(i)}$ are the lane density and lane queue vectors over all incoming lanes of intersection $i$.
+where $\mathbf{e}_{\mathrm{phase}}^{(i)}$ is a one-hot vector encoding the current active phase, $t_{\mathrm{green}}^{(i)}\in\{0,1\}$ indicates whether the minimum green time has been satisfied at intersection $i$ \citep{wei2018intellilight}, and $\boldsymbol{\rho}^{(i)}, \mathbf{q}^{(i)}$ are the lane density and lane queue vectors over all incoming lanes of intersection $i$.
 
 The remaining fields in the observation dictionary are:
 \begin{itemize}
   \item \textit{Edge index} $\mathcal{E} \in \mathbb{Z}^{2 \times |\mathcal{E}|}$: source--target integer pairs defining the agent communication graph.
   \item \textit{Edge mask} and \textit{edge weight}: a binary validity flag and a scalar weight $w_{ij}$ for each edge (see Section~\ref{sec:Methodology_DataPreprocessing}).
   \item \textit{Ego index}: the integer identifying which row of $\mathbf{X}$ corresponds to the acting agent.
-  \item \textit{Action mask}: a binary vector of length $A_{\max}$ indicating the phases that are valid for the ego agent.
+  \item \textit{Action mask} $\mathbf{m}_i \in \{0,1\}^{A_{\max}}$: component $m_{i,a}=1$ if phase $a$ is valid at intersection $i$, and 0 otherwise. When the intersection subscript is omitted (e.g., in the FRAP and FGS actor derivations) the ego intersection is implied.
   \item \textit{Phase-pair mask} $\mathbf{M}_{\mathrm{pair}} \in \{0,1\}^{N \times A_{\max} \times M}$: for each agent and candidate phase, indicates the subset of traffic movements that phase controls.
   \item \textit{Phase-competition mask} $\mathbf{M}_{\mathrm{comp}} \in \{0,1,2,3\}^{N \times A_{\max} \times (A_{\max}-1)}$: encodes one of four movement-conflict relation types between phase $a$ and each competitor $b$, following the FRAP relation taxonomy \citep{zheng2019learning}: type~0 — no shared movement conflicts (non-competing phases); type~1 — one shared conflicting movement; type~2 — two shared conflicting movements; type~3 — the phases serve directly opposing movements on the same approach. The self-competition entry is absent by construction.
   \item \textit{Previous joint action} $\mathbf{a}_{t-1} \in \{0,1\}^{N \times A_{\max}}$: one-hot encoding of all agents' actions at the preceding step. This field provides each agent with knowledge of the phase active at neighboring intersections at the prior step, supporting the demand-aware coordination introduced in FGSv3 (Section~\ref{sec:Methodology_FGSv3}).
@@ -224,7 +182,7 @@ For each movement $m$, a phase indicator $p_m\in\{0,1\}$ (whether $m$ is current
     \Bigr) \in \mathbb{R}^{C},
   \label{eq:frap_movement_emb}
 \end{equation}
-where $\operatorname{Emb}_p$ is a learnable phase-state embedding, $W_d$ is a demand projection, and $\sigma$ is the sigmoid function.
+where $\operatorname{Emb}_p\in\mathbb{R}^{2\times C}$ is a two-entry learnable lookup table \citep{zheng2019learning}: embedding the binary indicator rather than passing $p_m$ directly as a scalar gives the model an unconstrained $C$-dimensional representation of the serving and non-serving states, instead of forcing them to map to a fixed numeric ratio; $W_d$ is a demand projection; and $\sigma$ is the sigmoid function.
 
 \paragraph{Step 2: Phase embedding.}
 For each candidate phase $a$, the movement embeddings of the movements it controls are aggregated via a scaled sum:
@@ -232,7 +190,12 @@ For each candidate phase $a$, the movement embeddings of the movements it contro
   \boldsymbol{\phi}_a = \sum_{m=1}^{M} w_{am}\,\mathbf{e}_m \in \mathbb{R}^{C},
   \label{eq:frap_phase_emb}
 \end{equation}
-where $w_{am} = P_{am}\cdot\min(\sum_{m'} P_{am'},\,2)\,/\,\max(\sum_{m'} P_{am'},\,1)$ normalizes each phase's contribution to the expected two-movement sum, ensuring comparability across phases controlling different numbers of movements. The vector $\boldsymbol{\phi}_a$ is also used by FGSv3 as the communication signal (Section~\ref{sec:Methodology_FGSv3}).
+where $P_{am}\in\{0,1\}$ is the entry of the phase-movement mask $\mathbf{P}$ indicating whether movement $m$ is served by phase $a$ (defined above). In the original FRAP formulation \citep{zheng2019learning} $w_{am} = P_{am}$, which assumes every phase controls exactly two movements. German RESCO intersections have variable movement counts per phase, so this implementation replaces the plain mask with a scaled weight:
+\begin{equation}
+  w_{am} = P_{am}\cdot\frac{\min\!\bigl(\textstyle\sum_{m'} P_{am'},\;2\bigr)}{\max\!\bigl(\textstyle\sum_{m'} P_{am'},\;1\bigr)},
+  \label{eq:frap_weight}
+\end{equation}
+which rescales $\boldsymbol{\phi}_a$ to the equivalent of a two-movement sum regardless of how many movements phase $a$ controls, ensuring scale comparability across heterogeneous phases. The vector $\boldsymbol{\phi}_a$ is also used by FGSv3 as the communication signal (Section~\ref{sec:Methodology_FGSv3}).
 
 \paragraph{Step 3: Pairwise competition feature.}
 For each ordered competitor pair $(a, b)$ with $b \ne a$:
@@ -250,7 +213,7 @@ For each ordered competitor pair $(a, b)$ with $b \ne a$:
       \operatorname{Conv}_{\text{hid}}\bigl(\mathbf{h}_{ab} \odot \mathbf{r}_{ab}\bigr)
     \bigr) \in \mathbb{R}^C. \label{eq:frap_c}
 \end{align}
-The relation embedding $\mathbf{r}_{ab}$ captures the movement-conflict type; the Hadamard product gates the phase-pair interaction by this structure. The vector $\mathbf{c}_{ab}$ is the \emph{phase-competition representation} — a per-competitor feature encoding both relative demand and structural conflict.
+The relation embedding $\mathbf{r}_{ab}$ captures the movement-conflict type; the Hadamard product\footnote{The Hadamard product $\odot$ denotes element-wise multiplication: $\begin{pmatrix}a\\b\end{pmatrix}\odot\begin{pmatrix}c\\d\end{pmatrix}=\begin{pmatrix}ac\\bd\end{pmatrix}$, or for $2\times2$ matrices, $\begin{pmatrix}a&b\\c&d\end{pmatrix}\odot\begin{pmatrix}e&f\\g&h\end{pmatrix}=\begin{pmatrix}ae&bf\\cg&dh\end{pmatrix}$.} gates the phase-pair interaction by this structure. The vector $\mathbf{c}_{ab}$ is the \emph{phase-competition representation} — a per-competitor feature encoding both relative demand and structural conflict.
 
 \paragraph{Step 4: Phase score (original FRAP output).}
 In the original FRAP, a final $1{\times}1$ convolution projects each competition feature to a scalar:
@@ -258,14 +221,14 @@ In the original FRAP, a final $1{\times}1$ convolution projects each competition
   s_{ab} = \operatorname{Conv}_{1\times1}(\mathbf{c}_{ab}) \in \mathbb{R}.
   \label{eq:frap_scalar}
 \end{equation}
-The phase score for candidate phase $a$ is obtained by summing over all valid competitors $V_a = \{b \mid b\ne a,\, m_b=1\}$:
+The phase score for candidate phase $a$ is obtained by summing over all valid competitors $V_a = \{b \mid b\ne a,\, m_b=1\}$ (suppressing the intersection subscript as above):
 \begin{equation}
   s_a = \sum_{b \in V_a} s_{ab},
   \label{eq:frap_score}
 \end{equation}
 yielding one scalar per candidate phase that directly serves as a Q-value estimate in the original FRAP policy.
 
-FGSv2 \emph{replaces} Step~4 entirely: instead of projecting $\mathbf{c}_{ab}$ to a scalar, it mean-pools $\mathbf{c}_{ab}$ across valid competitors to produce a rich action token $\mathbf{z}_{i,a}$ (restoring the intersection subscript $i$), retaining the $C$-dimensional feature vector for downstream graph communication and action-conditioned actor computation (Equation~\ref{eq:fgsv2_token}). This change connects the FRAP encoder directly to Module~II and Module~III without discarding per-phase information.
+FGSv2 \emph{replaces} Step~4 entirely: instead of projecting $\mathbf{c}_{ab}$ to a scalar, it mean-pools $\mathbf{c}_{ab}$ across valid competitors to produce a per-phase action token $\mathbf{z}_{i,a}$ (Eq.~\ref{eq:fgsv2_token}; intersection subscript $i$ restored), which is then consumed directly by the action-conditioned actor (Eq.~\ref{eq:fgsv2_actor}). This retains the full $C$-dimensional feature vector through Module~II and Module~III without discarding per-phase competition information.
 
 The overall design is permutation-equivariant with respect to phase ordering: reordering the candidate phases produces a correspondingly reordered output vector, which supports generalization across intersections with heterogeneous phase counts and movement configurations.
 
@@ -410,10 +373,10 @@ Because traffic signal control admits only discrete phase actions, this work app
   \label{eq:sac_target}
 \end{equation}
 \begin{equation}
-  y = r + \gamma\,(1-d)\,V_{\mathrm{target}}(s'),
+  y = r + \gamma\,(1-d^{\mathrm{ep}})\,V_{\mathrm{target}}(s'),
   \label{eq:sac_td_target}
 \end{equation}
-where $d \in \{0,1\}$ is the episode-termination flag. The critic and actor losses are, respectively:
+where $d^{\mathrm{ep}} \in \{0,1\}$ is the episode-termination flag (see Table~\ref{tab:notation}). The critic and actor losses are, respectively:
 \begin{align}
   \mathcal{L}_Q(\theta) &=
     \mathbb{E}_{(s,a,r,s')\sim\mathcal{D}}\!\left[
@@ -442,7 +405,7 @@ where $\mathcal{H}_{\mathrm{target}} = -\!\log(1/A_{\mathrm{valid}})$ is the ent
 \label{sec:Methodology_IndividualContribution}
 %──────────────────────────────────────────────────────────────────────────────
 
-The three-module framework defines a design space; the FGS family represents three successive instantiations of it, each motivated by a specific module-interface failure identified in evaluation of the preceding generation. FGSv1 establishes the baseline and exposes two failures: the Module-I→Module-II boundary discards per-phase information when FRAP's scalar projection is applied before graph aggregation, and the Module-III centralized critic's $O(Nd)$ input exhausts resources before SAC can learn at $N=21$. FGSv2 fixes the encoder–communication boundary. FGSv3 fixes the communication signal (competition scores → demand state) and the remaining scalability barrier (centralized → factored critic). Table~\ref{tab:fgs_generation_summary} summarizes these transitions.
+The three-module framework defines a design space; the FGS family represents three successive instantiations of it, each motivated by a specific module-interface failure identified in evaluation of the preceding generation. FGS establishes the baseline and exposes two failures: the Module-I→Module-II boundary discards per-phase information when FRAP's scalar projection is applied before graph aggregation, and the Module-III centralized critic's $O(Nd)$ input exhausts resources before SAC can learn at $N=21$. FGSv2 fixes the encoder–communication boundary. FGSv3 fixes the communication signal (competition scores → demand state) and the remaining scalability barrier (centralized → factored critic). Table~\ref{tab:fgs_generation_summary} summarizes these transitions.
 
 \begin{table}[ht]
 \centering
@@ -739,11 +702,11 @@ Algorithm~\ref{alg:fgs_training} presents the complete training procedure shared
     \EndIf
     \State Execute joint action $\mathbf{a} = (a_1,\ldots,a_N)$ in SUMO via TraCI
     \State Observe per-agent rewards $r_i \leftarrow W_{t-1}^{(i)} - W_t^{(i)}$ and next graph observation $o_t$
-    \State Store transition $\bigl(o_{t-1},\,\mathbf{a},\,\mathbf{r},\,o_t,\,d_t\bigr)$ in $\mathcal{D}$ with maximum priority
+    \State Store transition $\bigl(o_{t-1},\,\mathbf{a},\,\mathbf{r},\,o_t,\,d^{\mathrm{ep}}_t\bigr)$ in $\mathcal{D}$ with maximum priority
     \If{$t \geq T_{\text{warm}}$} \hfill\(\triangleright\) \textit{one gradient update per environment step}
       \State Sample mini-batch $\mathcal{B} = \{(o,\mathbf{a},\mathbf{r},o',d)\}$ from $\mathcal{D}$ via PER
       \State Run forward pass (Alg.~\ref{alg:fgsv2_forward} or~\ref{alg:fgsv3_forward}) on $o$ and $o'$ for all samples in $\mathcal{B}$
-      \State Compute soft target: $y_k \leftarrow r_k + \gamma(1-d)\,V_{\text{target}}(o')$ \hfill (Eqs.~\ref{eq:sac_target}--\ref{eq:sac_td_target})
+      \State Compute soft target: $y_k \leftarrow r_k + \gamma(1-d^{\mathrm{ep}})\,V_{\text{target}}(o')$ \hfill (Eqs.~\ref{eq:sac_target}--\ref{eq:sac_td_target})
       \State $\theta_j \leftarrow \theta_j - \eta_Q\,\nabla_{\!\theta_j}\mathcal{L}_Q(\theta_j)$, $j\in\{1,2\}$ \hfill (Eq.~\ref{eq:sac_critic_loss}) \label{alg:line_critic}
       \State $\phi \leftarrow \phi - \eta_\pi\,\nabla_\phi\,\mathcal{L}_\pi(\phi)$ \hfill (Eq.~\ref{eq:sac_actor_loss})
       \State $\log\alpha \leftarrow \log\alpha - \eta_\alpha\,\nabla_{\!\log\alpha}\,\mathcal{L}(\alpha)$ \hfill (Eq.~\ref{eq:sac_alpha_loss}) \label{alg:line_alpha}
