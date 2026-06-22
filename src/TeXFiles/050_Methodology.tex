@@ -256,7 +256,16 @@ The weight of super-edge $(i, j)$ is
   w_{ij} = \frac{1}{\tau_{ij}},
   \label{eq:edge_weight}
 \end{equation}
-where $\tau_{ij}$ is the estimated travel time along the path. When multiple parallel routes connect the same signal pair, their weights accumulate additively. All edges are inserted bidirectionally to enable symmetric message passing. The resulting graph is serialized to disk as a pre-processing artefact and loaded once per training run, adding no per-step overhead.
+where $\tau_{ij}$ is the estimated travel time along the path. When multiple parallel routes connect the same signal pair, their weights accumulate additively. All edges are inserted bidirectionally to enable symmetric message passing. The resulting graph is serialized to disk as a pre-processing artefact and loaded once per training run, adding no per-step overhead. The full extraction procedure is given in Algorithm~\ref{alg:tls_graph} (Appendix~\ref{sec:Appendix_TLSGraphExtraction}).
+
+Figure~\ref{fig:scenario_topologies} shows the extracted agent communication graphs for all six German RESCO scenarios, grouped by tier. Edge width is proportional to the weight $w_{ij} = 1/\tau_{ij}$: thicker edges indicate shorter inter-signal travel times and thus stronger potential influence.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\textwidth]{Figures/scenario_topologies}
+  \caption{Agent communication graphs $\mathcal{G}$ for all six German RESCO scenarios. Rows correspond to cities (Cologne, Ingolstadt); columns to scale tiers (Single, Corridor, Regional). Gray polylines show the underlying SUMO road network; blue edges are super-edges between the nearest downstream signalized intersections; green nodes are TLS agents. $N$ denotes the agent count.}
+  \label{fig:scenario_topologies}
+\end{figure}
 
 \subsection{GATv2 Attention}
 \label{sec:Methodology_GAT}

@@ -401,6 +401,49 @@ Since $\log\pi_{\mathrm{new}}(a|s) = Q^\pi(s,a)/\alpha - \log Z(s)$, we have $Q^
 The results above apply to the finite tabular entropy-regularized MDP. The implemented FGS/FGSv2 system departs from this setting through nonlinear function approximation, off-policy experience replay, simultaneous multi-agent learning, partial observability, target networks, and nonstationarity from co-adapting agent policies. These factors break the classical contraction argument, and global convergence to an optimal policy is \emph{not} guaranteed. The proofs establish the theoretical foundation of the SAC update targets; empirical convergence is assessed through training curves, TD errors, entropy, and validation metrics (Chapter~\ref{ch:ResultsAndDiscussion}).
 
 % ─────────────────────────────────────────────────────────────────────────────
+\section{Agent Communication Graph Extraction}
+\label{sec:Appendix_TLSGraphExtraction}
+% ─────────────────────────────────────────────────────────────────────────────
+
+Algorithm~\ref{alg:tls_graph} describes how the agent communication graph $\mathcal{G}=(\mathcal{V},\mathcal{E},\mathbf{W})$ is derived from a SUMO \texttt{.net.xml} file. The core idea — contracting the full road network into a graph whose nodes are traffic-light controllers and whose edges are shortest-path connections between them, follows the super-edge construction. The extracted graphs for all six evaluation scenarios are shown in Figure~\ref{fig:scenario_topologies}.
+
+\begin{algorithm}[ht]
+  \caption{TLS Communication Graph Extraction from SUMO \texttt{.net.xml}}
+  \label{alg:tls_graph}
+  \begin{algorithmic}[1]
+    \Require SUMO network file \texttt{net.xml}
+    \Ensure Graph $\mathcal{G}=(\mathcal{V},\mathcal{E},\mathbf{W})$ with $\mathcal{V}$ = TLS nodes, $\mathcal{E}$ = super-edges, $w_{ij}=1/\tau_{ij}$
+
+    \Statex \textbf{Phase 1 — Parse network}
+    \State Parse all junctions with \texttt{tlLogic} entries $\Rightarrow$ TLS set $\mathcal{V}$; record 2-D positions
+    \State Parse all non-internal road edges $\Rightarrow$ edge catalog $(e\!: \text{source}, \text{target}, \ell_e, \tau_e, \text{lanes})$
+    \State Parse \texttt{connection} elements $\Rightarrow$ legal turn transitions $e \to e'$
+
+    \Statex \textbf{Phase 2 — Build super-edges}
+    \For{each TLS node $u \in \mathcal{V}$}
+    \For{each outgoing road edge $e_0$ from $u$}
+    \State Run Dijkstra on the legal-transition graph, starting at $e_0$, cost $= \sum \tau_e$
+    \State \textbf{stop} at the first edge whose \emph{target} node $v \in \mathcal{V}$, $v \ne u$
+    \If{$v$ found}
+    \State Reconstruct path $\pi=(e_0,\ldots,e_k)$; compute $\ell = \sum_e \ell_e$, $\tau = \sum_e \tau_e$
+    \State Record super-edge $(u,v,\tau,\pi)$; keep shortest-$\tau$ path if $(u,v)$ seen before
+    \EndIf
+    \EndFor
+    \EndFor
+
+    \Statex \textbf{Phase 3 — Assign edge weights}
+    \For{each undirected super-edge $\{u,v\} \in \mathcal{E}$}
+    \State $w_{uv} \mathrel{+}= 1/\tau_{uv}$ \quad (accumulate if multiple parallel paths exist)
+    \EndFor
+    \State Insert all edges bidirectionally to yield a symmetric graph
+
+    \State \Return $\mathcal{G}=(\mathcal{V},\mathcal{E},\mathbf{W})$; serialize to JSON for training
+  \end{algorithmic}
+\end{algorithm}
+
+The Dijkstra traversal operates on \emph{road edges} (not junctions) as nodes, following legal turn connections as transitions. This ensures only physically reachable paths are considered. Travel time $\tau_e = \ell_e / v_{\max,e}$ is computed from lane length and speed limit; when multiple parallel routes connect the same pair of TLS nodes their weights $1/\tau$ accumulate additively, reflecting the combined capacity of the corridor.
+
+% ─────────────────────────────────────────────────────────────────────────────
 \section{Statistical Notes on Single-Seed Results}
 \label{sec:Appendix_stats}
 % ─────────────────────────────────────────────────────────────────────────────
