@@ -35,7 +35,7 @@ Agents optimize per-agent SAC objectives with local rewards $r_i^t$; evaluation 
 \begin{equation}
   \pi_\phi(\mathbf{a}\mid\mathbf{o}) = \prod_{i=1}^{N}\pi_\phi(a_i\mid o_i, \mathcal{G}),
 \end{equation}
-while at execution time each agent $i$ acts on its ego embedding $\mathbf{h}_i'$ alone.
+while at execution time each agent $i$ acts on its local embedding $\mathbf{h}_i'$ alone.
 
 % ─────────────────────────────────────────────────────────────────────────────
 \section{Differential Waiting-Time Reward: Telescoping Property}
@@ -267,7 +267,7 @@ This holds because (1) movement embeddings share parameters across movements; (2
 \label{sec:Appendix_critic_complexity}
 % ─────────────────────────────────────────────────────────────────────────────
 
-For FGSv2 (Equation~\ref{eq:fgsv2_critic}), the critic input concatenates: (i) flattened gated graph contexts ($Nd_{h'}$ dims); (ii) joint action-probability matrix ($NA_{\max}$ dims); (iii) ego action token ($d_z$ dims); (iv) ego graph context ($d_{h'}$ dims); (v) one-hot ego identity ($N$ dims). The total is
+For FGSv2 (Equation~\ref{eq:fgsv2_critic}), the critic input concatenates: (i) flattened gated graph contexts ($Nd_{h'}$ dims); (ii) joint action-probability matrix ($NA_{\max}$ dims); (iii) agent $k$'s action token ($d_z$ dims); (iv) agent $k$'s graph context ($d_{h'}$ dims); (v) one-hot agent identity ($N$ dims). The total is
 \begin{equation}
   d_{\mathrm{critic}} = N(d_{h'} + A_{\max}) + d_z + d_{h'} + N
                        = O\!\bigl(N(d_{h'} + A_{\max})\bigr).
@@ -280,10 +280,10 @@ At ingolstadt21 ($N=21$, $d_{h'}=128$, $A_{\max}=6$): $d_{\mathrm{critic}} \appr
 \label{sec:Appendix_fgsv3_critic_complexity}
 % ─────────────────────────────────────────────────────────────────────────────
 
-The FGSv3 factored neighborhood critic (Equation~\ref{eq:fgsv3_critic}) replaces the full graph-context concatenation of FGSv2 with a sum-pooled neighborhood aggregate. For ego agent $k$, the critic input is:
+The FGSv3 factored neighborhood critic (Equation~\ref{eq:fgsv3_critic}) replaces the full graph-context concatenation of FGSv2 with a sum-pooled neighborhood aggregate. For agent $k$, the critic input is:
 \begin{enumerate}
-  \item[(i)] the ego action token $\mathbf{z}_{k,a}$ ($d_z$ dims);
-  \item[(ii)] the ego gated graph context $\mathbf{g}_k$ ($d_c$ dims);
+  \item[(i)] agent $k$'s action token $\mathbf{z}_{k,a}$ ($d_z$ dims);
+  \item[(ii)] agent $k$'s gated graph context $\mathbf{g}_k$ ($d_c$ dims);
   \item[(iii)] the neighbor graph-context pool $\mathbf{h}_{\mathrm{nbr},k} = \sum_{j \in \mathcal{N}(k)} \tilde{w}_{kj}\,\mathbf{g}_j$ ($d_c$ dims);
   \item[(iv)] the neighbor action pool $\mathbf{a}_{\mathrm{nbr},k} = \sum_{j \in \mathcal{N}(k)} \tilde{w}_{kj}\,\mathbf{a}_{t-1,j}$ ($A_{\max}$ dims);
   \item[(v)] the candidate-action identity $\mathbf{e}_a$ ($A_{\max}$ dims).

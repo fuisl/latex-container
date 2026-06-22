@@ -6,7 +6,7 @@ A survey of MARL-TSC literature reveals that published methods — IntelliLight 
 
 This thesis formalizes that implicit structure as the \textbf{FGS pipeline} (\textbf{F}ramework for \textbf{G}raph-aware \textbf{S}ignal control): a three-module design space in which every MARL-TSC architecture is fully characterized by three independent choices — encoder, communication, and RL algorithm — as illustrated in Figure~\ref{fig:fgs_pipeline}. Three successive instantiations — FGS, FGSv2, and FGSv3 — explore this design space through an ablation-driven iteration: each generation is motivated by a specific module-interface failure identified in evaluation of the preceding one, keeping the pipeline structure fixed while refining one or more module designs. The trajectory is thus not haphazard iteration but a principled, empirically grounded diagnosis-and-repair cycle.
 
-The remainder of this chapter follows the pipeline structure. Section~\ref{sec:Methodology_ProblemFormulation} states the formal problem. Section~\ref{sec:Methodology_Pipeline} introduces the general framework, its design table, and how prior work maps onto it. Sections~\ref{sec:Methodology_Encoder}--\ref{sec:Methodology_RLModule} describe each module's design choices in depth. Section~\ref{sec:Methodology_IndividualContribution} specifies the FGS, FGSv2, and FGSv3 instantiations together with the shared training algorithm. All three variants follow the CTDE paradigm introduced in Section~\ref{sec:TheoreticalBackground_POMDP}: the actor uses only the ego agent's local observation at execution time, while the centralized critic has access to the joint state during training.
+The remainder of this chapter follows the pipeline structure. Section~\ref{sec:Methodology_ProblemFormulation} states the formal problem. Section~\ref{sec:Methodology_Pipeline} introduces the general framework, its design table, and how prior work maps onto it. Sections~\ref{sec:Methodology_Encoder}--\ref{sec:Methodology_RLModule} describe each module's design choices in depth. Section~\ref{sec:Methodology_IndividualContribution} specifies the FGS, FGSv2, and FGSv3 instantiations together with the shared training algorithm. All three variants follow the CTDE paradigm introduced in Section~\ref{sec:TheoreticalBackground_POMDP}: the actor uses only agent $k$'s local observation at execution time, while the centralized critic has access to the joint state during training.
 
 %──────────────────────────────────────────────────────────────────────────────
 \section{Problem Formulation}
@@ -64,7 +64,7 @@ A signalized road network with $N$ intersections is modelled as a Decentralized 
 \end{figure}
 
 \paragraph{Notation.}
-Indices $i,j\in\mathcal{N}$ denote intersections; $a,b$ denote phases; $m$ denotes a traffic movement; $k$ identifies the ego agent. The phase validity flag $m_{i,a}\in\{0,1\}$ equals 1 if phase $a$ is available at intersection $i$ (formally defined in Section~\ref{sec:Methodology_ObservationSpace}). Within the FRAP encoder (Section~\ref{sec:Methodology_FRAP}) the intersection subscript is suppressed. The termination flag in SAC is written $d^{\mathrm{ep}}\in\{0,1\}$ to avoid clash with the observation dimension $d$. Concatenation is $[\,\cdot\;\Vert\;\cdot\,]$. Table~\ref{tab:notation} lists principal intermediate features.
+Indices $i,j\in\mathcal{N}$ denote intersections; $a,b$ denote phases; $m$ denotes a traffic movement; $k$ identifies the acting agent (the one currently selecting an action). The phase validity flag $m_{i,a}\in\{0,1\}$ equals 1 if phase $a$ is available at intersection $i$ (formally defined in Section~\ref{sec:Methodology_ObservationSpace}). Within the FRAP encoder (Section~\ref{sec:Methodology_FRAP}) the intersection subscript is suppressed. The termination flag in SAC is written $d^{\mathrm{ep}}\in\{0,1\}$ to avoid clash with the observation dimension $d$. Concatenation is $[\,\cdot\;\Vert\;\cdot\,]$. Table~\ref{tab:notation} lists principal intermediate features.
 
 \begin{table}[ht]
   \centering
@@ -148,7 +148,7 @@ The remaining fields in the observation dictionary are:
   \item \textit{Edge index} $\mathcal{E} \in \mathbb{Z}^{2 \times |\mathcal{E}|}$: source--target integer pairs defining the agent communication graph.
   \item \textit{Edge mask} and \textit{edge weight}: a binary validity flag and a scalar weight $w_{ij}$ for each edge (see Section~\ref{sec:Methodology_DataPreprocessing}).
   \item \textit{Ego index}: the integer identifying which row of $\mathbf{X}$ corresponds to the acting agent.
-  \item \textit{Action mask} $\mathbf{m}_i \in \{0,1\}^{A_{\max}}$: component $m_{i,a}=1$ if phase $a$ is valid at intersection $i$, and 0 otherwise. When the intersection subscript is omitted (e.g., in the FRAP and FGS actor derivations) the ego intersection is implied.
+  \item \textit{Action mask} $\mathbf{m}_i \in \{0,1\}^{A_{\max}}$: component $m_{i,a}=1$ if phase $a$ is valid at intersection $i$, and 0 otherwise. When the intersection subscript is omitted (e.g., in the FRAP and FGS actor derivations) agent $k$ is implied.
   \item \textit{Phase-pair mask} $\mathbf{M}_{\mathrm{pair}} \in \{0,1\}^{N \times A_{\max} \times M}$: for each agent and candidate phase, indicates the subset of traffic movements that phase controls.
   \item \textit{Phase-competition mask} $\mathbf{M}_{\mathrm{comp}} \in \{0,1,2,3\}^{N \times A_{\max} \times (A_{\max}-1)}$: encodes one of four movement-conflict relation types between phase $a$ and each competitor $b$, following the FRAP relation taxonomy \citep{zheng2019learning}: type~0 — no shared movement conflicts (non-competing phases); type~1 — one shared conflicting movement; type~2 — two shared conflicting movements; type~3 — the phases serve directly opposing movements on the same approach. The self-competition entry is absent by construction.
   \item \textit{Previous joint action} $\mathbf{a}_{t-1} \in \{0,1\}^{N \times A_{\max}}$: one-hot encoding of all agents' actions at the preceding step. This field provides each agent with knowledge of the phase active at neighboring intersections at the prior step, supporting the demand-aware coordination introduced in FGSv3 (Section~\ref{sec:Methodology_FGSv3}).
@@ -438,7 +438,7 @@ FGSv2 $\to$ FGSv3   & — & Message signals demand, not ranking & Centralized cr
 \end{tabular}
 \end{table}
 
-Figure~\ref{fig:fgs_framework} provides a side-by-side overview of the FGS and FGSv2 architectures. Both variants operate under the CTDE paradigm: the actor uses only the ego agent's local embedding at execution time, while the centralized critic additionally receives the full graph context and the joint action-probability matrix during training.
+Figure~\ref{fig:fgs_framework} provides a side-by-side overview of the FGS and FGSv2 architectures. Both variants operate under the CTDE paradigm: the actor uses only agent $k$'s local embedding at execution time, while the centralized critic additionally receives the full graph context and the joint action-probability matrix during training.
 
 \begin{figure}[ht]
   \centering
@@ -453,7 +453,7 @@ Figure~\ref{fig:fgs_framework} provides a side-by-side overview of the FGS and F
 FGS wraps the SAC algorithm with a shared graph encoder that enables each agent to condition its policy on the current state of its neighbors. All agents share a single set of parameters, so the framework scales to networks of arbitrary size without any per-agent parameter budget.
 
 \paragraph{Module~I — Graph encoder.}
-The graph encoder $f_\psi$ transforms the dictionary observation into an ego embedding used by the actor and a full graph tensor used by the centralized critic. Given node features $\mathbf{X} \in \mathbb{R}^{N \times d}$, the encoder proceeds as follows:
+The graph encoder $f_\psi$ transforms the dictionary observation into a local embedding for agent $k$ used by the actor and a full graph tensor used by the centralized critic. Given node features $\mathbf{X} \in \mathbb{R}^{N \times d}$, the encoder proceeds as follows:
 \begin{enumerate}
   \item \textit{Local encoding.} The feature matrix is unfolded to a batch of $N$ vectors. A local encoder $f_{\mathrm{enc}}$ maps each $\mathbf{x}_i$ to a local embedding $\mathbf{h}_i \in \mathbb{R}^{d_h}$:
   \[
@@ -465,13 +465,13 @@ The graph encoder $f_\psi$ transforms the dictionary observation into an ego emb
     \mathbf{h}_i^{\prime} = \mathrm{GATv2}\bigl(\mathbf{h}_i,\; \{\mathbf{h}_j : j \in \mathcal{N}(i)\},\; \{w_{ij}\}\bigr).
   \]
   When communication is disabled, $\mathbf{h}_i^{\prime} = \mathbf{h}_i$.
-  \item \textit{Output.} The graph tensor $\mathbf{H}^{\prime} \in \mathbb{R}^{N \times d_h^{\prime}}$ stacks all updated embeddings; the ego embedding $\mathbf{h}_{\mathrm{ego}}^{\prime}$ is the row indexed by the ego index.
+  \item \textit{Output.} The graph tensor $\mathbf{H}^{\prime} \in \mathbb{R}^{N \times d_h^{\prime}}$ stacks all updated embeddings; the agent embedding $\mathbf{h}_k^{\prime}$ is the row indexed by agent index $k$.
 \end{enumerate}
 
 \paragraph{Module~III — Actor.}
-The actor $\pi_\phi$ maps the ego embedding to a distribution over valid phases. Raw logits are produced by a linear head, then invalid phases are suppressed by setting their logits to $-\infty$ before the softmax:
+The actor $\pi_\phi$ maps agent $k$'s embedding to a distribution over valid phases. Raw logits are produced by a linear head, then invalid phases are suppressed by setting their logits to $-\infty$ before the softmax:
 \[
-  \mathbf{l} = \pi_\phi(\mathbf{h}_{\mathrm{ego}}^{\prime}),
+  \mathbf{l} = \pi_\phi(\mathbf{h}_k^{\prime}),
   \qquad
   \tilde{l}_a = l_a + (1 - m_a)\cdot(-\infty),
   \qquad
@@ -480,17 +480,17 @@ The actor $\pi_\phi$ maps the ego embedding to a distribution over valid phases.
 where $\mathbf{l} \in \mathbb{R}^{A_{\max}}$ are the pre-mask logits and $m_a \in \{0,1\}$ is the per-phase validity flag. In the implementation $-\infty$ is approximated as $-10^9$. Appendix~\ref{sec:Appendix_masked_softmax} proves formally that masked phases receive zero probability and zero gradient.
 
 \paragraph{Module~III — Centralized joint-action critic.}
-The critic operates on the full graph tensor and an estimate of all agents' action probabilities, following the CTDE design. For each candidate ego action $a$, the critic constructs a context vector by concatenating the flattened graph tensor $\mathrm{vec}(\mathbf{H}^{\prime})$, the matrix of all agents' action-probability vectors with the ego's row replaced by the one-hot vector for $a$, the ego embedding $\mathbf{h}_{\mathrm{ego}}^{\prime}$, and a one-hot encoding of the ego index:
+The critic operates on the full graph tensor and an estimate of all agents' action probabilities, following the CTDE design. For each candidate action $a$ of agent $k$, the critic constructs a context vector by concatenating the flattened graph tensor $\mathrm{vec}(\mathbf{H}^{\prime})$, the matrix of all agents' action-probability vectors with agent $k$'s row replaced by the one-hot vector for $a$, the agent embedding $\mathbf{h}_k^{\prime}$, and a one-hot encoding of agent index $k$:
 \[
-  Q_\theta(a \,|\, \mathbf{H}^{\prime}, \boldsymbol{\Pi}_{-i}, i) =
+  Q_\theta(a \,|\, \mathbf{H}^{\prime}, \boldsymbol{\Pi}_{-k}, k) =
     \mathrm{MLP}_\theta\!\bigl[\,
       \mathrm{vec}(\mathbf{H}^{\prime})\;\Vert\;
       \mathrm{vec}(\boldsymbol{\Pi}_{a})\;\Vert\;
-      \mathbf{h}_{\mathrm{ego}}^{\prime}\;\Vert\;
-      \mathbf{e}_i\,
+      \mathbf{h}_k^{\prime}\;\Vert\;
+      \mathbf{e}_k\,
     \bigr],
 \]
-where $\boldsymbol{\Pi}_{a}$ substitutes the one-hot for $a$ into the ego row of the joint action-probability matrix $\boldsymbol{\Pi}$. Twin critics are maintained and the minimum is used for target computation as in standard SAC. The joint action structure requires $n$-step = 1 updates to keep the action-probability estimates on-policy. The input dimensionality of this critic and its implications for scalability at large $N$ are derived in Appendix~\ref{sec:Appendix_critic_complexity}.
+where $\boldsymbol{\Pi}_{a}$ substitutes the one-hot for $a$ into agent $k$'s row of the joint action-probability matrix $\boldsymbol{\Pi}$. Twin critics are maintained and the minimum is used for target computation as in standard SAC. The joint action structure requires $n$-step = 1 updates to keep the action-probability estimates on-policy. The input dimensionality of this critic and its implications for scalability at large $N$ are derived in Appendix~\ref{sec:Appendix_critic_complexity}.
 
 The four FGS variants investigated in this thesis are summarized in Table~\ref{tab:fgs_variants}.
 
@@ -572,7 +572,7 @@ For each candidate phase $a$, the actor concatenates the corresponding action to
 Stacking over all $a$ gives $\mathbf{l} \in \mathbb{R}^{A_{\max}}$, which is masked and normalized identically to FGS (invalid logits set to $-10^9$, then softmax applied).
 
 \paragraph{Module~III — Centralized action-token critic.}
-The critic extends the FGS design by incorporating the ego action token alongside the full graph context. For each candidate ego action $a$ of agent $k$, the critic input concatenates: the flattened stack of all agents' gated graph contexts $\operatorname{vec}(\mathbf{g}_1,\ldots,\mathbf{g}_N)$; the joint-action context $\mathbf{J}_k^{(a)}$ (the joint action-probability matrix with agent $k$'s row replaced by the one-hot for $a$, using hard replayed actions during TD updates and soft policy probabilities during the actor loss); the ego action token $\mathbf{z}_{k,a}$; the ego graph context $\mathbf{g}_k$; and a one-hot agent identity $\mathbf{e}_k$:
+The critic extends the FGS design by incorporating agent $k$'s action token alongside the full graph context. For each candidate action $a$ of agent $k$, the critic input concatenates: the flattened stack of all agents' gated graph contexts $\operatorname{vec}(\mathbf{g}_1,\ldots,\mathbf{g}_N)$; the joint-action context $\mathbf{J}_k^{(a)}$ (the joint action-probability matrix with agent $k$'s row replaced by the one-hot for $a$, using hard replayed actions during TD updates and soft policy probabilities during the actor loss); the action token $\mathbf{z}_{k,a}$; the graph context $\mathbf{g}_k$; and a one-hot agent identity $\mathbf{e}_k$:
 \begin{equation}
   Q_k(a) = f_Q\!\Bigl[\,
     \operatorname{vec}(\mathbf{g}_1,\ldots,\mathbf{g}_N)\;\Vert\;
@@ -635,7 +635,7 @@ where $\lambda$ is initialized to zero as in FGSv2. The actor remains unchanged 
 \paragraph{Module~III — Factored neighborhood critic.}
 The standard CTDE critic design \citep{lowe2017multi} assigns each agent a centralized Q-function conditioned on the full joint state and all agents' actions, producing an input dimension that grows linearly with $N$. This design reflects the general CTDE philosophy that centralized training should exploit all available global information; Zhou et al. \citep{zhou2023cadp} argue that even this level of centralization is insufficient, as agent policies still assume mutual independence during training. In large-scale spatial networks, however, the opposite constraint dominates: at $N=21$ intersections, the $O(N)$ critic input exhausts available GPU memory, terminating training after only 17 episodes (Section~\ref{sec:ResultsAndDiscussion_ConvergenceAnalysis}). For graph-structured Dec-POMDPs with spatially local rewards, the full-$N$ conditioning is also unnecessary: an intersection's waiting time is determined by phase decisions within 1--2 network hops, not by the global joint state. FGSv3 exploits this spatial locality as an inductive bias — restricting the critic to aggregate only from the direct neighborhood of each agent, yielding a constant input dimension independent of $N$.
 
-FGSv3 replaces the $O(N)$ centralized critic with a factored critic that aggregates only over the direct neighbors of ego agent $k$:
+FGSv3 replaces the $O(N)$ centralized critic with a factored critic that aggregates only over the direct neighbors of agent $k$:
 \begin{equation}
   \mathbf{h}_{\mathrm{nbr},k}
   = \sum_{j \in \mathcal{N}(k)} \tilde{w}_{kj}\,\mathbf{g}_j,
@@ -644,7 +644,7 @@ FGSv3 replaces the $O(N)$ centralized critic with a factored critic that aggrega
   = \sum_{j \in \mathcal{N}(k)} \tilde{w}_{kj}\,\mathbf{a}_{t-1,j},
   \label{eq:fgsv3_nbr_context}
 \end{equation}
-where $\tilde{w}_{kj} = w_{kj} / \sum_{l \in \mathcal{N}(k)} w_{kl}$ are normalized edge weights and $\mathbf{a}_{t-1,j} \in \mathbb{R}^{A_{\max}}$ is the one-hot action of neighbor $j$ at the prior step. The Q-value for ego agent $k$ choosing action $a$ is
+where $\tilde{w}_{kj} = w_{kj} / \sum_{l \in \mathcal{N}(k)} w_{kl}$ are normalized edge weights and $\mathbf{a}_{t-1,j} \in \mathbb{R}^{A_{\max}}$ is the one-hot action of neighbor $j$ at the prior step. The Q-value for agent $k$ choosing action $a$ is
 \begin{equation}
   Q_k(a) = f_Q\!\Bigl[\,
     \mathbf{z}_{k,a}\;\Vert\;
@@ -735,7 +735,7 @@ Algorithm~\ref{alg:fgs_training} presents the complete training procedure shared
 \caption{FGSv2 Forward Pass (Module I: FRAP tokens; Module II: GATv2 on $\mathbf{s}_i$; Module III: action-conditioned actor)}
 \label{alg:fgsv2_forward}
 \begin{algorithmic}[1]
-\Require Graph observation $o = \{\mathbf{X},\mathcal{E},\mathbf{W},\mathbf{M}_{\text{pair}},\mathbf{M}_{\text{comp}},\mathbf{m},\mathbf{a}_{t-1}\}$; ego index $k$
+\Require Graph observation $o = \{\mathbf{X},\mathcal{E},\mathbf{W},\mathbf{M}_{\text{pair}},\mathbf{M}_{\text{comp}},\mathbf{m},\mathbf{a}_{t-1}\}$; agent index $k$
 \Ensure Policy distribution $\pi_k(\cdot\mid o)$; graph contexts $\{\mathbf{g}_i\}$ and action tokens $\{\mathbf{z}_{i,a}\}$ (training)
 \Statex \rule{\linewidth}{0.3pt}
 \Statex \textbf{Module I — FRAP action-token encoding}
@@ -775,7 +775,7 @@ Algorithm~\ref{alg:fgs_training} presents the complete training procedure shared
   \hfill (Eq.~\ref{eq:fgsv2_gate})
 \EndFor
 \Statex \rule{\linewidth}{0.3pt}
-\Statex \textbf{Module III — Action-conditioned actor for ego agent $k$}
+\Statex \textbf{Module III — Action-conditioned actor for agent $k$}
 \ForAll{phase $a = 1,\ldots,A_{\max}$}
   \If{$m_{k,a} = 1$}
     \State $l_a \leftarrow \operatorname{MLP}_\phi[\mathbf{z}_{k,a}\;\Vert\;\mathbf{g}_k\;\Vert\;\mathbf{e}_a]$
@@ -793,7 +793,7 @@ Algorithm~\ref{alg:fgs_training} presents the complete training procedure shared
   \caption{FGSv3 Forward Pass (Module I unchanged; Module II: GATv2 on demand $\mathbf{d}_i$; Module III: factored critic)}
   \label{alg:fgsv3_forward}
   \begin{algorithmic}[1]
-    \Require Graph observation $o = \{\mathbf{X},\mathcal{E},\mathbf{W},\mathbf{M}_{\text{pair}},\mathbf{M}_{\text{comp}},\mathbf{m},\mathbf{a}_{t-1}\}$; ego index $k$
+    \Require Graph observation $o = \{\mathbf{X},\mathcal{E},\mathbf{W},\mathbf{M}_{\text{pair}},\mathbf{M}_{\text{comp}},\mathbf{m},\mathbf{a}_{t-1}\}$; agent index $k$
     \Ensure Policy distribution $\pi_k(\cdot\mid o)$; graph contexts $\{\mathbf{g}_i\}$ and action tokens $\{\mathbf{z}_{i,a}\}$ (training)
     \Statex \rule{\linewidth}{0.3pt}
     \Statex \textbf{Module I — FRAP action-token encoding (identical to Alg.~\ref{alg:fgsv2_forward} Module~I)}
