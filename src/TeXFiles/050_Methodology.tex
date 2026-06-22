@@ -4,9 +4,9 @@
 
 A survey of MARL-TSC literature reveals that published methods — IntelliLight \citep{wei2018intellilight}, PressLight \citep{wei2019presslight}, FRAP \citep{zheng2019learning}, CoLight \citep{wei2019colight}, and MPLight \citep{chen2020toward} — all process each agent's local observation through three successive operations, even though individual papers rarely describe their architectures in these unified terms. First, a \emph{local encoder} maps raw traffic measurements to a feature vector capturing demand and phase state at one intersection. Second, an optional \emph{communication layer} aggregates neighbor embeddings over the road graph to introduce spatial context. Third, an \emph{RL optimizer} uses the resulting representation to select a phase and update the policy.
 
-This thesis formalizes that implicit structure as the \textbf{FGS pipeline} (\textbf{F}ramework for \textbf{G}raph-aware \textbf{S}ignal control): a three-module design space in which every MARL-TSC architecture is fully characterized by three independent choices — encoder, communication, and RL algorithm — as illustrated in Figure~\ref{fig:fgs_pipeline}. Three successive instantiations — FGS, FGSv2, and FGSv3 — explore this design space through an ablation-driven iteration: each generation is motivated by a specific module-interface failure identified in evaluation of the preceding one, keeping the pipeline structure fixed while refining one or more module designs. The trajectory is thus not haphazard iteration but a principled, empirically grounded diagnosis-and-repair cycle.
+This thesis formalizes that implicit structure as the \textbf{FGS pipeline} (\textbf{F}ramework for \textbf{G}raph-aware \textbf{S}ignal control): a three-module design space in which every MARL-TSC architecture is fully characterized by three independent choices — encoder, communication, and RL algorithm — as illustrated in Figure~\ref{fig:fgs_pipeline}. The FGS pipeline is developed through three generations of iterative diagnosis-and-repair, each addressing a specific module-interface failure identified in evaluation of the preceding design. The final FGS architecture combines FRAP-based action-token encoding, demand-aware GATv2 communication, and a factored neighborhood critic, described in full in Section~\ref{sec:Methodology_FGSArchitecture}.
 
-The remainder of this chapter follows the pipeline structure. Section~\ref{sec:Methodology_ProblemFormulation} states the formal problem. Section~\ref{sec:Methodology_Pipeline} introduces the general framework, its design table, and how prior work maps onto it. Sections~\ref{sec:Methodology_Encoder}--\ref{sec:Methodology_RLModule} describe each module's design choices in depth. Section~\ref{sec:Methodology_IndividualContribution} specifies the FGS, FGSv2, and FGSv3 instantiations together with the shared training algorithm. All three variants follow the CTDE paradigm introduced in Section~\ref{sec:TheoreticalBackground_POMDP}: the actor uses only agent $k$'s local observation at execution time, while the centralized critic has access to the joint state during training.
+The remainder of this chapter follows the pipeline structure. Section~\ref{sec:Methodology_ProblemFormulation} states the formal problem. Section~\ref{sec:Methodology_Pipeline} introduces the general framework, its design table, and how prior work maps onto it. Sections~\ref{sec:Methodology_Encoder}--\ref{sec:Methodology_RLModule} describe each module's design choices in depth. Section~\ref{sec:Methodology_FGSArchitecture} describes the FGS pipeline architecture and shared training algorithm. All three variants follow the CTDE paradigm introduced in Section~\ref{sec:TheoreticalBackground_POMDP}: the actor uses only agent $k$'s local observation at execution time, while the centralized critic has access to the joint state during training.
 
 %──────────────────────────────────────────────────────────────────────────────
 \section{Problem Formulation}
@@ -80,10 +80,9 @@ Indices $i,j\in\mathcal{N}$ denote intersections; $a,b$ denote phases; $m$ denot
     $m_{i,a}$                 & $\{0,1\}$          & Phase validity flag                 & Sec.~\ref{sec:Methodology_ObservationSpace}    \\
     $\mathbf{h}_i$            & $\mathbb{R}^{d_h}$ & Local embedding (FGS Module~I)      & Sec.~\ref{sec:Methodology_MLP}                 \\
     $\boldsymbol{\phi}_{i,a}$ & $\mathbb{R}^C$     & Per-phase demand embedding (FRAP)   & Eq.~\ref{eq:frap_phase_emb}                    \\
-    $\mathbf{z}_{i,a}$        & $\mathbb{R}^{d_z}$ & Per-phase action token (FGSv2/v3)   & Eq.~\ref{eq:fgsv2_token}                       \\
-    $\mathbf{s}_i$            & $\mathbb{R}^{d_z}$ & Node summary (FGSv2 comm.\ input)   & Eq.~\ref{eq:fgsv2_summary}                     \\
-    $\mathbf{d}_i$            & $\mathbb{R}^{d_c}$ & Demand comm.\ embedding (FGSv3)     & Eq.~\ref{eq:fgsv3_demand}                      \\
-    $\mathbf{g}_i$            & $\mathbb{R}^{d_c}$ & Gated graph context (Module~II out) & Eqs.~\ref{eq:fgsv2_gate},\,\ref{eq:fgsv3_gate} \\
+    $\mathbf{z}_{i,a}$        & $\mathbb{R}^{d_z}$ & Per-phase action token (FGS Module~I)   & Eq.~\ref{eq:fgsv2_token}    \\
+    $\mathbf{d}_i$            & $\mathbb{R}^{d_c}$ & Demand comm.\ embedding (FGS Module~II) & Eq.~\ref{eq:fgsv3_demand}   \\
+    $\mathbf{g}_i$            & $\mathbb{R}^{d_c}$ & Gated graph context (Module~II out)     & Eq.~\ref{eq:fgsv3_gate}     \\
     $\alpha_{ij}$             & $\mathbb{R}$       & GATv2 attention weight              & Eq.~\ref{eq:gatv2_attn}                        \\
     $\alpha$                  & $\mathbb{R}_{>0}$  & SAC temperature                     & Eq.~\ref{eq:sac_objective}                     \\
     $d^{\mathrm{ep}}$         & $\{0,1\}$          & Episode-termination flag            & Eq.~\ref{eq:sac_td_target}                     \\
@@ -97,7 +96,7 @@ Table~\ref{tab:pipeline_design_space} maps representative prior methods and the 
 
 \begin{table}[ht]
 \centering
-\caption{MARL-TSC methods mapped onto the three-module pipeline. Bold rows: proposed methods. ``FRAP-tok.'' = FRAP encoder tapped to produce per-phase action tokens rather than scalar scores. ``GATv2(D)'' = GATv2 operating on demand-derived embeddings (FGSv3).}
+\caption{MARL-TSC methods mapped onto the three-module pipeline. Bold rows: proposed methods. ``FRAP-tok.'' = FRAP encoder tapped to produce per-phase action tokens rather than scalar scores. ``GATv2(D)'' = GATv2 operating on demand-derived embeddings (FGS, the final design).}
 \label{tab:pipeline_design_space}
 \small
 \setlength{\tabcolsep}{6pt}
@@ -115,7 +114,7 @@ IDQN / IPPO (RESCO baselines)             & MLP         & None  & DQN / PPO \\
 \midrule
 \textbf{FGS (this thesis)}     & MLP \emph{or} FRAP & GATv2       & SAC \emph{or} PPO \\
 \textbf{FGSv2 (this thesis)}   & FRAP-tok.          & GATv2       & SAC \\
-\textbf{FGSv3 (this thesis)}   & FRAP-tok.          & GATv2(D)    & SAC \emph{or} PPO \\
+\textbf{FGS final design (this thesis)}   & FRAP-tok.          & GATv2(D)    & SAC \emph{or} PPO \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -151,7 +150,7 @@ The remaining fields in the observation dictionary are:
   \item \textit{Action mask} $\mathbf{m}_i \in \{0,1\}^{A_{\max}}$: component $m_{i,a}=1$ if phase $a$ is valid at intersection $i$, and 0 otherwise. When the intersection subscript is omitted (e.g., in the FRAP and FGS actor derivations) agent $k$ is implied.
   \item \textit{Phase-pair mask} $\mathbf{M}_{\mathrm{pair}} \in \{0,1\}^{N \times A_{\max} \times M}$: for each agent and candidate phase, indicates the subset of traffic movements that phase controls.
   \item \textit{Phase-competition mask} $\mathbf{M}_{\mathrm{comp}} \in \{0,1,2,3\}^{N \times A_{\max} \times (A_{\max}-1)}$: encodes one of four movement-conflict relation types between phase $a$ and each competitor $b$, following the FRAP relation taxonomy \citep{zheng2019learning}: type~0 — no shared movement conflicts (non-competing phases); type~1 — one shared conflicting movement; type~2 — two shared conflicting movements; type~3 — the phases serve directly opposing movements on the same approach. The self-competition entry is absent by construction.
-  \item \textit{Previous joint action} $\mathbf{a}_{t-1} \in \{0,1\}^{N \times A_{\max}}$: one-hot encoding of all agents' actions at the preceding step. This field provides each agent with knowledge of the phase active at neighboring intersections at the prior step, supporting the demand-aware coordination introduced in FGSv3 (Section~\ref{sec:Methodology_FGSv3}).
+  \item \textit{Previous joint action} $\mathbf{a}_{t-1} \in \{0,1\}^{N \times A_{\max}}$: one-hot encoding of all agents' actions at the preceding step. This field provides each agent with knowledge of the phase active at neighboring intersections at the prior step, supporting the demand-aware coordination in FGS (Section~\ref{sec:Methodology_FGSArchitecture}).
 \end{itemize}
 
 \subsection{MLP Encoder}
@@ -195,7 +194,7 @@ where $P_{am}\in\{0,1\}$ is the entry of the phase-movement mask $\mathbf{P}$ in
   w_{am} = P_{am}\cdot\frac{\min\!\bigl(\textstyle\sum_{m'} P_{am'},\;2\bigr)}{\max\!\bigl(\textstyle\sum_{m'} P_{am'},\;1\bigr)},
   \label{eq:frap_weight}
 \end{equation}
-which rescales $\boldsymbol{\phi}_a$ to the equivalent of a two-movement sum regardless of how many movements phase $a$ controls, ensuring scale comparability across heterogeneous phases. The vector $\boldsymbol{\phi}_a$ is also used by FGSv3 as the communication signal (Section~\ref{sec:Methodology_FGSv3}).
+which rescales $\boldsymbol{\phi}_a$ to the equivalent of a two-movement sum regardless of how many movements phase $a$ controls, ensuring scale comparability across heterogeneous phases. The vector $\boldsymbol{\phi}_a$ is also used by FGS as the demand communication signal (Section~\ref{sec:Methodology_FGSArchitecture}).
 
 \paragraph{Step 3: Pairwise competition feature.}
 For each ordered competitor pair $(a, b)$ with $b \ne a$:
@@ -228,7 +227,7 @@ The phase score for candidate phase $a$ is obtained by summing over all valid co
 \end{equation}
 yielding one scalar per candidate phase that directly serves as a Q-value estimate in the original FRAP policy.
 
-FGSv2 \emph{replaces} Step~4 entirely: instead of projecting $\mathbf{c}_{ab}$ to a scalar, it mean-pools $\mathbf{c}_{ab}$ across valid competitors to produce a per-phase action token $\mathbf{z}_{i,a}$ (Eq.~\ref{eq:fgsv2_token}; intersection subscript $i$ restored), which is then consumed directly by the action-conditioned actor (Eq.~\ref{eq:fgsv2_actor}). This retains the full $C$-dimensional feature vector through Module~II and Module~III without discarding per-phase competition information.
+FGS \emph{replaces} Step~4 entirely: instead of projecting $\mathbf{c}_{ab}$ to a scalar, it mean-pools $\mathbf{c}_{ab}$ across valid competitors to produce a per-phase action token $\mathbf{z}_{i,a}$ (Eq.~\ref{eq:fgsv2_token}; intersection subscript $i$ restored), which is then consumed directly by the action-conditioned actor (Eq.~\ref{eq:fgsv2_actor}). This retains the full $C$-dimensional feature vector through Module~II and Module~III without discarding per-phase competition information.
 
 The overall design is permutation-equivariant with respect to phase ordering: reordering the candidate phases produces a correspondingly reordered output vector, which supports generalization across intersections with heterogeneous phase counts and movement configurations.
 
@@ -357,7 +356,7 @@ Proximal Policy Optimization (PPO) \citep{schulman2017proximal} is an on-policy 
       \right)
     \right],
 \end{equation}
-where $r_t(\theta) = \pi_\theta(a_t|s_t) / \pi_{\theta_{\mathrm{old}}}(a_t|s_t)$ is the probability ratio and $\hat{A}_t$ is an advantage estimate. PPO is used as an independent-agent on-policy baseline (IPPO). Because PPO's value function scales as $O(d)$ independent of the number of agents $N$, it remains tractable even at the largest evaluated scenario (ingolstadt21, $N=21$), which motivates its use as the RL optimizer in FGSv3-PPO.
+where $r_t(\theta) = \pi_\theta(a_t|s_t) / \pi_{\theta_{\mathrm{old}}}(a_t|s_t)$ is the probability ratio and $\hat{A}_t$ is an advantage estimate. PPO is used as an independent-agent on-policy baseline (IPPO). Because PPO's value function scales as $O(d)$ independent of the number of agents $N$, it remains tractable even at the largest evaluated scenario (ingolstadt21, $N=21$), which motivates its use as the RL optimizer in the FGS final design (FGS-PPO).
 
 \subsection{Soft Actor-Critic}
 \label{sec:Methodology_SAC}
@@ -410,93 +409,15 @@ The temperature $\alpha$ is itself optimized by minimizing the dual objective
 where $\mathcal{H}_{\mathrm{target}} = -\!\log(1/A_{\mathrm{valid}})$ is the entropy of the uniform policy over valid actions. Gradient derivations for all three SAC losses and the log-parameterization of $\alpha$ are given in Appendix~\ref{sec:Appendix_SAC_gradients}. The off-policy design of SAC enables training from a prioritized replay buffer, reducing the number of environment interactions needed to reach convergence — an important property when SUMO simulations are the computational bottleneck.
 
 %──────────────────────────────────────────────────────────────────────────────
-\section{Framework Instantiations}
-\label{sec:Methodology_IndividualContribution}
+\section{FGS Architecture}
+\label{sec:Methodology_FGSArchitecture}
 %──────────────────────────────────────────────────────────────────────────────
 
-The three-module framework defines a design space; the FGS family represents three successive instantiations of it, each motivated by a specific module-interface failure identified in evaluation of the preceding generation. FGS establishes the baseline and exposes two failures: the Module-I→Module-II boundary discards per-phase information when FRAP's scalar projection is applied before graph aggregation, and the Module-III centralized critic's $O(Nd)$ input exhausts resources before SAC can learn at $N=21$. FGSv2 fixes the encoder–communication boundary. FGSv3 fixes the communication signal (competition scores → demand state) and the remaining scalability barrier (centralized → factored critic). Table~\ref{tab:fgs_generation_summary} summarizes these transitions.
-
-\begin{table}[ht]
-\centering
-\caption{Successive FGS instantiations and the module-interface failure each addresses. Each generation keeps the pipeline structure fixed and modifies only the components implicated by the preceding evaluation.}
-\label{tab:fgs_generation_summary}
-\small
-\setlength{\tabcolsep}{5pt}
-\renewcommand{\arraystretch}{1.2}
-\begin{tabular}{lp{3.5cm}p{3.8cm}p{4.0cm}}
-\toprule
-\textbf{Variant} & \textbf{Module~I} & \textbf{Module~II} & \textbf{Module~III} \\
-\midrule
-FGS       & MLP or FRAP (scalar out)    & GATv2 (on $\mathbf{h}_i$)              & SAC/PPO (centralized critic) \\
-FGSv2     & FRAP \emph{action tokens}   & GATv2 (on $\mathbf{s}_i$)              & SAC (centralized critic) \\
-FGSv3     & FRAP action tokens          & GATv2 (on demand $\mathbf{d}_i$)       & SAC/PPO (\emph{factored} critic) \\
-\midrule
-\multicolumn{4}{l}{\textit{What changed and why:}} \\
-FGS $\to$ FGSv2     & Scalar FRAP output discards per-phase info & Message carries phase-level features & — \\
-FGSv2 $\to$ FGSv3   & — & Message signals demand, not ranking & Centralized critic blocked SAC at $N=21$ \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Figure~\ref{fig:fgs_framework} provides a side-by-side overview of the FGS and FGSv2 architectures. Both variants operate under the CTDE paradigm: the actor uses only agent $k$'s local embedding at execution time, while the centralized critic additionally receives the full graph context and the joint action-probability matrix during training.
-
-\begin{figure}[ht]
-  \centering
-  \includegraphics[width=\textwidth]{Figures/fgs_framework.pdf}
-  \caption{Overview of the FGS (left) and FGSv2 (right) architectures instantiated in the three-module pipeline. \textbf{FGS}: Module~I is an MLP or FRAP encoder producing a single node embedding; Module~II is an optional GATv2 layer; Module~III is discrete-action SAC with a centralized joint-action critic. \textbf{FGSv2}: Module~I is tapped before the FRAP scalar projection, producing per-phase action tokens $\mathbf{Z}_i$; Module~II operates on the token summary $\mathbf{s}_i$ gated by a learned scalar $\lambda$ (initialized to zero); the Module~III actor concatenates the per-phase token with the graph context before producing each phase logit.}
-  \label{fig:fgs_framework}
-\end{figure}
-
-\subsection{FGS: First-Generation Instantiation}
-\label{sec:Methodology_FGS}
-
-FGS wraps the SAC algorithm with a shared graph encoder that enables each agent to condition its policy on the current state of its neighbors. All agents share a single set of parameters, so the framework scales to networks of arbitrary size without any per-agent parameter budget.
-
-\paragraph{Module~I — Graph encoder.}
-The graph encoder $f_\psi$ transforms the dictionary observation into a local embedding for agent $k$ used by the actor and a full graph tensor used by the centralized critic. Given node features $\mathbf{X} \in \mathbb{R}^{N \times d}$, the encoder proceeds as follows:
-\begin{enumerate}
-  \item \textit{Local encoding.} The feature matrix is unfolded to a batch of $N$ vectors. A local encoder $f_{\mathrm{enc}}$ maps each $\mathbf{x}_i$ to a local embedding $\mathbf{h}_i \in \mathbb{R}^{d_h}$:
-  \[
-    \mathbf{h}_i = f_{\mathrm{enc}}(\mathbf{x}_i), \quad i = 1,\ldots,N.
-  \]
-  Two choices of $f_{\mathrm{enc}}$ are evaluated: a two-layer MLP (FGS-MLP) and the FRAP encoder described in Section~\ref{sec:Methodology_FRAP} (FGS-FRAP).
-  \item \textit{Module~II — Graph communication (optional).} A single GATv2 layer aggregates messages from neighbors:
-  \[
-    \mathbf{h}_i^{\prime} = \mathrm{GATv2}\bigl(\mathbf{h}_i,\; \{\mathbf{h}_j : j \in \mathcal{N}(i)\},\; \{w_{ij}\}\bigr).
-  \]
-  When communication is disabled, $\mathbf{h}_i^{\prime} = \mathbf{h}_i$.
-  \item \textit{Output.} The graph tensor $\mathbf{H}^{\prime} \in \mathbb{R}^{N \times d_h^{\prime}}$ stacks all updated embeddings; the agent embedding $\mathbf{h}_k^{\prime}$ is the row indexed by agent index $k$.
-\end{enumerate}
-
-\paragraph{Module~III — Actor.}
-The actor $\pi_\phi$ maps agent $k$'s embedding to a distribution over valid phases. Raw logits are produced by a linear head, then invalid phases are suppressed by setting their logits to $-\infty$ before the softmax:
-\[
-  \mathbf{l} = \pi_\phi(\mathbf{h}_k^{\prime}),
-  \qquad
-  \tilde{l}_a = l_a + (1 - m_a)\cdot(-\infty),
-  \qquad
-  \pi(a \mid o) = \operatorname{softmax}(\tilde{\mathbf{l}}),
-\]
-where $\mathbf{l} \in \mathbb{R}^{A_{\max}}$ are the pre-mask logits and $m_a \in \{0,1\}$ is the per-phase validity flag. In the implementation $-\infty$ is approximated as $-10^9$. Appendix~\ref{sec:Appendix_masked_softmax} proves formally that masked phases receive zero probability and zero gradient.
-
-\paragraph{Module~III — Centralized joint-action critic.}
-The critic operates on the full graph tensor and an estimate of all agents' action probabilities, following the CTDE design. For each candidate action $a$ of agent $k$, the critic constructs a context vector by concatenating the flattened graph tensor $\mathrm{vec}(\mathbf{H}^{\prime})$, the matrix of all agents' action-probability vectors with agent $k$'s row replaced by the one-hot vector for $a$, the agent embedding $\mathbf{h}_k^{\prime}$, and a one-hot encoding of agent index $k$:
-\[
-  Q_\theta(a \,|\, \mathbf{H}^{\prime}, \boldsymbol{\Pi}_{-k}, k) =
-    \mathrm{MLP}_\theta\!\bigl[\,
-      \mathrm{vec}(\mathbf{H}^{\prime})\;\Vert\;
-      \mathrm{vec}(\boldsymbol{\Pi}_{a})\;\Vert\;
-      \mathbf{h}_k^{\prime}\;\Vert\;
-      \mathbf{e}_k\,
-    \bigr],
-\]
-where $\boldsymbol{\Pi}_{a}$ substitutes the one-hot for $a$ into agent $k$'s row of the joint action-probability matrix $\boldsymbol{\Pi}$. Twin critics are maintained and the minimum is used for target computation as in standard SAC. The joint action structure requires $n$-step = 1 updates to keep the action-probability estimates on-policy. The input dimensionality of this critic and its implications for scalability at large $N$ are derived in Appendix~\ref{sec:Appendix_critic_complexity}.
-
-The four FGS variants investigated in this thesis are summarized in Table~\ref{tab:fgs_variants}.
+FGS is the framework's final design, arrived at through three generations of iterative diagnosis-and-repair. The first-generation ablation studies four encoder--communication combinations (Table~\ref{tab:fgs_variants}) to establish performance baselines and expose two module-interface failures; subsequent generations each address one failure. The complete development narrative and generation comparison are presented in Section~\ref{sec:ResultsAndDiscussion_DesignEvolution}; earlier algorithmic details are in Appendix~\ref{sec:Appendix_EarlierAlgorithms}.
 
 \begin{table}[ht]
   \centering
-  \caption{FGS first-generation variants evaluated in the ablation study. All graph-communication variants use GATv2 (Eq.~\ref{eq:gatv2_attn}).}
+  \caption{First-generation FGS ablation variants. All graph-communication variants use GATv2 (Eq.~\ref{eq:gatv2_attn}).}
   \label{tab:fgs_variants}
   \begin{tabular}{lcc}
     \hline
@@ -510,17 +431,108 @@ The four FGS variants investigated in this thesis are summarized in Table~\ref{t
   \end{tabular}
 \end{table}
 
-\subsection{FGSv2: Action-Token Architecture}
-\label{sec:Methodology_FGSv2}
 
-FGS produces a single node embedding per intersection before graph communication and actor computation, collapsing all phase-level distinctions into one vector. This discards the per-phase competition information that FRAP's encoder captures — precisely the information the actor needs to distinguish between candidate phases. FGSv2 addresses this by replacing the single embedding with a set of per-phase \emph{action tokens}, one per candidate phase, and carrying those tokens through to the actor head. In pipeline terms: Module~I is extended to output a token per action rather than a single embedding, and Module~II and~III are redesigned to consume and propagate that richer representation.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\subsection{Pipeline Architecture}
+\label{sec:Methodology_PipelineArchitecture}
+% ─────────────────────────────────────────────────────────────────────────────
+
+The FGS architecture implements Module~I as a FRAP action-token encoder, Module~II as a demand-aware GATv2 communication layer, and Module~III as an action-conditioned actor paired with a factored neighborhood critic. Figure~\ref{fig:fgs_architecture} illustrates the complete data flow; all components operate under the CTDE paradigm.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+  >=stealth, semithick,
+  enc/.style={draw=blue!50, fill=blue!7, rounded corners=3pt,
+              minimum width=3.2cm, minimum height=0.44cm,
+              font=\small, align=center},
+  com/.style={draw=teal!60, fill=teal!7, rounded corners=3pt,
+              minimum width=2.6cm, minimum height=0.44cm,
+              font=\small, align=center},
+  rl/.style={draw=violet!60, fill=violet!7, rounded corners=3pt,
+             minimum width=2.6cm, minimum height=0.44cm,
+             font=\small, align=center},
+  io/.style={font=\small, inner sep=2pt},
+  lbl/.style={font=\scriptsize, inner sep=1pt},
+  arr/.style={->, semithick},
+  mfr/.style={rounded corners=5pt, dashed, draw, inner sep=6pt},
+]
+
+%% ── Observation ─────────────────────────────────────────────────
+\node[io] at (2.5, 8.8) (obs) {$o_i$};
+
+%% ── Module I: FRAP encoder ──────────────────────────────────────
+\node[enc] at (2.5, 8.0) (s1) {Step 1: lane encoding};
+\node[enc] at (2.5, 7.0) (s2) {Step 2: phase embedding};
+\node[enc] at (2.5, 6.0) (s3) {Step 3: competition};
+\node[enc] at (2.5, 5.0) (s4) {Step 4: action tokens};
+
+\draw[arr] (obs) -- (s1);
+\draw[arr] (s1)  -- node[lbl,right]{$\mathbf{e}_{i,m}$}       (s2);
+\draw[arr] (s2)  -- node[lbl,right]{$\boldsymbol{\phi}_{i,a}$} (s3);
+\draw[arr] (s3)  -- node[lbl,right]{$\mathbf{c}_{ab}$}         (s4);
+
+%% ── Module II: demand communication branch ──────────────────────
+\node[com] at (6.5, 7.0) (pool) {Mean pool $\bar{\boldsymbol{\phi}}_i$};
+\node[com] at (6.5, 6.0) (dem)  {Demand emb.\ $\mathbf{d}_i$};
+\node[com] at (6.5, 5.0) (gat)  {GATv2};
+
+\draw[arr] (s2.east) -- node[lbl,above]{$\boldsymbol{\phi}_{i,a}$} (pool.west);
+\draw[arr] (pool) -- (dem);
+\draw[arr] (dem)  -- (gat);
+
+%% ── Concat ⊕ ────────────────────────────────────────────────────
+\node[draw=gray!55, fill=white, circle, inner sep=2pt, font=\small]
+     at (4.5, 3.70) (cat) {$\oplus$};
+
+% skip: s4.sw → left → down → right to cat.west
+\draw[arr] (s4.south west)
+     -- ++(-0.70, 0)
+     -- ++(0, -1.08)
+     -- node[lbl,above]{$\mathbf{z}_{i,a}$} (cat.west);
+
+% GATv2 → cat: down then left–down (L-shape)
+\draw[arr] (gat.south)
+     -- ++(0, -0.50) node[lbl,right]{$\mathbf{g}_i$}
+     -| (cat.east);
+
+%% ── Module III ───────────────────────────────────────────────────
+\node[rl] at (3.0, 2.55) (actor)  {Actor};
+\node[rl] at (6.2, 2.55) (critic) {Factored Critic};
+
+\draw[arr] (cat) -- (actor);
+\draw[arr] (cat) -- (critic);
+
+\node[io, font=\scriptsize, align=center]
+     at (8.6, 2.55) (nbr) {$\mathbf{h}_{\mathrm{nbr},k},\;\mathbf{a}_{\mathrm{nbr},k}$};
+\draw[arr, dashed, gray!60] (nbr) -- (critic);
+
+\node[io] at (3.0, 1.65) (pi) {$\pi_k(\cdot\mid o_k)$};
+\node[io] at (6.2, 1.65) (q)  {$Q_k(a)$};
+\draw[arr] (actor) -- (pi);
+\draw[arr] (critic) -- (q);
+
+%% ── Module bounding boxes ────────────────────────────────────────
+\begin{pgfonlayer}{background}
+\node[mfr, draw=blue!35, fill=blue!3,
+      fit=(s1)(s2)(s3)(s4),
+      label={[font=\small\bfseries,blue!65]left:Module~I}] {};
+\node[mfr, draw=teal!40, fill=teal!3,
+      fit=(pool)(dem)(gat),
+      label={[font=\small\bfseries,teal!65]right:Module~II}] {};
+\node[mfr, draw=violet!35, fill=violet!3,
+      fit=(actor)(critic),
+      label={[font=\small\bfseries,violet!65]below:Module~III}] {};
+\end{pgfonlayer}
+
+\end{tikzpicture}
+\caption{FGS pipeline architecture. \textbf{Module~I} (FRAP encoder): the observation $o_i$ is processed through four steps to produce per-phase action tokens $\mathbf{z}_{i,a}$. Step~2 additionally outputs phase demand embeddings $\boldsymbol{\phi}_{i,a}$, which feed the \textbf{Module~II} demand communication branch (mean-pool $\to$ demand embedding $\mathbf{d}_i$ $\to$ GATv2 $\to$ gated graph context $\mathbf{g}_i$). The action tokens bypass Module~II via a skip connection and are concatenated~($\oplus$) with $\mathbf{g}_i$ before \textbf{Module~III}. The Actor selects a phase for decentralized execution; the Factored Critic additionally conditions on pooled neighbor contexts ($\mathbf{h}_{\mathrm{nbr},k}$, $\mathbf{a}_{\mathrm{nbr},k}$, dashed arrow) for centralized training.}
+\label{fig:fgs_architecture}
+\end{figure}
 
 \paragraph{Module~I — FRAP action-token encoder.}
-The encoder is tapped at the phase-competition representation block of FRAP, before the $1{\times}1$ convolution that would otherwise produce a scalar pairwise-competition result. For action $a$ at intersection $i$, the phase-competition representation $\mathbf{c}_{ab}$ (Equation~\ref{eq:frap_c}) is produced by the hidden competition layer for each competitor $b$. The valid competitor set is
-\[
-  V_{i,a} = \{b \mid b \neq a,\; m_{i,b} = 1\}.
-\]
-If $V_{i,a}$ is non-empty, the competition features are pooled and projected into an action token; otherwise (only one valid phase) the token is set to zero:
+The encoder is tapped at the phase-competition representation block of FRAP, before the $1{\times}1$ convolution that would produce a scalar score. For action $a$ at intersection $i$, the phase-competition representation $\mathbf{c}_{ab}$ (Equation~\ref{eq:frap_c}) is produced by the hidden competition layer for each competitor $b \in V_{i,a} = \{b \mid b \neq a,\; m_{i,b} = 1\}$. If $V_{i,a}$ is non-empty, the competition features are pooled and projected into an action token; otherwise the token is set to zero:
 \begin{equation}
   \mathbf{z}_{i,a} =
   \begin{cases}
@@ -535,71 +547,10 @@ If $V_{i,a}$ is non-empty, the competition features are pooled and projected int
   \end{cases}
   \label{eq:fgsv2_token}
 \end{equation}
-The full action-token tensor is $\mathbf{Z}_i \in \mathbb{R}^{A_{\max} \times d_z}$, with rows for invalid phases set to zero.
-
-A node summary $\mathbf{s}_i \in \mathbb{R}^{d_z}$ aggregates information across all valid action tokens via masked mean-pooling followed by layer normalization:
-\begin{equation}
-  \mathbf{s}_i =
-    \operatorname{LayerNorm}\!\left(
-      \frac{\displaystyle\sum_{a} m_{i,a}\,\mathbf{z}_{i,a}}{\displaystyle\max\!\left(\sum_{a} m_{i,a},\;1\right)}
-    \right).
-  \label{eq:fgsv2_summary}
-\end{equation}
-The $\max(\cdot, 1)$ guard prevents division by zero for intersections with no valid phase, which cannot occur during normal operation but ensures numerical safety during graph-padding.
-
-\paragraph{Module~II — Graph communication and residual gate.}
-GATv2 operates on the node summaries rather than on the full action-token tensors, keeping communication overhead independent of the number of candidate phases. A layer normalization is applied before the GATv2 input; let $\mathbf{u}_i = \operatorname{LayerNorm}(\mathbf{s}_i)$. The neighborhood aggregation (self-loops included) is
-\begin{equation}
-  \tilde{\mathbf{g}}_i =
-    \operatorname{ReLU}\!\left(
-      \mathbf{W}_o\,\operatorname{GATv2Conv}\!\left(\{\mathbf{u}_j : j \in \mathcal{N}(i) \cup \{i\}\}\right)
-    \right).
-  \label{eq:fgsv2_gatv2}
-\end{equation}
-A learned scalar gate $\lambda$ (initialized to zero) controls the contribution of the graph context via an additive residual with layer normalization:
-\begin{equation}
-  \mathbf{g}_i = \operatorname{LayerNorm}\!\left(\mathbf{s}_i + \lambda\,\tilde{\mathbf{g}}_i\right).
-  \label{eq:fgsv2_gate}
-\end{equation}
-Because $\lambda = 0$ at initialization, the network begins as a purely local policy; the gate learns to incorporate neighbor context only insofar as it reduces the SAC objective. Unlike a bounded gate ($\beta \in [0,1]$), the unconstrained scalar allows the network to amplify communication when it is beneficial.
-
-\paragraph{Module~III — Action-conditioned actor.}
-For each candidate phase $a$, the actor concatenates the corresponding action token $\mathbf{z}_{i,a}$, the gated graph context $\mathbf{g}_i$ (broadcast across all phases), and a one-hot phase identity $\mathbf{e}_a$, before mapping through a two-layer MLP to a scalar logit:
-\begin{equation}
-  l_a = \operatorname{MLP}_\phi\!\bigl[\,\mathbf{z}_{i,a}\;\Vert\;\mathbf{g}_i\;\Vert\;\mathbf{e}_a\,\bigr].
-  \label{eq:fgsv2_actor}
-\end{equation}
-Stacking over all $a$ gives $\mathbf{l} \in \mathbb{R}^{A_{\max}}$, which is masked and normalized identically to FGS (invalid logits set to $-10^9$, then softmax applied).
-
-\paragraph{Module~III — Centralized action-token critic.}
-The critic extends the FGS design by incorporating agent $k$'s action token alongside the full graph context. For each candidate action $a$ of agent $k$, the critic input concatenates: the flattened stack of all agents' gated graph contexts $\operatorname{vec}(\mathbf{g}_1,\ldots,\mathbf{g}_N)$; the joint-action context $\mathbf{J}_k^{(a)}$ (the joint action-probability matrix with agent $k$'s row replaced by the one-hot for $a$, using hard replayed actions during TD updates and soft policy probabilities during the actor loss); the action token $\mathbf{z}_{k,a}$; the graph context $\mathbf{g}_k$; and a one-hot agent identity $\mathbf{e}_k$:
-\begin{equation}
-  Q_k(a) = f_Q\!\Bigl[\,
-    \operatorname{vec}(\mathbf{g}_1,\ldots,\mathbf{g}_N)\;\Vert\;
-    \operatorname{vec}(\mathbf{J}_k^{(a)})\;\Vert\;
-    \mathbf{z}_{k,a}\;\Vert\;
-    \mathbf{g}_k\;\Vert\;
-    \mathbf{e}_k
-  \,\Bigr].
-  \label{eq:fgsv2_critic}
-\end{equation}
-Twin critics and $n$-step~$=1$ updates are retained from FGS. The use of hard previous actions from the replay buffer during critic updates and soft current policy probabilities during actor updates follows the MADDPG convention \citep{lowe2017multi} and is standard in off-policy CTDE methods.
-
-% ─────────────────────────────────────────────────────────────────────────────
-\subsection{FGSv3: Demand-Aware Communication with Factored Neighborhood Critic}
-\label{sec:Methodology_FGSv3}
-% ─────────────────────────────────────────────────────────────────────────────
-
-Evaluation of FGSv2 identified two failure modes, each localized to a specific module.
-
-\textbf{Module~II — Semantic mismatch in the communication signal.} FGSv2 broadcasts the node summary $\mathbf{s}_i$ to neighbors. Because $\mathbf{s}_i$ is obtained by two successive mean-pooling operations over competition features ($\mathbf{c}_{ab} \to \mathbf{z}_{i,a} \to \mathbf{s}_i$), it encodes an aggregated preference signal — \emph{which phase is most competitive at intersection $i$} — rather than the traffic demand state. A neighboring agent receiving $\mathbf{s}_i$ learns about $i$'s internal phase rankings, not about how congested $i$'s approach lanes are or which movements $i$ is currently serving. What a downstream intersection needs for coordination is: \emph{how much traffic is about to arrive from $i$, and which direction is $i$ currently clearing?}
-
-\textbf{Module~III — Critic scalability.} The FGSv2 centralized critic concatenates the gated contexts of \emph{all} $N$ agents, producing an input of dimension $O\!\bigl(N(d_{h'} + A_{\max})\bigr)$. At $N=21$ this exceeds the available GPU memory budget, terminating the first-generation SAC run after only 17 episodes.
-
-FGSv3 fixes each failure mode in its respective module, leaving Module~I and the actor unchanged.
+The full action-token tensor is $\mathbf{Z}_i \in \mathbb{R}^{A_{\max} \times d_z}$, with rows for invalid phases set to zero. Note that the demand embedding $\mathbf{d}_i$ for Module~II is computed from $\boldsymbol{\phi}_{i,a}$ (Step~2 of FRAP, Equation~\ref{eq:frap_phase_emb}), \emph{before} the competition computation in Steps~3--4. This decoupling is what allows $\mathbf{d}_i$ to carry raw demand rather than competition scores.
 
 \paragraph{Module~II — Demand communication branch.}
-A new \emph{demand communication branch} taps FRAP at Step~2 (the phase demand embedding $\boldsymbol{\phi}_{i,a}$, Equation~\ref{eq:frap_phase_emb}), which captures raw traffic demand rather than internal competition scores. Let $V_i = \{a \mid m_{i,a} = 1\}$ be the set of valid phases for intersection $i$. The mean phase demand embedding across valid phases is
+The demand communication branch taps FRAP at Step~2 (the phase demand embedding $\boldsymbol{\phi}_{i,a}$, Equation~\ref{eq:frap_phase_emb}), which captures raw traffic demand rather than internal competition scores. Let $V_i = \{a \mid m_{i,a} = 1\}$ be the set of valid phases for intersection $i$. The mean phase demand embedding across valid phases is
 \begin{equation}
   \bar{\boldsymbol{\phi}}_i
   = \frac{1}{|V_i|} \sum_{a \in V_i} \boldsymbol{\phi}_{i,a}
@@ -618,7 +569,7 @@ To also convey which phase intersection $i$ is currently executing, a learned ph
   \;\in \mathbb{R}^{d_c},
   \label{eq:fgsv3_demand}
 \end{equation}
-where $W_{\mathrm{comm}} \in \mathbb{R}^{d_c \times (C + d_{pe})}$ is a learnable projection and $d_c$ is the communication dimension. GATv2 communication proceeds as in FGSv2 (Equation~\ref{eq:gatv2_attn}) with $\mathbf{d}_i$ substituted for $\mathbf{s}_i$:
+where $W_{\mathrm{comm}} \in \mathbb{R}^{d_c \times (C + d_{pe})}$ is a learnable projection and $d_c$ is the communication dimension. GATv2 communication (Equation~\ref{eq:gatv2_attn}) then aggregates the demand embeddings over the road graph:
 \begin{equation}
   \mathbf{u}_i = \operatorname{LayerNorm}(\mathbf{d}_i), \qquad
   \tilde{\mathbf{g}}_i = \operatorname{ReLU}\!\left(
@@ -630,12 +581,18 @@ where $W_{\mathrm{comm}} \in \mathbb{R}^{d_c \times (C + d_{pe})}$ is a learnabl
   \mathbf{g}_i = \operatorname{LayerNorm}\!\left(\mathbf{d}_i + \lambda\,\tilde{\mathbf{g}}_i\right),
   \label{eq:fgsv3_gate}
 \end{equation}
-where $\lambda$ is initialized to zero as in FGSv2. The actor remains unchanged from FGSv2 (Equation~\ref{eq:fgsv2_actor}).
+where $\lambda$ is a learnable scalar gate initialized to zero, so that the network begins as a purely local policy and gradually incorporates neighborhood context during training.
+
+\paragraph{Module~III — Actor.}
+For each candidate phase $a$, the actor concatenates the action token $\mathbf{z}_{k,a}$, the gated graph context $\mathbf{g}_k$, and a one-hot phase identity $\mathbf{e}_a$:
+\begin{equation}
+  l_a = \operatorname{MLP}_\phi\!\bigl[\,\mathbf{z}_{k,a}\;\Vert\;\mathbf{g}_k\;\Vert\;\mathbf{e}_a\,\bigr].
+  \label{eq:fgsv2_actor}
+\end{equation}
+Stacking over all $a$ gives $\mathbf{l} \in \mathbb{R}^{A_{\max}}$, masked (invalid logits set to $-10^9$) and normalized via softmax to produce $\pi_k(\cdot\mid o)$. The actor uses only agent $k$'s local data at execution time, satisfying the decentralized-execution constraint.
 
 \paragraph{Module~III — Factored neighborhood critic.}
-The standard CTDE critic design \citep{lowe2017multi} assigns each agent a centralized Q-function conditioned on the full joint state and all agents' actions, producing an input dimension that grows linearly with $N$. This design reflects the general CTDE philosophy that centralized training should exploit all available global information; Zhou et al. \citep{zhou2023cadp} argue that even this level of centralization is insufficient, as agent policies still assume mutual independence during training. In large-scale spatial networks, however, the opposite constraint dominates: at $N=21$ intersections, the $O(N)$ critic input exhausts available GPU memory, terminating training after only 17 episodes (Section~\ref{sec:ResultsAndDiscussion_ConvergenceAnalysis}). For graph-structured Dec-POMDPs with spatially local rewards, the full-$N$ conditioning is also unnecessary: an intersection's waiting time is determined by phase decisions within 1--2 network hops, not by the global joint state. FGSv3 exploits this spatial locality as an inductive bias — restricting the critic to aggregate only from the direct neighborhood of each agent, yielding a constant input dimension independent of $N$.
-
-FGSv3 replaces the $O(N)$ centralized critic with a factored critic that aggregates only over the direct neighbors of agent $k$:
+The standard CTDE critic design \citep{lowe2017multi} assigns each agent a centralized Q-function conditioned on the full joint state and all agents' actions, producing an input dimension that grows linearly with $N$. In large-scale spatial networks this becomes the binding constraint: at $N=21$ intersections, the $O(N)$ critic input exhausts available GPU memory (Appendix~\ref{sec:Appendix_critic_complexity}). For graph-structured Dec-POMDPs with spatially local rewards, the full-$N$ conditioning is also unnecessary: an intersection's waiting time is governed by phase decisions within 1--2 network hops. FGS therefore uses a factored critic that aggregates only over the direct neighborhood of agent $k$, yielding a constant input dimension independent of $N$. The per-agent neighborhood aggregations are:
 \begin{equation}
   \mathbf{h}_{\mathrm{nbr},k}
   = \sum_{j \in \mathcal{N}(k)} \tilde{w}_{kj}\,\mathbf{g}_j,
@@ -655,50 +612,21 @@ where $\tilde{w}_{kj} = w_{kj} / \sum_{l \in \mathcal{N}(k)} w_{kl}$ are normali
     \,\Bigr].
   \label{eq:fgsv3_critic}
 \end{equation}
-The input dimension is $d_z + 2d_c + 2A_{\max}$, independent of $N$ (Appendix~\ref{sec:Appendix_fgsv3_critic_complexity}). At ingolstadt21 with $d_z = d_c = 64$ and $A_{\max} = 6$, this yields $64 + 128 + 12 = 204$ dimensions, a $15{\times}$ reduction from the 3{,}091 required by FGSv2. Twin critics and SAC's minimum-of-two convention are retained.
-
-Table~\ref{tab:fgsv3_vs_fgsv2} summarizes the component-level changes between FGSv2 and FGSv3.
-
-\begin{table}[ht]
-  \centering
-  \caption{FGSv3 vs.\ FGSv2 component changes by module. Module~I and the actor are unchanged; changes are confined to the communication pathway and the critic.}
-  \label{tab:fgsv3_vs_fgsv2}
-  \small
-  \setlength{\tabcolsep}{4pt}
-  \renewcommand{\arraystretch}{1.15}
-  \begin{tabular}{llll}
-    \toprule
-    & \textbf{Component}             & \textbf{FGSv2}                                           & \textbf{FGSv3}                            \\
-    \midrule
-    \multirow{3}{*}{\rotatebox{90}{\small Mod.~II}}
-    & Communication signal           & $\mathbf{s}_i$ (action-token mean-pool)                  & $\mathbf{d}_i$ (phase demand + intent)    \\
-    & FRAP tap                       & Steps~3--4 ($\mathbf{c}_{ab}{\to}\mathbf{z}_{i,a}{\to}\mathbf{s}_i$) & Step~2 ($\boldsymbol{\phi}_{i,a}$) \\
-    & GATv2 input                    & $\operatorname{LayerNorm}(\mathbf{s}_i)$                 & $\operatorname{LayerNorm}(\mathbf{d}_i)$  \\
-    \midrule
-    \multirow{3}{*}{\rotatebox{90}{\small Mod.~III}}
-    & Critic type                    & Centralized ($O(N d_{h'})$ input)                        & Factored neighborhood ($O(d_c)$ input)    \\
-    & Critic dim.\ at $N=21$         & $\approx 3{,}091$                                        & $\approx 204$                             \\
-    & Actor tokens $\mathbf{z}_{i,a}$ & Unchanged                                               & Unchanged                                 \\
-    \midrule
-    \multirow{1}{*}{\rotatebox{90}{\small Mod.~I}}
-    & Encoder                        & FRAP action tokens                                       & Unchanged                                 \\
-    \bottomrule
-  \end{tabular}
-\end{table}
+The input dimension is $d_z + 2d_c + 2A_{\max}$, independent of $N$ (Appendix~\ref{sec:Appendix_fgsv3_critic_complexity}). At ingolstadt21 with $d_z = d_c = 64$ and $A_{\max} = 6$, this yields $64 + 128 + 12 = 204$ dimensions. Twin critics and SAC's minimum-of-two convention are retained. The design-evolution path leading to this factored critic design is discussed in Section~\ref{sec:ResultsAndDiscussion_DesignEvolution}.
 
 \subsection{Training Algorithm}
 \label{sec:Methodology_TrainingAlgorithm}
 
-Algorithm~\ref{alg:fgs_training} presents the complete training procedure shared by all FGS and FGSv2 variants. All agents share a single set of actor and critic parameters, so the gradient updates in Lines~\ref{alg:line_critic}--\ref{alg:line_alpha} are computed jointly over all agent--step pairs in the sampled mini-batch. Algorithm~\ref{alg:fgsv2_forward} details the FGSv2 forward pass; Algorithm~\ref{alg:fgsv3_forward} details the FGSv3 forward pass.
+Algorithm~\ref{alg:fgs_training} presents the complete FGS training procedure. All agents share a single set of actor and critic parameters, so the gradient updates in Lines~\ref{alg:line_critic}--\ref{alg:line_alpha} are computed jointly over all agent--step pairs in the sampled mini-batch. Algorithm~\ref{alg:fgs_forward} details the FGS forward pass. First-generation and FGSv2 forward-pass algorithms are given in Appendix~\ref{sec:Appendix_EarlierAlgorithms}.
 
 \begin{algorithm}[ht]
-\caption{FGS / FGSv2 / FGSv3 Training (shared procedure)}
+\caption{FGS Training}
 \label{alg:fgs_training}
 \begin{algorithmic}[1]
 \Require SUMO scenario with $N$ intersections; episodes $E$; warm-up steps $T_{\text{warm}}$;
 \Statex \quad batch size $B$; soft-update rate $\tau$; discount $\gamma$; target entropy $\mathcal{H}_{\text{target}}$
 \State \textbf{Initialize} shared actor $\pi_\phi$; twin critics $Q_{\theta_1},Q_{\theta_2}$; target critics $\bar{Q}_j \leftarrow Q_{\theta_j}$, $j\in\{1,2\}$
-\State \textbf{Initialize} log-temperature $\log\alpha$; residual gate $\lambda\leftarrow 0$ \textbf{(FGSv2 and FGSv3 only)}
+\State \textbf{Initialize} log-temperature $\log\alpha$; residual gate $\lambda\leftarrow 0$
 \State \textbf{Initialize} prioritized replay buffer $\mathcal{D}$ with capacity $C$; global step $t\leftarrow 0$
 \For{episode $e = 1,\ldots,E$}
   \State Reset SUMO via TraCI; receive initial graph observation $o_0$
@@ -707,14 +635,14 @@ Algorithm~\ref{alg:fgs_training} presents the complete training procedure shared
     \If{$t < T_{\text{warm}}$} \hfill\(\triangleright\) \textit{warm-up: random actions to seed the buffer}
       \State Sample $a_i \sim \operatorname{Uniform}(\mathcal{A}_i)$ for all $i \in \mathcal{N}$
     \Else \hfill\(\triangleright\) \textit{on-policy action from learned policy}
-      \State Compute $\pi_\phi(\cdot\mid o_{t-1})$ via Alg.~\ref{alg:fgsv2_forward}; sample $a_i \sim \pi_\phi$ for all $i$
+      \State Compute $\pi_\phi(\cdot\mid o_{t-1})$ via Alg.~\ref{alg:fgs_forward}; sample $a_i \sim \pi_\phi$ for all $i$
     \EndIf
     \State Execute joint action $\mathbf{a} = (a_1,\ldots,a_N)$ in SUMO via TraCI
     \State Observe per-agent rewards $r_i \leftarrow W_{t-1}^{(i)} - W_t^{(i)}$ and next graph observation $o_t$
     \State Store transition $\bigl(o_{t-1},\,\mathbf{a},\,\mathbf{r},\,o_t,\,d^{\mathrm{ep}}_t\bigr)$ in $\mathcal{D}$ with maximum priority
     \If{$t \geq T_{\text{warm}}$} \hfill\(\triangleright\) \textit{one gradient update per environment step}
       \State Sample mini-batch $\mathcal{B} = \{(o,\mathbf{a},\mathbf{r},o',d)\}$ from $\mathcal{D}$ via PER
-      \State Run forward pass (Alg.~\ref{alg:fgsv2_forward} or~\ref{alg:fgsv3_forward}) on $o$ and $o'$ for all samples in $\mathcal{B}$
+      \State Run forward pass (Alg.~\ref{alg:fgs_forward}) on $o$ and $o'$ for all samples in $\mathcal{B}$
       \State Compute soft target: $y_k \leftarrow r_k + \gamma(1-d^{\mathrm{ep}})\,V_{\text{target}}(o')$ \hfill (Eqs.~\ref{eq:sac_target}--\ref{eq:sac_td_target})
       \State $\theta_j \leftarrow \theta_j - \eta_Q\,\nabla_{\!\theta_j}\mathcal{L}_Q(\theta_j)$, $j\in\{1,2\}$ \hfill (Eq.~\ref{eq:sac_critic_loss}) \label{alg:line_critic}
       \State $\phi \leftarrow \phi - \eta_\pi\,\nabla_\phi\,\mathcal{L}_\pi(\phi)$ \hfill (Eq.~\ref{eq:sac_actor_loss})
@@ -732,71 +660,13 @@ Algorithm~\ref{alg:fgs_training} presents the complete training procedure shared
 \end{algorithm}
 
 \begin{algorithm}[ht]
-\caption{FGSv2 Forward Pass (Module I: FRAP tokens; Module II: GATv2 on $\mathbf{s}_i$; Module III: action-conditioned actor)}
-\label{alg:fgsv2_forward}
-\begin{algorithmic}[1]
-\Require Graph observation $o = \{\mathbf{X},\mathcal{E},\mathbf{W},\mathbf{M}_{\text{pair}},\mathbf{M}_{\text{comp}},\mathbf{m},\mathbf{a}_{t-1}\}$; agent index $k$
-\Ensure Policy distribution $\pi_k(\cdot\mid o)$; graph contexts $\{\mathbf{g}_i\}$ and action tokens $\{\mathbf{z}_{i,a}\}$ (training)
-\Statex \rule{\linewidth}{0.3pt}
-\Statex \textbf{Module I — FRAP action-token encoding}
-\ForAll{intersection $i \in \mathcal{N}$ \textbf{and} movement $m$}
-  \State $\mathbf{e}_{i,m} \leftarrow \operatorname{ReLU}\!\bigl(W_{\text{lane}}\bigl[\sigma(\operatorname{Emb}_p(p_{i,m})),\;\sigma(W_d\,d_{i,m})\bigr]\bigr)$
-  \hfill\(\triangleright\) \textit{movement embedding (Eq.~\ref{eq:frap_movement_emb})}
-\EndFor
-\ForAll{$i \in \mathcal{N}$, valid phase $a$ ($m_{i,a}=1$)}
-  \State $\boldsymbol{\phi}_{i,a} \leftarrow \sum_m w_{am}\,\mathbf{e}_{i,m}$
-  \hfill\(\triangleright\) \textit{phase embedding (Eq.~\ref{eq:frap_phase_emb})}
-  \ForAll{competitor $b \in V_{i,a}$}
-    \State $\mathbf{h}_{ab} \leftarrow \operatorname{ReLU}\!\bigl(\operatorname{Conv}_{\text{pair}}([\boldsymbol{\phi}_{i,a} \;\Vert\; \boldsymbol{\phi}_{i,b}])\bigr)$
-    \State $\mathbf{r}_{ab} \leftarrow \operatorname{ReLU}\!\bigl(\operatorname{Conv}_{\text{rel}}(\operatorname{Emb}_{\text{rel}}(R_{ab}))\bigr)$
-    \State $\mathbf{c}_{ab} \leftarrow \operatorname{ReLU}\!\bigl(\operatorname{Conv}_{\text{hid}}(\mathbf{h}_{ab} \odot \mathbf{r}_{ab})\bigr)$
-    \hfill\(\triangleright\) \textit{competition feature (Eqs.~\ref{eq:frap_h}--\ref{eq:frap_c})}
-  \EndFor
-  \If{$|V_{i,a}| > 0$}
-    \State $\mathbf{z}_{i,a} \leftarrow \operatorname{LayerNorm}\!\bigl(\operatorname{ReLU}\!\bigl(\operatorname{Adapter}(\tfrac{1}{|V_{i,a}|}\textstyle\sum_{b} \mathbf{c}_{ab})\bigr)\bigr)$ \hfill (Eq.~\ref{eq:fgsv2_token})
-  \Else
-    \State $\mathbf{z}_{i,a} \leftarrow \mathbf{0}$ \hfill\(\triangleright\) \textit{no competitors: single valid phase}
-  \EndIf
-\EndFor
-\State Set $\mathbf{z}_{i,a} \leftarrow \mathbf{0}$ for all invalid phases ($m_{i,a}=0$)
-\Statex \rule{\linewidth}{0.3pt}
-\Statex \textbf{Module I $\to$ II — Node summary}
-\ForAll{$i \in \mathcal{N}$}
-  \State $\mathbf{s}_i \leftarrow \operatorname{LayerNorm}\!\bigl(\textstyle\sum_a m_{i,a}\,\mathbf{z}_{i,a} \;/\; \max(\textstyle\sum_a m_{i,a},1)\bigr)$ \hfill (Eq.~\ref{eq:fgsv2_summary})
-\EndFor
-\Statex \rule{\linewidth}{0.3pt}
-\Statex \textbf{Module II — GATv2 communication with residual gate}
-\ForAll{$i \in \mathcal{N}$}
-  \State $\mathbf{u}_i \leftarrow \operatorname{LayerNorm}(\mathbf{s}_i)$
-  \hfill\(\triangleright\) \textit{pre-normalize before attention}
-  \State $\tilde{\mathbf{g}}_i \leftarrow \operatorname{ReLU}\!\bigl(\mathbf{W}_o\;\operatorname{GATv2Conv}(\{\mathbf{u}_j : j \in \mathcal{N}(i)\cup\{i\}\})\bigr)$
-  \hfill (Eq.~\ref{eq:fgsv2_gatv2})
-  \State $\mathbf{g}_i \leftarrow \operatorname{LayerNorm}(\mathbf{s}_i + \lambda\,\tilde{\mathbf{g}}_i)$
-  \hfill (Eq.~\ref{eq:fgsv2_gate})
-\EndFor
-\Statex \rule{\linewidth}{0.3pt}
-\Statex \textbf{Module III — Action-conditioned actor for agent $k$}
-\ForAll{phase $a = 1,\ldots,A_{\max}$}
-  \If{$m_{k,a} = 1$}
-    \State $l_a \leftarrow \operatorname{MLP}_\phi[\mathbf{z}_{k,a}\;\Vert\;\mathbf{g}_k\;\Vert\;\mathbf{e}_a]$
-    \hfill (Eq.~\ref{eq:fgsv2_actor})
-  \Else
-    \State $l_a \leftarrow -10^9$
-    \hfill\(\triangleright\) \textit{suppress invalid phases before softmax}
-  \EndIf
-\EndFor
-\State \Return $\pi_k(\cdot\mid o) = \operatorname{softmax}(\mathbf{l}_k)$; also $\{\mathbf{z}_{i,a}\},\{\mathbf{g}_i\}$ for critic (Eq.~\ref{eq:fgsv2_critic})
-\end{algorithmic}
-\end{algorithm}
-
-\begin{algorithm}[ht]
-  \caption{FGSv3 Forward Pass (Module I unchanged; Module II: GATv2 on demand $\mathbf{d}_i$; Module III: factored critic)}
-  \label{alg:fgsv3_forward}
+  \caption{FGS Forward Pass (Module I: FRAP action tokens; Module II: GATv2 on demand $\mathbf{d}_i$; Module III: factored critic)}
+  \label{alg:fgs_forward}
   \begin{algorithmic}[1]
     \Require Graph observation $o = \{\mathbf{X},\mathcal{E},\mathbf{W},\mathbf{M}_{\text{pair}},\mathbf{M}_{\text{comp}},\mathbf{m},\mathbf{a}_{t-1}\}$; agent index $k$
     \Ensure Policy distribution $\pi_k(\cdot\mid o)$; graph contexts $\{\mathbf{g}_i\}$ and action tokens $\{\mathbf{z}_{i,a}\}$ (training)
     \Statex \rule{\linewidth}{0.3pt}
-    \Statex \textbf{Module I — FRAP action-token encoding (identical to Alg.~\ref{alg:fgsv2_forward} Module~I)}
+    \Statex \textbf{Module I — FRAP action-token encoding (Equations~\ref{eq:fgsv2_token} and~\ref{eq:frap_movement_emb}--\ref{eq:frap_c})}
     \ForAll{intersection $i \in \mathcal{N}$ \textbf{and} movement $m$}
     \State $\mathbf{e}_{i,m} \leftarrow \operatorname{ReLU}\!\bigl(W_{\text{lane}}\bigl[\sigma(\operatorname{Emb}_p(p_{i,m})),\;\sigma(W_d\,d_{i,m})\bigr]\bigr)$
     \hfill\(\triangleright\) \textit{movement embedding}
@@ -805,9 +675,9 @@ Algorithm~\ref{alg:fgs_training} presents the complete training procedure shared
     \State $\boldsymbol{\phi}_{i,a} \leftarrow \sum_m w_{am}\,\mathbf{e}_{i,m}$
     \hfill\(\triangleright\) \textit{phase embedding (also used in Module~II)}
     \ForAll{competitor $b \in V_{i,a}$}
-    \State Compute $\mathbf{h}_{ab}$, $\mathbf{r}_{ab}$, $\mathbf{c}_{ab}$ as in Alg.~\ref{alg:fgsv2_forward}
+    \State Compute $\mathbf{h}_{ab}$, $\mathbf{r}_{ab}$, $\mathbf{c}_{ab}$ as in Eqs.~\ref{eq:frap_h}--\ref{eq:frap_c}
     \EndFor
-    \State Compute $\mathbf{z}_{i,a}$ as in Alg.~\ref{alg:fgsv2_forward}; set to $\mathbf{0}$ if $|V_{i,a}|=0$ or phase invalid
+    \State Compute $\mathbf{z}_{i,a}$ as in Eq.~\ref{eq:fgsv2_token}; set to $\mathbf{0}$ if $|V_{i,a}|=0$ or phase invalid
     \EndFor
     \Statex \rule{\linewidth}{0.3pt}
     \Statex \textbf{Module II — Demand communication branch (NEW in FGSv3)}

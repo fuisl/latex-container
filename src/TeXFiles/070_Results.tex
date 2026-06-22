@@ -1,7 +1,7 @@
 \chapter{Results and Discussion}
 \label{ch:ResultsAndDiscussion}
 
-This chapter presents and interprets the experimental results obtained from the FGS framework evaluated on German RESCO traffic scenarios. Performance figures are derived from Weights \& Biases experiment logs (project \texttt{marl-traffic-gat}). Scenarios follow the three-tier taxonomy established in Section~\ref{sec:Introduction_Scope}: \textbf{Single-intersection} (cologne1, ingolstadt1), \textbf{Corridor} (cologne3, ingolstadt7), and \textbf{Regional} (cologne8, ingolstadt21). Training ran for 200 episodes where the run completed; the first-generation FGS\textsubscript{S}(MLP+GATv2+SAC) run on ingolstadt21 terminated after 17 episodes due to resource exhaustion from the centralized critic's $O(N)$ input scaling at $N=21$. FGSv2 and FGSv3 variants address this bottleneck and complete 200 episodes at $N=21$.
+This chapter presents and interprets the experimental results obtained from the FGS framework evaluated on German RESCO traffic scenarios. Performance figures are derived from Weights \& Biases experiment logs (project \texttt{marl-traffic-gat}). Scenarios follow the three-tier taxonomy established in Section~\ref{sec:Introduction_Scope}: \textbf{Single-intersection} (cologne1, ingolstadt1), \textbf{Corridor} (cologne3, ingolstadt7), and \textbf{Regional} (cologne8, ingolstadt21). Training ran for 200 episodes where the run completed; the first-generation FGS\textsubscript{S}(MLP+GATv2+SAC) run on ingolstadt21 terminated after 17 episodes due to resource exhaustion from the centralized critic's $O(N)$ input scaling at $N=21$. FGSv2 and the final FGS design address this bottleneck and complete 200 episodes at $N=21$ (Section~\ref{sec:ResultsAndDiscussion_DesignEvolution}).
 
 \section{Main Results}
 \label{sec:ResultsAndDiscussion_MainResults}
@@ -138,7 +138,7 @@ An independent single-agent SAC baseline (IndSAC), run without graph communicati
 
 \subsection{FGS versus standalone FRAP}
 
-The standalone FRAP encoder \citep{zheng2019learning}, used as a single-agent controller without graph communication or RL, achieves 18.6~s on cologne3, 13.9~s on cologne8, and 9.3~s on ingolstadt7. On ingolstadt21, FRAP training is ongoing (Table~\ref{tab:main_results}, $*$); the live best-checkpoint is 120.4~s. These results are considerably worse than the corresponding $\text{FGS}_\text{S}$/FGSv3-PPO results (4.9/4.8~s on cologne8; 88.6/22.9~s on ingolstadt21 for FGS variants) and worse than CoLight on cologne8 (11.0~s). On ingolstadt7, $\text{FGS}_\text{P}$(MLP+GATv2+PPO) achieves 6.8~s (best among all evaluated methods on this network), improving on FRAP (9.3~s, previously the best baseline) by 27\%. These results establish that FRAP's phase-competition prior, in isolation, does not provide competitive performance on larger German intersection networks — yet when FRAP encoder outputs are used in FGSv3 with the demand-derived signal pathway (Section~\ref{sec:Methodology_FGSv3}), the architectural mismatch is substantially reduced.
+The standalone FRAP encoder \citep{zheng2019learning}, used as a single-agent controller without graph communication or RL, achieves 18.6~s on cologne3, 13.9~s on cologne8, and 9.3~s on ingolstadt7. On ingolstadt21, FRAP training is ongoing (Table~\ref{tab:main_results}, $*$); the live best-checkpoint is 120.4~s. These results are considerably worse than the corresponding $\text{FGS}_\text{S}$/FGS-PPO results (4.9/4.8~s on cologne8; 88.6/22.9~s on ingolstadt21 for FGS variants) and worse than CoLight on cologne8 (11.0~s). On ingolstadt7, $\text{FGS}_\text{P}$(MLP+GATv2+PPO) achieves 6.8~s (best among all evaluated methods on this network), improving on FRAP (9.3~s, previously the best baseline) by 27\%. These results establish that FRAP's phase-competition prior, in isolation, does not provide competitive performance on larger German intersection networks — yet when FRAP encoder outputs are used in FGS with the demand-derived signal pathway (Section~\ref{sec:Methodology_PipelineArchitecture}), the architectural mismatch is substantially reduced.
 \section{Training Convergence Analysis}
 \label{sec:ResultsAndDiscussion_Convergence}
 
@@ -160,7 +160,7 @@ This run achieves stable convergence on cologne8. The validation waiting time ex
 FGSv3-PPO is the most stable and fastest-converging run on cologne8 across all FGS variants. Validation performance reaches 5.4~s by episode~5 and remains in the narrow band 4.8--6.1~s for the remainder of training (episodes~5--40). This stability reflects PPO's on-policy gradient updates, which avoid the large early-training excursions characteristic of off-policy SAC exploration. The best checkpoint (4.8~s at episode~39) falls within the converged band.
 
 \paragraph{FGS\textsubscript{S}(MLP+GATv2+SAC): Ingolstadt Regional.}
-The first-generation SAC variant on the twenty-one-intersection network recorded only 17 training episodes before process termination. The waiting time trace during these 17 episodes showed values fluctuating between 75~s and 185~s, with no improvement trend. This behavior is consistent with the centralized critic's input dimensionality at $N=21$: the flattened graph context vector and joint action representation fed to the twin Q-networks has approximately 3,133 dimensions (Section~\ref{sec:Methodology_FGSv2}), requiring substantially more GPU memory and compute per gradient step than the PPO value function. The final checkpoint evaluated on the validation seed produced a mean waiting time of 757.5~s, indicating that partial training left the policy in a highly suboptimal state.
+The first-generation SAC variant on the twenty-one-intersection network recorded only 17 training episodes before process termination. The waiting time trace during these 17 episodes showed values fluctuating between 75~s and 185~s, with no improvement trend. This behavior is consistent with the centralized critic's input dimensionality at $N=21$: the flattened graph context vector and joint action representation fed to the twin Q-networks has approximately 3,133 dimensions (Appendix~\ref{sec:Appendix_critic_complexity}), requiring substantially more GPU memory and compute per gradient step than the PPO value function. The final checkpoint evaluated on the validation seed produced a mean waiting time of 757.5~s, indicating that partial training left the policy in a highly suboptimal state.
 
 \paragraph{FGS\textsubscript{P}(MLP+GATv2+PPO): Ingolstadt Regional.}
 The first-generation PPO counterpart completed all 200 training episodes. The training waiting time drops from approximately 58~s at episode~11, stabilizing in the range 29--34~s between episodes~140 and~200. The curve contains periodic spikes (200--340~s at isolated episodes) followed by rapid recovery, indicating that GATv2 attention propagates demand-spike signals across the graph within two to three episodes. The best validation performance (88.6~s) reflects a substantial train-to-validation gap (29~s training vs.\ 88.6~s validation), suggesting the policy is optimized for the training demand distribution.
@@ -247,7 +247,7 @@ On Cologne Regional, SAC outperforms PPO with the same encoder and graph layer: 
 
 The consistent underperformance of FRAP-based variants across all scenarios — with mean waiting time increases ranging from $5.2\times$ (ingolstadt21, FRAP vs.\ MLP with GATv2+PPO; Table~\ref{tab:ablation}) to $62\times$ (cologne3, FRAP vs.\ MLP from full-results Table~\ref{tab:main_results}) relative to MLP counterparts — warrants a structural explanation. FRAP \citep{zheng2019learning} constructs phase-pair competition features $\mathbf{c}_{i,a,b}$ by comparing the movement embedding of phase $a$ against each competing phase $b$, under the assumption that each phase controls a fixed pair of opposing movements. German RESCO intersections, however, have heterogeneous phase structures: cologne8 and ingolstadt21 mix junctions with 2, 4, and 6 phases, each controlling a variable number of movements. When a phase controls fewer than two movements, the competition weight normalization $\min(\sum P, 2) / \max(\sum P, 1)$ in FRAP's phase-pair embedding falls below the nominal value, producing undersaturated features that the downstream SAC actor misinterprets as low-demand signals. In the extreme case where a phase controls a single pedestrian phase or a turn-only movement, the FRAP output is near-zero — not because demand is low, but because the encoding is structurally inapplicable. This structural mismatch explains the catastrophic outcomes: the actor receives misleading phase utilities and selects phases that satisfy FRAP's encoding assumptions rather than the actual traffic demand.
 
-The near-competitive performance of FRAP+GATv2+PPO on cologne8 (6.69~s, only 7\% above MLP+GATv2+PPO) — despite FRAP's structural mismatch — suggests that GATv2's attention can partially correct for FRAP's misaligned features by down-weighting neighbors whose FRAP outputs are near-zero (indicating encoding failure rather than low demand). On ingolstadt21, however, this correction is insufficient: FRAP+GATv2+PPO's 460.7~s is 5.2$\times$ higher than its MLP counterpart, and the delay and queue penalties are equally severe (617.0~s vs.\ 234.9~s; 7.77 vs.\ 2.58~veh./lane). The correction capacity of GATv2 is therefore bounded — it ameliorates FRAP's noise at small scale but is overwhelmed by the amplified mismatch at $N=21$. FGSv3 addresses the root cause by introducing a demand-branch communication pathway that bypasses the FRAP phase-competition step (Section~\ref{sec:Methodology_FGSv3}), making inter-agent signals robust to phase structure heterogeneity.
+The near-competitive performance of FRAP+GATv2+PPO on cologne8 (6.69~s, only 7\% above MLP+GATv2+PPO) — despite FRAP's structural mismatch — suggests that GATv2's attention can partially correct for FRAP's misaligned features by down-weighting neighbors whose FRAP outputs are near-zero (indicating encoding failure rather than low demand). On ingolstadt21, however, this correction is insufficient: FRAP+GATv2+PPO's 460.7~s is 5.2$\times$ higher than its MLP counterpart, and the delay and queue penalties are equally severe (617.0~s vs.\ 234.9~s; 7.77 vs.\ 2.58~veh./lane). The correction capacity of GATv2 is therefore bounded — it ameliorates FRAP's noise at small scale but is overwhelmed by the amplified mismatch at $N=21$. FGS addresses the root cause by introducing a demand-branch communication pathway that bypasses the FRAP phase-competition step (Section~\ref{sec:Methodology_PipelineArchitecture}), making inter-agent signals robust to phase structure heterogeneity.
 
 \subsection{Graph-based coordination and network scale}
 
@@ -257,14 +257,167 @@ The comparison of $\text{FGS}_\text{P}$(MLP+GATv2+PPO) against the independent b
 
 \subsection{SAC convergence and network complexity}
 
-The convergence analysis confirms the theoretical prediction that SAC's sample efficiency advantage over PPO is scenario-dependent. On Cologne Regional ($N=8$), first-generation SAC achieves near-optimal performance in fewer than 40 training episodes, with the policy stabilizing near 6~s by episode~22. On Ingolstadt Regional ($N=21$), the centralized critic's computational overhead terminates training before meaningful learning can occur. This divide aligns with the theoretical analysis in Section~\ref{sec:Methodology_FGSv2}: the critic's input dimensionality scales as $O(Nd + NA_\text{max})$ in the number of agents $N$, while PPO's value function input is $O(d)$ independent of $N$. The effective threshold lies between $N=8$ (SAC succeeds) and $N=21$ (SAC fails within resource constraints), confirming that SAC-based MARL with a centralized graph-aware critic is practical for small-to-moderate urban clusters but requires architectural revision to scale further.
+The convergence analysis confirms the theoretical prediction that SAC's sample efficiency advantage over PPO is scenario-dependent. On Cologne Regional ($N=8$), first-generation SAC achieves near-optimal performance in fewer than 40 training episodes, with the policy stabilizing near 6~s by episode~22. On Ingolstadt Regional ($N=21$), the centralized critic's computational overhead terminates training before meaningful learning can occur. This divide aligns with the critic complexity analysis in Appendix~\ref{sec:Appendix_critic_complexity}: the first-generation centralized critic's input dimensionality scales as $O(Nd + NA_\text{max})$ in the number of agents $N$, while PPO's value function input is $O(d)$ independent of $N$. The effective threshold lies between $N=8$ (SAC succeeds) and $N=21$ (SAC fails within resource constraints), confirming that SAC-based MARL with a centralized graph-aware critic is practical for small-to-moderate urban clusters but requires architectural revision to scale further.
 
-The FGSv3 architecture (Section~\ref{sec:Methodology_FGSv3}) directly addresses this bottleneck. By replacing the centralized critic with a factored neighborhood critic ($O(d_c + A_{\max})$ independent of $N$), FGSv3 reduces the critic input from 3{,}091 to 204 dimensions at ingolstadt21 — a $15\times$ reduction (Appendix~\ref{sec:Appendix_fgsv3_critic_complexity}). Both FGSv2-SAC and FGSv3-SAC complete training at $N=21$. On Cologne Regional ($N=8$), FGSv3-PPO achieves a best-checkpoint mean waiting time of 4.8~s (delay: 21.6~s), marginally better than FGS\textsubscript{S} (wait: 4.9~s, delay: 22.2~s); FGSv3-SAC and FGSv2-SAC are both approximately 6.0~s on this scenario. The FGSv3 architectural benefit is most pronounced on ingolstadt21, where FGSv3-PPO achieves 22.9~s (versus $\text{FGS}_\text{P}$'s 88.6~s, a 74\% improvement), and SAC variants now complete training. The FGSv3-SAC and FGSv2-SAC best-checkpoints on ingolstadt21 (11.1~s and 13.9~s respectively) occur during early training exploration and should be interpreted as indicative lower bounds — stable performance in the converged region of training is approximately 25--28~s for both variants, comparable to standalone PPO (25.8~s). Extended training and hyperparameter tuning are expected to close this gap.
+The FGS factored neighborhood critic (Section~\ref{sec:Methodology_PipelineArchitecture}) directly addresses this bottleneck. By replacing the centralized critic with a factored neighborhood critic ($O(d_c + A_{\max})$ independent of $N$), FGS reduces the critic input from 3{,}091 to 204 dimensions at ingolstadt21 — a $15\times$ reduction (Appendix~\ref{sec:Appendix_fgsv3_critic_complexity}). Both FGSv2-SAC and FGS-SAC complete training at $N=21$. On Cologne Regional ($N=8$), FGS-PPO achieves a best-checkpoint mean waiting time of 4.8~s (delay: 21.6~s), marginally better than FGS\textsubscript{S} (wait: 4.9~s, delay: 22.2~s); FGS-SAC and FGSv2-SAC are both approximately 6.0~s on this scenario. The FGS architectural benefit is most pronounced on ingolstadt21, where FGS-PPO achieves 22.9~s (versus $\text{FGS}_\text{P}$'s 88.6~s, a 74\% improvement), and SAC variants now complete training. The FGS-SAC and FGSv2-SAC best-checkpoints on ingolstadt21 (11.1~s and 13.9~s respectively) occur during early training exploration and should be interpreted as indicative lower bounds — stable performance in the converged region of training is approximately 25--28~s for both variants, comparable to standalone PPO (25.8~s). Extended training and hyperparameter tuning are expected to close this gap.
 
 \paragraph{CTDE scalability and the centralization tradeoff.}
 The scalability failure of the FGSv2 centralized critic at $N=21$ relates to a broader tension in CTDE framework design. Zhou et al.\ \citep{zhou2023cadp} identify one boundary of this tension: standard CTDE methods are \emph{not centralized enough}, because agent policies still assume mutual independence during training, limiting global credit assignment. The CADP framework they propose adds an explicit self-attention advice channel during training, allowing agents to leverage global information beyond what the critic alone provides. The ingolstadt21 results reveal the complementary boundary: at large $N$, the fully centralized critic is \emph{not scalable enough}, because the $O(N)$ joint state input exhausts memory before meaningful policy learning can occur.
 
 FGSv3's factored neighborhood critic navigates this tradeoff by exploiting the graph topology as an inductive bias. The GATv2 communication module (Module~II) propagates neighborhood demand signals across the network \emph{before} the critic aggregates, so the critic operates on already-enriched local embeddings rather than raw local observations. The factored critic thus receives an effective receptive field larger than its 1-hop neighborhood — information from 2-hop neighbors arrives indirectly via the GATv2 message, encoded in each direct neighbor's gated context $\mathbf{g}_j$. This two-stage information flow (graph propagation then local critic aggregation) achieves a similar effect to CADP's training-time communication channel, but with a constant-dimension critic input that remains tractable at any $N$. The 74\% improvement from first-generation FGS (88.6~s) to FGSv3-PPO (22.9~s) on ingolstadt21 validates this design decision empirically.
+
+\section{Design Evolution}
+\label{sec:ResultsAndDiscussion_DesignEvolution}
+
+The FGS pipeline was developed through three successive generations, each motivated by a specific module-interface failure exposed during evaluation of the preceding design. Table~\ref{tab:fgs_generation_summary} summarizes the trajectory; Figure~\ref{fig:fgs_framework} provides a visual overview of all three instantiations.
+
+\begin{table}[ht]
+\centering
+\caption{Successive FGS generations and the module-interface failure each addresses. Each generation keeps the pipeline structure fixed and modifies only the components implicated by the preceding evaluation.}
+\label{tab:fgs_generation_summary}
+\small
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{lp{3.5cm}p{3.8cm}p{4.0cm}}
+\toprule
+\textbf{Generation} & \textbf{Module~I} & \textbf{Module~II} & \textbf{Module~III} \\
+\midrule
+Gen-1 (ablation)  & MLP or FRAP (scalar out)    & GATv2 (on $\mathbf{h}_i$)              & SAC/PPO (centralized critic) \\
+FGSv2             & FRAP \emph{action tokens}   & GATv2 (on $\mathbf{s}_i$)              & SAC (centralized critic) \\
+FGS (final)       & FRAP action tokens          & GATv2 (on demand $\mathbf{d}_i$)       & SAC/PPO (\emph{factored} critic) \\
+\midrule
+\multicolumn{4}{l}{\textit{What changed and why:}} \\
+Gen-1 $\to$ FGSv2     & Scalar FRAP output discards per-phase info & Message carries phase-level features & — \\
+FGSv2 $\to$ FGS final & — & Message signals demand, not ranking & Centralized critic blocked SAC at $N=21$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+  >=stealth, semithick,
+  enc/.style={draw=blue!50, fill=blue!7, rounded corners=3pt,
+              minimum width=1.9cm, minimum height=0.50cm,
+              font=\small, align=center},
+  com/.style={draw=teal!60, fill=teal!7, rounded corners=3pt,
+              minimum width=1.9cm, minimum height=0.50cm,
+              font=\small, align=center},
+  rl/.style={draw=violet!60, fill=violet!7, rounded corners=3pt,
+             minimum width=1.9cm, minimum height=0.50cm,
+             font=\small, align=center},
+  io/.style={font=\small, inner sep=2pt},
+  lbl/.style={font=\scriptsize, inner sep=1pt},
+  arr/.style={->, semithick},
+]
+
+%% ── Panel 1: FGS gen-1 ───────────────────────────────────────
+\node[io]  at (0, 5.4) (p1o) {$o_i$};
+\node[enc] at (0, 4.5) (p1e) {Encoder\\[-3pt]\scriptsize MLP\,/\,FRAP};
+\node[com] at (0, 3.1) (p1g) {GATv2};
+\node[rl]  at (0, 1.7) (p1a) {Actor};
+\node[io]  at (0, 0.9) (p1p) {$\pi_i$};
+
+\node[lbl, blue!65]  at ( 0.85, 3.8) {$\mathbf{h}_i$};
+\node[lbl, teal!65]  at ( 0.85, 2.4) {$\mathbf{h}_i'$};
+
+\draw[arr] (p1o) -- (p1e);
+\draw[arr] (p1e) -- (p1g);
+\draw[arr] (p1g) -- (p1a);
+\draw[arr] (p1a) -- (p1p);
+
+\node[font=\small\bfseries] at (0, 6.05) {Gen-1};
+
+%% ── Panel 2: FGSv2 ───────────────────────────────────────────
+\begin{scope}[xshift=4.8cm]
+
+\node[io]  at (0, 5.4) (p2o) {$o_i$};
+\node[enc] at (0, 4.5) (p2e) {FRAP Encoder};
+\node[com] at (1.1, 2.7) (p2g) {GATv2};
+
+\node[draw=gray!55, fill=white, circle, inner sep=1.5pt, font=\small]
+     at (0, 1.4) (p2c) {$\oplus$};
+
+\node[rl]  at (0, 0.65) (p2a) {Actor};
+\node[io]  at (0,-0.15) (p2p) {$\pi_i$};
+
+\node[lbl, blue!65]  at (-1.9, 3.1) {$\mathbf{z}_{i,a}$};
+\node[lbl, blue!50]  at ( 1.65, 3.75) {$\mathbf{s}_i$};
+\node[lbl, teal!65]  at ( 1.65, 2.0)  {$\mathbf{g}_i$};
+
+\draw[arr] (p2o) -- (p2e);
+\draw[arr] (p2e.south west) -- (-1.4, 3.5) -- (-1.4, 1.4) -- (p2c.west);
+\draw[arr] (p2e.south east) -- (1.1, 3.5) -- (p2g.north);
+\draw[arr] (p2g.south) -- (1.1, 1.4) -- (p2c.east);
+\draw[arr] (p2c) -- (p2a);
+\draw[arr] (p2a) -- (p2p);
+
+\node[font=\small\bfseries] at (0, 6.05) {FGSv2};
+
+\end{scope}
+
+%% ── Panel 3: FGS final ───────────────────────────────────────
+\begin{scope}[xshift=9.6cm]
+
+\node[io]  at (0, 5.4) (p3o) {$o_i$};
+\node[enc] at (0, 4.5) (p3e) {FRAP Encoder};
+\node[com] at (1.1, 2.7) (p3g) {GATv2};
+
+\node[draw=gray!55, fill=white, circle, inner sep=1.5pt, font=\small]
+     at (0, 1.4) (p3c) {$\oplus$};
+
+\node[rl]  at (0, 0.65) (p3a) {Actor};
+\node[io]  at (0,-0.15) (p3p) {$\pi_i$};
+
+\node[lbl, blue!65]         at (-1.9, 3.1)  {$\mathbf{z}_{i,a}$};
+\node[lbl, orange!75!black] at ( 1.65, 3.75) {$\mathbf{d}_i$};
+\node[lbl, teal!65]         at ( 1.65, 2.0)  {$\mathbf{g}_i$};
+
+\draw[arr] (p3o) -- (p3e);
+\draw[arr] (p3e.south west) -- (-1.4, 3.5) -- (-1.4, 1.4) -- (p3c.west);
+\draw[arr] (p3e.south east) -- (1.1, 3.5) -- (p3g.north);
+\draw[arr] (p3g.south) -- (1.1, 1.4) -- (p3c.east);
+\draw[arr] (p3c) -- (p3a);
+\draw[arr] (p3a) -- (p3p);
+
+\node[font=\small\bfseries] at (0, 6.05) {FGS (final)};
+
+\end{scope}
+
+\end{tikzpicture}
+\caption{Overview of the three FGS generations. \textbf{Gen-1}: a scalar node embedding $\mathbf{h}_i$ (from an MLP or FRAP encoder) is updated by GATv2 and fed directly to the actor. \textbf{FGSv2}: FRAP produces per-phase action tokens $\mathbf{z}_{i,a}$; a competition-based summary $\mathbf{s}_i$ serves as the GATv2 message, while $\mathbf{z}_{i,a}$ bypasses communication via a skip connection and is concatenated~($\oplus$) with the graph context $\mathbf{g}_i$. \textbf{FGS (final)}: the communication branch carries a demand embedding $\mathbf{d}_i$ instead of $\mathbf{s}_i$; the factored critic (not shown) replaces the centralized critic.}
+\label{fig:fgs_framework}
+\end{figure}
+
+\textbf{First-generation failures.} The gen-1 ablation (Table~\ref{tab:fgs_variants}) established that FRAP-based encoders consistently underperform MLP encoders on German scenarios, and exposed two interface failures: (1)~the Module-I scalar output discards per-phase competition information before graph aggregation; (2)~the centralized critic's $O(Nd)$ input prevents SAC from completing training at $N=21$.
+
+\textbf{FGSv2 diagnosis and fix.} FGSv2 addresses failure (1) by tapping FRAP after the movement-embedding step but before scalar projection, producing per-phase action tokens $\mathbf{z}_{i,a}$. The action tokens bypass Module~II via a skip connection and are concatenated with the graph context at the actor input. FGSv2 evaluation reveals failure (2) persisting: the centralized critic still exhausts GPU memory at $N=21$ (Appendix~\ref{sec:Appendix_critic_complexity}). Additionally, FGSv2's GATv2 message $\mathbf{s}_i$ is a pooled competition score that encodes phase rankings, not demand state — a suboptimal communication signal when agents need to anticipate upstream pressure.
+
+\textbf{Final FGS design.} The FGS final design (Section~\ref{sec:Methodology_PipelineArchitecture}) addresses both remaining failures: the Module-II signal is replaced with demand embeddings $\mathbf{d}_i$ derived from the FRAP phase-demand branch (Eq.~\ref{eq:fgsv3_demand}), and the centralized critic is replaced with a factored neighborhood critic (Eq.~\ref{eq:fgsv3_critic}) whose input dimension is $O(d_c + A_{\max})$ independent of $N$. Table~\ref{tab:fgsv3_vs_fgsv2} quantifies the performance gain from this final design over FGSv2 on the Regional tier.
+
+\begin{table}[ht]
+  \centering
+  \caption{FGS final design vs.\ FGSv2 on Regional-tier scenarios (best-validation checkpoint). The gain is primarily driven by the demand-branch communication and factored critic.}
+  \label{tab:fgsv3_vs_fgsv2}
+  \small
+  \begin{tabular}{llrrrr}
+    \hline
+    Scenario & Method & Wait (s) & Delay (s) & Trip (s) & Queue \\
+    \hline
+    \multirow{3}{*}{\shortstack[l]{Cologne Reg.\\($N=8$)}}
+      & FGSv2-SAC   & 6.0  & 24.5 & 88.7 & 0.44 \\
+      & FGS-PPO     & 4.8  & 21.6 & 86.0 & 0.33 \\
+      & FGS-SAC     & 6.0  & 24.5 & 88.7 & 0.44 \\
+    \hline
+    \multirow{2}{*}{\shortstack[l]{Ingolstadt Reg.\\($N=21$)}}
+      & FGSv2-SAC\pdd & 13.9 & 53.7  & 191.4 & 12.90 \\
+      & FGS-PPO     & 22.9 & 68.4  & 203.9 & 0.71  \\
+      & FGS-SAC\pdd   & 11.1 & 45.3  & 179.2 & 12.41 \\
+    \hline
+  \end{tabular}
+  \par\smallskip
+  {\footnotesize $\ddagger$ Early-training transient (see Section~\ref{sec:ResultsAndDiscussion_Convergence}).}
+\end{table}
 
 \section{Answering the Research Questions}
 \label{sec:ResultsAndDiscussion_ResearchQuestions}

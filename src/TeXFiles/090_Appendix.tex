@@ -267,7 +267,18 @@ This holds because (1) movement embeddings share parameters across movements; (2
 \label{sec:Appendix_critic_complexity}
 % ─────────────────────────────────────────────────────────────────────────────
 
-For FGSv2 (Equation~\ref{eq:fgsv2_critic}), the critic input concatenates: (i) flattened gated graph contexts ($Nd_{h'}$ dims); (ii) joint action-probability matrix ($NA_{\max}$ dims); (iii) agent $k$'s action token ($d_z$ dims); (iv) agent $k$'s graph context ($d_{h'}$ dims); (v) one-hot agent identity ($N$ dims). The total is
+The FGSv2 centralized critic (second-generation architecture; see Appendix~\ref{sec:Appendix_EarlierAlgorithms}) concatenates all agents' graph contexts and previous actions into a single input vector:
+\begin{equation}
+  Q_k^{v2}(a) = f_Q^{v2}\!\Bigl[\,
+    \mathbf{z}_{k,a}\;\Vert\;
+    \mathbf{g}_k\;\Vert\;
+    \bigoplus_{j=1}^{N}\mathbf{g}_j\;\Vert\;
+    \mathbf{A}_{t-1}\;\Vert\;
+    \mathbf{e}_a
+  \,\Bigr],
+  \label{eq:fgsv2_critic}
+\end{equation}
+where $\mathbf{A}_{t-1} \in \mathbb{R}^{NA_{\max}}$ is the concatenated one-hot action matrix and $\bigoplus_{j=1}^N\mathbf{g}_j \in \mathbb{R}^{Nd_{h'}}$ is the flattened joint graph context. For FGSv2 (Equation~\ref{eq:fgsv2_critic}), the critic input concatenates: (i) flattened gated graph contexts ($Nd_{h'}$ dims); (ii) joint action-probability matrix ($NA_{\max}$ dims); (iii) agent $k$'s action token ($d_z$ dims); (iv) agent $k$'s graph context ($d_{h'}$ dims); (v) one-hot agent identity ($N$ dims). The total is
 \begin{equation}
   d_{\mathrm{critic}} = N(d_{h'} + A_{\max}) + d_z + d_{h'} + N
                        = O\!\bigl(N(d_{h'} + A_{\max})\bigr).
@@ -449,6 +460,64 @@ The Dijkstra traversal operates on \emph{road edges} (not junctions) as nodes, f
 % ─────────────────────────────────────────────────────────────────────────────
 
 The RESCO benchmark specifies five random seeds with result averaging. Resource constraints limited most runs in this work to a single seed; results should be interpreted as indicative point estimates rather than statistically conclusive claims. For reference, a five-seed comparison would report mean $\bar x = S^{-1}\sum_s x_s$, standard error $\mathrm{SE}=\hat\sigma/\!\sqrt{S}$, and a 95\% confidence interval $\bar x \pm t_{S-1,\,0.975}\,\hat\sigma/\!\sqrt{S}$. Method comparisons benefit from paired differences $d_s = x_s^A - x_s^B$, which cancel seed-level variance: $\bar d \pm t_{S-1,\,0.975}\,\hat\sigma_d/\!\sqrt{S}$. Future work extending to five seeds will report paired-difference confidence intervals following this protocol.
+
+% ─────────────────────────────────────────────────────────────────────────────
+\section{First-Generation FGS and FGSv2 Forward Passes}
+\label{sec:Appendix_EarlierAlgorithms}
+% ─────────────────────────────────────────────────────────────────────────────
+
+The following algorithms describe the forward passes of the two earlier FGS generations, preserved here for reference. The first-generation variants use either an MLP or a FRAP encoder whose output is passed directly to GATv2 as a scalar node embedding (no action tokens). The FGSv2 design introduces action tokens but uses a competition-derived summary vector $\mathbf{s}_i$ as the GATv2 message and a centralized critic. Both are superseded by the FGS pipeline described in Section~\ref{sec:Methodology_PipelineArchitecture}.
+
+\begin{algorithm}[ht]
+  \caption{First-Generation FGS Forward Pass (MLP or FRAP scalar encoder; GATv2 on scalar embedding)}
+  \label{alg:fgs_gen1_forward}
+  \begin{algorithmic}[1]
+    \Require Observation $o_i$, adjacency graph $\mathcal{G}$, encoder $\in\{\mathrm{MLP}, \mathrm{FRAP}\}$
+    \Ensure Action logits $\{l_{i,a}\}$ for agent $i$
+
+    \If{encoder $=$ MLP}
+      \State $\mathbf{h}_i = \mathrm{MLP}(o_i) \in \mathbb{R}^{d_h}$
+    \Else \Comment{FRAP encoder (Section~\ref{sec:Methodology_FRAP})}
+      \State Compute movement embeddings, pair embeddings, competition features $\mathbf{c}_{ab}$
+      \State $\mathbf{h}_i = \mathrm{MLP}_{\mathrm{proj}}(\bar{\mathbf{c}}_i) \in \mathbb{R}^{d_h}$ \quad (scalar projection of pooled competition)
+    \EndIf
+    \State $\mathbf{h}_i' = \mathrm{GATv2}(\mathbf{h}_i, \{\mathbf{h}_j\}_{j\in\mathcal{N}(i)}) \in \mathbb{R}^{d_h}$ \quad (Eq.~\ref{eq:gatv2_attn})
+    \For{each valid phase $a$}
+      \State $l_{i,a} = \mathrm{MLP}_{\mathrm{actor}}(\mathbf{h}_i') \in \mathbb{R}$
+    \EndFor
+    \State \Return $\{l_{i,a}\}$
+  \end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[ht]
+  \caption{FGSv2 Forward Pass (Action tokens; competition-derived GATv2 message; centralized critic)}
+  \label{alg:fgsv2_forward}
+  \begin{algorithmic}[1]
+    \Require Observation $o_i$, adjacency graph $\mathcal{G}$, previous joint action $\mathbf{a}_{t-1}$
+    \Ensure Action logits $\{l_{i,a}\}$ and critic input for agent $i$
+
+    \Statex \textbf{Module I — FRAP action tokens} (Eqs.~\ref{eq:frap_movement_emb}--\ref{eq:frap_c} and~\ref{eq:fgsv2_token})
+    \State Compute movement embeddings $\mathbf{m}_{i,v}$, phase-pair embeddings, pairwise features $\mathbf{c}_{i,ab}$
+    \State $\mathbf{z}_{i,a} = \mathrm{LayerNorm}(\mathrm{ReLU}(\mathrm{Adapter}(\frac{1}{|V_{i,a}|}\sum_b \mathbf{c}_{i,ab})))$ for each valid phase $a$
+
+    \Statex \textbf{Competition summary (GATv2 message)}
+    \State $\mathbf{s}_i = \mathrm{MLP}_{\mathrm{sum}}(\mathrm{mean}_a\,\mathbf{z}_{i,a}) \in \mathbb{R}^{d_c}$
+
+    \Statex \textbf{Module II — GATv2 on competition summary}
+    \State $\mathbf{g}_i = \sigma\!\bigl(W_g[\mathbf{s}_i \Vert \mathrm{GATv2}(\mathbf{s}_i, \{\mathbf{s}_j\}_{j\in\mathcal{N}(i)})]\bigr)$
+
+    \Statex \textbf{Module III — Actor} (Eq.~\ref{eq:fgsv2_actor})
+    \For{each valid phase $a$}
+      \State $l_{i,a} = \mathrm{MLP}_\phi[\mathbf{z}_{i,a} \Vert \mathbf{g}_i \Vert \mathbf{e}_a]$
+    \EndFor
+
+    \Statex \textbf{Centralized critic input}
+    \State Critic receives $[\mathbf{z}_{k,a} \Vert \mathbf{g}_k \Vert \bigoplus_{j=1}^N \mathbf{g}_j \Vert \mathbf{A}_{t-1} \Vert \mathbf{e}_a]$ \quad ($O(Nd_c)$ input, Eq.~\ref{eq:critic_dim})
+    \State \Return $\{l_{i,a}\}$
+  \end{algorithmic}
+\end{algorithm}
+
+The key difference between FGSv2 and the final FGS design is in Module II: FGSv2 uses $\mathbf{s}_i$ (pooled competition features) as the GATv2 message, while FGS uses demand embeddings $\mathbf{d}_i$ (Eq.~\ref{eq:fgsv3_demand}). The final FGS design also replaces the centralized critic (Appendix~\ref{sec:Appendix_critic_complexity}) with the factored neighborhood critic (Eq.~\ref{eq:fgsv3_critic}, Appendix~\ref{sec:Appendix_fgsv3_critic_complexity}).
 
 \chapter{Full Experimental Results}
 \label{ch:Appendix_FullResults}

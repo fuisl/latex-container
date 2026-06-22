@@ -24,7 +24,7 @@ Second, the RL algorithms used in MARL-TSC are almost exclusively value-based (D
 
 Third, the design space of MARL-TSC architectures — encoder type, communication mechanism, and RL algorithm — has not been systematically mapped or ablated on German road networks. Whether phase-aware encoding complements graph attention, whether entropy regularization helps or hinders convergence in multi-agent German scenarios, and at what network scales each component provides consistent benefit are open empirical questions. No published method treats these three dimensions as independently configurable choices and evaluates their interactions on the German RESCO benchmark.
 
-This thesis addresses all three gaps through the FGS (\textbf{F}ramework for \textbf{G}raph-aware \textbf{S}ignal control): a modular three-module pipeline that decouples encoder, graph communication, and RL algorithm as independent design choices, implemented across three successive generations (FGS, FGSv2, FGSv3) and evaluated on six German RESCO scenarios spanning three scale tiers: Single-intersection (cologne1, ingolstadt1), Corridor (cologne3, ingolstadt7), and Regional (cologne8, ingolstadt21).
+This thesis addresses all three gaps through the FGS (\textbf{F}ramework for \textbf{G}raph-aware \textbf{S}ignal control): a modular three-module pipeline that decouples encoder, graph communication, and RL algorithm as independent design choices. The FGS architecture is developed across three successive generations and evaluated on six German RESCO scenarios spanning three scale tiers: Single-intersection (cologne1, ingolstadt1), Corridor (cologne3, ingolstadt7), and Regional (cologne8, ingolstadt21).
 
 \section{Research Objectives}
 \label{sec:Introduction_ResearchObjectives}
@@ -40,7 +40,7 @@ The work reported in this thesis pursues five interconnected objectives:
 
   \item \textbf{Study RL optimization schemes.} Compare discrete-action SAC, DQN, and PPO as RL algorithms within the same MARL-TSC framework, examining sample efficiency, stability, and final performance.
 
-  \item \textbf{Evaluate across German RESCO scenarios.} Assess FGS, FGSv2, and FGSv3 pipeline instantiations against classical and deep RL baselines on the German RESCO benchmark, characterizing performance, scalability, and the contribution of individual architectural choices. FGSv2 and FGSv3 emerged iteratively: each generation targets a specific interface failure identified in evaluation of the preceding one, providing both improved performance and empirically grounded design guidelines.
+  \item \textbf{Evaluate across German RESCO scenarios.} Assess the FGS pipeline (and first-generation ablation variants) against classical and deep RL baselines on the German RESCO benchmark, characterizing performance, scalability, and the contribution of individual architectural choices. The FGS architecture is developed iteratively across three generations, with each generation targeting a specific interface failure identified in evaluation of the preceding one.
 \end{enumerate}
 
 \section{Research Questions and Hypotheses}
@@ -93,7 +93,7 @@ Four hypotheses guide the experimental design; they are stated as testable propo
 
 This thesis focuses on the design, implementation, and empirical evaluation of a graph-aware MARL framework for signalized intersection control. The scope encompasses:
 \begin{itemize}
-  \item Control algorithm design: the FGS, FGSv2, and FGSv3 architectural variants described in Chapter~\ref{ch:Methodology}.
+  \item Control algorithm design: the FGS architecture and its first-generation ablation variants described in Chapter~\ref{ch:Methodology}.
   \item Algorithm analysis: ablation across encoder types, communication mechanisms, and RL algorithms.
   \item Empirical comparison: six German RESCO scenarios across three scale tiers — \textbf{Single-intersection} (cologne1, ingolstadt1), \textbf{Corridor} (cologne3, ingolstadt7), and \textbf{Regional} (cologne8, ingolstadt21) — against a standardized set of classical and deep RL baselines. This tier classification is used consistently throughout the thesis. FGS-variant results for the ingolstadt7 Corridor scenario were not available at the time of writing and are omitted from the FGS comparison columns; baseline results for that scenario are included for reference.
 \end{itemize}
@@ -126,7 +126,7 @@ The remainder of this thesis is organized as follows.
 
 \textbf{Chapter~\ref{ch:TheoreticalBackground}} establishes the mathematical and conceptual foundations: Markov Decision Processes, partially observable and multi-agent extensions, the progression from dynamic programming to deep RL and entropy-regularized actor-critic methods, graph neural network message passing, and the traffic engineering concepts required to interpret the experiments.
 
-\textbf{Chapter~\ref{ch:Methodology}} describes the FGS framework in detail: observation space, action space, graph construction, baseline algorithms, reward function, and the full architectural specifications of both proposed variants.
+\textbf{Chapter~\ref{ch:Methodology}} describes the FGS framework in detail: observation space, action space, graph construction, baseline algorithms, reward function, and the full FGS pipeline architecture.
 
 \textbf{Chapter~\ref{ch:ExperimentalDesign}} specifies the experimental setup: the TapasCologne and InTAS demand models, SUMO simulation parameters, evaluation metrics and protocols, training hyperparameters, and the end-to-end software pipeline.
 
