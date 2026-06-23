@@ -529,7 +529,7 @@ This appendix presents complete numerical results across all six German RESCO sc
   \item \textbf{Regional} (\textit{Reg.}): ingolstadt21 ($N=21$) and cologne8 ($N=8$).
 \end{itemize}
 
-All results from this work are \textit{best-validation} values: the validation checkpoint with minimum mean waiting time observed during training, evaluated on a fixed held-out demand seed. Results marked $\circ$ indicate scenarios where the method was not yet run or crashed before producing valid metrics; these cells are candidates for re-run. Results marked $\dagger$ are from a partially trained run (FGS(MLP+GATv2+SAC) on Ing.~Reg.\ terminated after 17 of 200 training episodes due to resource exhaustion) and should not be compared directly to converged results. Results marked $\ddagger$ are early-training transients (best checkpoint at a very early episode with a single eval episode); their wait and queue metrics are internally inconsistent and are excluded from Bold comparisons. RESCO reference values (IDQN, IPPO, FMA2C) are reproduced from the original paper \citep{ault2021reinforcement} and represent best-episode averages over five random seeds.
+All results from this work are \textit{best-validation} values: the validation checkpoint with minimum mean waiting time observed during training, evaluated on a fixed held-out demand seed. Results marked $\circ$ indicate scenarios where the method was not yet run or crashed before producing valid metrics; these cells are candidates for re-run. Results marked $\dagger$ are from a partially trained run (FGS(MLP+GATv2+SAC) on Ing.~Reg.\ terminated after 17 of 200 training episodes due to resource exhaustion) and should not be compared directly to converged results. Results marked $\ddagger$ are early-training transients (best checkpoint at a very early episode with a single eval episode); their wait and queue metrics are internally inconsistent and are excluded from Bold comparisons.
 
 \providecommand{\na}{$\circ$}        % missing / not run
 \providecommand{\pt}{$^\dagger$}     % partial run
@@ -540,7 +540,7 @@ All results from this work are \textit{best-validation} values: the validation c
 % ─────────────────────────────────────────────────────────────────────────────
 \begin{sidewaystable}[p]
 \centering
-\caption{Performance of baseline methods across all six RESCO scenarios (best-validation metrics, single seed unless noted). Columns follow the Single / Corridor / Regional tier classification. Reference results for IDQN, IPPO, and FMA2C are from \citet{ault2021reinforcement} (5-seed averages). FixedTime and MaxPressure are 5-episode static baselines from this work. DQN, PPO, IndSAC, CoLight, and FRAP are single-seed learning baselines from this work (best-validation checkpoint). Within each scenario column, \textbf{bold} marks the best value and \underline{underline} marks the second-best value per metric (lower is better for all metrics). $\circ$ = not run or not available.}
+\caption{Performance of baseline methods across all six RESCO scenarios (best-validation metrics, single seed unless noted). Columns follow the Single / Corridor / Regional tier classification. FixedTime and MaxPressure are 5-episode static baselines from this work. DQN, PPO, IndSAC, CoLight, and FRAP are single-seed learning baselines from this work (best-validation checkpoint). Within each scenario column, \textbf{bold} marks the best value and \underline{underline} marks the second-best value per metric (lower is better for all metrics). $\circ$ = not run or not available.}
 \label{tab:appendix_baselines}
 \scriptsize
 \setlength{\tabcolsep}{4pt}
@@ -551,23 +551,6 @@ All results from this work are \textit{best-validation} values: the validation c
   & \textbf{Ing.\ Single} & \textbf{Ing.\ Corr.}  & \textbf{Ing.\ Reg.}
   & \textbf{Col.\ Single} & \textbf{Col.\ Corr.}  & \textbf{Col.\ Reg.} \\
 \midrule
-\multicolumn{8}{l}{\textit{RESCO benchmark reference (5 seeds, best episode) \citep{ault2021reinforcement}}} \\[2pt]
-\multirow{4}{*}{IDQN}
-  & Avg.\ Delay     & \textbf{21.48} & \textbf{31.19} &  \textbf{61.11} &  26.05 &  24.55 &  22.06 \\
-  & Avg.\ Trip Time & \textbf{35.29} & 68.69 & \textbf{198.72} &  43.59 &  59.00 &  86.02 \\
-  & Avg.\ Wait      &  \textbf{3.93} &  \textbf{8.71} &  \textbf{21.36} &   7.98 &   8.50 &   5.46 \\
-  & Avg.\ Queue     &  \textbf{0.43} &  0.67 &   \textbf{0.82} &   \textbf{2.09} &   0.87 &   0.38 \\[4pt]
-\multirow{4}{*}{IPPO}
-  & Avg.\ Delay     & \underline{21.85} & \underline{32.00} & 369.34 & 209.49 &  58.98 &  \underline{21.62} \\
-  & Avg.\ Trip Time & 35.68 & 69.38 & 509.28 & 224.56 &  93.70 &  \underline{85.71} \\
-  & Avg.\ Wait      &  \underline{4.20} &  \underline{8.86} & 315.31 & 193.66 &  43.50 &   5.19 \\
-  & Avg.\ Queue     &  \underline{0.49} &  0.74 &   5.45 &  21.86 &   5.73 &   0.36 \\[4pt]
-\multirow{4}{*}{FMA2C}
-  & Avg.\ Delay     & 27.74 & 51.78 &  \underline{96.67} &  30.82 &  32.58 &  34.44 \\
-  & Avg.\ Trip Time & 41.40 & 87.75 & \underline{233.04} &  48.07 &  66.83 &  98.68 \\
-  & Avg.\ Wait      &  8.74 & 23.32 &  \underline{48.88} &  11.87 &  15.84 &  14.70 \\
-  & Avg.\ Queue     &  1.07 &  1.86 &   1.84 &   3.20 &   2.01 &   1.03 \\
-\midrule
 \multicolumn{8}{l}{\textit{Static baselines --- this work (5-episode validation, no learning)}} \\[2pt]
 \multirow{4}{*}{FixedTime}
   & Avg.\ Delay     &  40.8 & 122.9 & 145.7 &  54.6 &  63.7 &  51.5 \\
@@ -575,32 +558,32 @@ All results from this work are \textit{best-validation} values: the validation c
   & Avg.\ Wait      &  20.3 &  66.1 &  96.4 &  28.7 &  43.6 &  30.3 \\
   & Avg.\ Queue     &  7.36 &  5.16 &  3.17 & 15.53 &  5.68 &  2.18 \\[4pt]
 \multirow{4}{*}{MaxPressure}
-  & Avg.\ Delay     &  25.3 & 212.7 & 214.4 &  24.9 &  56.4 & 257.9 \\
-  & Avg.\ Trip Time &  38.5 &  \textbf{66.9} & 235.5 &  42.5 &  81.6 & 231.4 \\
-  & Avg.\ Wait      &   6.7 &  12.5 &  68.4 &   6.3 &  31.8 & 159.5 \\
-  & Avg.\ Queue     &  1.30 &  \underline{0.49} &  1.23 &  3.12 &  3.37 & 10.58 \\
+  & Avg.\ Delay     &  25.3 & 212.7 & 214.4 &  24.2 &  56.4 & 257.9 \\
+  & Avg.\ Trip Time &  38.5 &  66.9 & 235.5 &  41.8 &  81.6 & 231.4 \\
+  & Avg.\ Wait      &   6.7 &  12.5 &  68.4 &   5.9 &  31.8 & 159.5 \\
+  & Avg.\ Queue     &  1.30 &  \underline{0.49} &  \underline{1.23} &  2.91 &  3.37 & 10.58 \\
 \midrule
 \multicolumn{8}{l}{\textit{Learning baselines --- this work (200 episodes, best-validation checkpoint)}} \\[2pt]
 \multirow{4}{*}{DQN}
-  & Avg.\ Delay     &  22.1 &  34.4 & 115.1 &  26.0 &  22.2 &  25.6 \\
-  & Avg.\ Trip Time &  36.0 &  71.7 & 253.3 &  43.6 &  58.6 &  89.8 \\
-  & Avg.\ Wait      &   4.8 &   9.4 &  67.0 &   6.9 &   8.1 &   6.7 \\
-  & Avg.\ Queue     &  1.15 &  0.81 &  1.12 &  3.49 &  1.32 &  0.46 \\[4pt]
+  & Avg.\ Delay     &  \underline{21.8} &  34.4 &  \underline{78.7} &  24.3 &  22.2 &  25.5 \\
+  & Avg.\ Trip Time &  \underline{35.7} &  71.7 & \underline{220.4} &  41.9 &  58.6 &  89.8 \\
+  & Avg.\ Wait      &  \underline{4.7} &   9.4 &  \underline{33.8} &   5.9 &   8.1 &   6.7 \\
+  & Avg.\ Queue     &  1.10 &  0.81 &  2.18 &  3.06 &  1.32 &  0.46 \\[4pt]
 \multirow{4}{*}{PPO}
-  & Avg.\ Delay     &  21.9 &  42.3 & 211.1 &  \textbf{22.1} &  \underline{19.4} &  \textbf{20.8} \\
-  & Avg.\ Trip Time &  \underline{35.6} &  77.1 & 236.2 &  \textbf{39.8} &  \underline{55.6} &  \textbf{85.0} \\
-  & Avg.\ Wait      &   4.8 &  14.7 &  58.4 &   \textbf{4.8} &   \underline{6.0} &   \textbf{4.3} \\
-  & Avg.\ Queue     &  0.93 &  0.95 &  \underline{0.96} &  \underline{2.43} &  \underline{0.83} &  \textbf{0.30} \\[4pt]
+  & Avg.\ Delay     &  \textbf{20.8} &  \underline{24.1} &  85.0 &  \underline{23.0} &  \underline{19.4} &  \textbf{20.8} \\
+  & Avg.\ Trip Time &  \textbf{34.7} &  \underline{64.6} & 226.2 &  \textbf{40.6} &  \underline{55.6} &  \textbf{85.0} \\
+  & Avg.\ Wait      &  \textbf{4.2} &  \textbf{5.4} &  40.0 &  \underline{5.5} &  \underline{6.0} &  \textbf{4.3} \\
+  & Avg.\ Queue     &  \textbf{0.91} &  \textbf{0.38} &  \textbf{0.82} &  \underline{2.90} &  \underline{0.83} &  \textbf{0.30} \\[4pt]
 \multirow{4}{*}{IndSAC}
-  & Avg.\ Delay     &  22.3 & 217.8 &  \na  &  \underline{23.0} &  \textbf{18.9} &  21.8 \\
-  & Avg.\ Trip Time &  36.0 &  \underline{68.1} &  \na  &  \underline{40.7} &  \textbf{55.1} &  86.0 \\
-  & Avg.\ Wait      &   4.9 &  13.1 &  \na  &   \underline{5.1} &   \textbf{5.5} &   \underline{4.7} \\
-  & Avg.\ Queue     &  1.08 &  \textbf{0.44} &  \na  &  2.74 &  \textbf{0.77} &  \underline{0.33} \\[4pt]
+  & Avg.\ Delay     &  22.3 &  \textbf{24.0} &  \textbf{68.8} &  \textbf{23.0} &  \textbf{18.9} &  \underline{21.8} \\
+  & Avg.\ Trip Time &  36.0 &  \textbf{64.4} & \textbf{216.0} &  \underline{40.7} &  \textbf{55.1} &  \underline{86.0} \\
+  & Avg.\ Wait      &   4.9 &  \underline{5.5} &  \textbf{24.4} &  \textbf{5.1} &   \textbf{5.5} &   \underline{4.7} \\
+  & Avg.\ Queue     &  \underline{1.08} &  0.52 &  4.18 &  \textbf{2.74} &  \textbf{0.77} &  \underline{0.33} \\[4pt]
 \multirow{4}{*}{CoLight}
-  & Avg.\ Delay     &  22.4 &  47.0 & 216.8 & \na   &  21.9 &  51.8 \\
-  & Avg.\ Trip Time &  36.5 &  78.6 & 302.1 & \na   &  57.7 & 105.7 \\
-  & Avg.\ Wait      &   5.3 &  17.5 & 120.8 & \na   &   7.9 &  23.8 \\
-  & Avg.\ Queue     &  1.52 &  1.22 &   2.55 & \na   &  1.00 &  1.63 \\[4pt]
+  & Avg.\ Delay     &  22.4 &  47.0 & 216.8 &  23.9 &  \underline{19.3} &  28.6 \\
+  & Avg.\ Trip Time &  36.5 &  78.6 & 302.1 &  41.4 &  \underline{55.5} &  92.9 \\
+  & Avg.\ Wait      &   5.3 &  17.5 & 120.8 &   6.0 &   6.5 &  11.0 \\
+  & Avg.\ Queue     &  1.52 &  1.22 &  2.55 &  3.02 &  \underline{0.82} &  0.74 \\[4pt]
 \multirow{4}{*}{FRAP}
   & Avg.\ Delay     &  26.6 &  \na  &  \na  & \na   &  39.8 &  44.9 \\
   & Avg.\ Trip Time &  40.1 &  \na  &  \na  & \na   &  71.1 & 108.6 \\
@@ -699,7 +682,7 @@ FGSv2-SAC and FGSv3-SAC produce identical metrics on Single-intersection scenari
 % ─────────────────────────────────────────────────────────────────────────────
 \begin{sidewaystable}[p]
 \centering
-\caption{Vehicle throughput (arrived / departed, \%) across all methods and scenarios. Higher is better. $\circ$ = not run; $\dagger$ = partial run (17 episodes). RESCO reference algorithms did not report throughput; cells for IDQN, IPPO, FMA2C are therefore omitted.}
+\caption{Vehicle throughput (arrived / departed, \%) across all methods and scenarios. Higher is better. $\circ$ = not run; $\dagger$ = partial run (17 episodes).}
 \label{tab:appendix_throughput}
 \small
 \setlength{\tabcolsep}{5pt}
