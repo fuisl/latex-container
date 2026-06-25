@@ -166,7 +166,13 @@ Near-competitive FRAP performance on cologne8 ($+11\%$) --- despite FRAP's struc
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=\linewidth]{Figures/plotting/ablation_encoder}
+  \begin{minipage}{0.49\textwidth}
+    \includegraphics[width=\linewidth]{Figures/plotting/cologne8/ablation_encoder}
+  \end{minipage}
+  \hfill
+  \begin{minipage}{0.49\textwidth}
+    \includegraphics[width=\linewidth]{Figures/plotting/ingolstadt21/ablation_encoder}
+  \end{minipage}
   \caption{Encoder ablation: MLP versus FRAP with fixed GATv2+PPO. Left: Cologne Regional ($N=8$); Right: Ingolstadt Regional ($N=21$). Bold line: 10-episode centred running average of mean delay; faint line: raw per-episode values. MLP+GATv2+PPO converges stably on both scenarios; FRAP+GATv2+PPO diverges on ingolstadt21, confirming the structural encoding mismatch.}
   \label{fig:ablation_encoder}
 \end{figure}
@@ -198,16 +204,15 @@ Replacing GATv2 with the original dot-product GAT on Ingolstadt Regional inflate
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=\linewidth]{Figures/plotting/ablation_graph}
+  \begin{minipage}{0.49\textwidth}
+    \includegraphics[width=\linewidth]{Figures/plotting/cologne8/ablation_graph}
+  \end{minipage}
+  \hfill
+  \begin{minipage}{0.49\textwidth}
+    \includegraphics[width=\linewidth]{Figures/plotting/ingolstadt21/ablation_graph}
+  \end{minipage}
   \caption{Graph-layer ablation: GATv2 versus GAT with fixed MLP+PPO. Left: Cologne Regional ($N=8$); Right: Ingolstadt Regional ($N=21$). The GATv2 advantage is negligible on the relatively homogeneous cologne8 topology and $2.1\times$ on the heterogeneous ingolstadt21, confirming that dynamic per-edge attention is critical at scale.}
   \label{fig:ablation_graph}
-\end{figure}
-
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=\linewidth]{Figures/plotting/ingolstadt21/ablation_graph}
-  \caption{Detailed graph-layer ablation on Ingolstadt Regional ($N=21$): per-episode training mean delay for MLP+GATv2+PPO versus MLP+GAT+PPO. The $2.1\times$ delay gap emerges gradually over the first 50--80 episodes as GATv2 learns non-uniform attention weights that concentrate on high-demand upstream neighbours; GAT's static dot-product attention cannot adapt its neighbourhood aggregation to the heterogeneous demand conditions, and converges to a substantially worse policy.}
-  \label{fig:ablation_graph_ingolstadt21}
 \end{figure}
 
 \subsection{RL algorithm: SAC versus PPO}
@@ -217,7 +222,13 @@ Two findings emerge from the RL algorithm ablation. First, on Cologne Regional, 
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=\linewidth]{Figures/plotting/ablation_rl}
+  \begin{minipage}{0.49\textwidth}
+    \includegraphics[width=\linewidth]{Figures/plotting/cologne8/ablation_rl}
+  \end{minipage}
+  \hfill
+  \begin{minipage}{0.49\textwidth}
+    \includegraphics[width=\linewidth]{Figures/plotting/ingolstadt21/ablation_rl}
+  \end{minipage}
   \caption{RL algorithm ablation: SAC versus PPO with fixed MLP+GATv2. Left: Cologne Regional ($N=8$, SAC converges efficiently to lower mean delay); Right: Ingolstadt Regional ($N=21$, first-generation SAC terminates after 17~episodes due to memory exhaustion; only the short initial trace is visible).}
   \label{fig:ablation_rl}
 \end{figure}
