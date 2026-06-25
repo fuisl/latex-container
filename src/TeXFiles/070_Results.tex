@@ -52,7 +52,7 @@ FGSv3-PPO evaluated at Regional tier only.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=\textwidth]{Figures/main_results_bar}
+  \includegraphics[width=\textwidth]{Figures/plotting/main_results_bar}
   \caption{Mean delay comparison across all six German RESCO scenarios (log-scale y-axis). Each group of bars represents one scenario; methods are colour-coded consistently with all other figures in this chapter. Entries marked~$\ddagger$ or~$\dagger$ are shown with hatching and excluded from the bold best-result convention. FGSv3-PPO is included for the Regional tier; see Table~\ref{tab:fgs_evolution} for the full architectural progression.}
   \label{fig:main_results_bar}
 \end{figure}
@@ -76,7 +76,7 @@ Figure~\ref{fig:scale_benefit} quantifies this pattern directly. The x-axis repr
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=\textwidth]{Figures/scale_benefit}
+  \includegraphics[width=\textwidth]{Figures/plotting/scale_benefit}
   \caption{Percentage improvement in mean delay of the best FGS variant over CoLight (filled bars) and standalone PPO (outlined bars) by scale tier. The graph-communication benefit grows monotonically with network size. At $N=1$ the graph module is a no-op by construction. At Corridor scale ($N=3$--$7$) FGS variants outperform CoLight but trail independent PPO. At Regional scale ($N=21$) FGSv3-PPO leads all seven baselines.}
   \label{fig:scale_benefit}
 \end{figure}
@@ -115,7 +115,7 @@ Figure~\ref{fig:radar_comparison} provides a multi-metric comparison for the Reg
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=\textwidth]{Figures/radar_comparison}
+  \includegraphics[width=\textwidth]{Figures/plotting/radar_comparison}
   \caption{Multi-metric radar comparison on Regional-tier scenarios (cologne8 left; ingolstadt21 right). Each axis shows one metric (mean delay, mean waiting time, mean trip time, queue length), normalised to $[0,1]$ where~0 is the best observed value and~1 is the FixedTime baseline. FGSv3-PPO achieves the best overall profile on ingolstadt21 across all four metrics; PPO and $\text{FGS}_\text{S}$ are competitive on cologne8.}
   \label{fig:radar_comparison}
 \end{figure}
@@ -173,7 +173,7 @@ Near-competitive FRAP performance on cologne8 ($+11\%$) --- despite FRAP's struc
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=\linewidth]{Figures/frap_vs_original_delay_queue_ingolstadt21_ppo_sac_200ep}
+  \includegraphics[width=\linewidth]{Figures/plotting/frap_vs_original_delay_queue_ingolstadt21_ppo_sac_200ep}
   \caption{Mean delay (left axis) and mean queue length (right axis) for MLP+GATv2 versus FRAP+GATv2 PPO/SAC variants on ingolstadt21 over 200 training episodes. FRAP-based variants maintain persistently high queue lengths, consistent with the structural mismatch: the actor selects phases that satisfy FRAP's encoding assumption rather than those that clear actual vehicle queues.}
   \label{fig:frap_vs_original_ingolstadt21}
 \end{figure}
@@ -207,7 +207,7 @@ Figure~\ref{fig:reward_gaming} illustrates a failure mode specific to early-trai
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=\linewidth]{Figures/delay_queue_diagnostic_combined_40ep}
+  \includegraphics[width=\linewidth]{Figures/plotting/delay_queue_diagnostic_combined_40ep}
   \caption{Reward specification gaming in early-training SAC/PPO checkpoints (cologne8 and ingolstadt21, first 40~episodes). Dual y-axis: mean delay (left, s) and mean queue length (right, veh./lane). SAC checkpoints with anomalously low delay coincide with very high queue depth, confirming phase-cycling reward gaming. PPO does not exhibit this pattern because its on-policy update directly penalises the resulting queue growth.}
   \label{fig:reward_gaming}
 \end{figure}
@@ -224,7 +224,7 @@ Figure~\ref{fig:training_curves_regional} shows training and validation mean del
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=\textwidth]{Figures/fgs_versions_cologne8_ingolstadt21_train_validation_delay_200ep}
+  \includegraphics[width=\textwidth]{Figures/plotting/fgs_versions_cologne8_ingolstadt21_train_validation_delay_200ep}
   \caption{Mean delay training (left column) and validation (right column) curves for Cologne Regional ($N=8$, top row) and Ingolstadt Regional ($N=21$, bottom row) across FGS generations and baselines. FGSv3-PPO achieves stable convergence on both scenarios. First-generation SAC on ingolstadt21 terminates at 17~episodes (short trace). FGSv2-SAC and FGSv3-SAC complete training but exhibit high-variance trajectories on ingolstadt21 without clear convergence; their early-training best checkpoints are marked~$\ddagger$.}
   \label{fig:training_curves_regional}
 \end{figure}
@@ -241,11 +241,11 @@ Figure~\ref{fig:training_curves_corridor} shows that at Corridor scale all learn
 \begin{figure}[htbp]
   \centering
   \begin{minipage}{0.49\textwidth}
-    \includegraphics[width=\linewidth]{Figures/cologne3/delay_curves_cologne3_training}
+    \includegraphics[width=\linewidth]{Figures/plotting/cologne3/delay_curves_cologne3_training}
   \end{minipage}
   \hfill
   \begin{minipage}{0.49\textwidth}
-    \includegraphics[width=\linewidth]{Figures/ingolstadt7/delay_curves_ingolstadt7_training}
+    \includegraphics[width=\linewidth]{Figures/plotting/ingolstadt7/delay_curves_ingolstadt7_training}
   \end{minipage}
   \caption{Training mean delay curves for Corridor-tier scenarios: cologne3 ($N=3$, left) and ingolstadt7 ($N=7$, right). All learning methods converge to similar delay ranges within 100~episodes, consistent with local observations being sufficient at Corridor scale. The $\ddagger$ early-training transient for $\text{FGS}_\text{P}$ on cologne3 (episode~$\leq$5) is annotated. $\text{FGS}_\text{S}$ was not run on ingolstadt7.}
   \label{fig:training_curves_corridor}
@@ -284,7 +284,7 @@ Gen-1 exposed two failures: (1)~FRAP's scalar output discards per-phase competit
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=\textwidth]{Figures/fgs_versions_ingolstadt21_validation_4metrics_200ep}
+  \includegraphics[width=\textwidth]{Figures/plotting/fgs_versions_ingolstadt21_validation_4metrics_200ep}
   \caption{Validation performance of FGS generations on Ingolstadt Regional ($N=21$) across four metrics. Gen-1 $\text{FGS}_\text{P}$ converges to 234.9~s mean delay; FGSv2-SAC and FGSv3-SAC show early-training transients (marked~$\ddagger$, excluded from comparisons); FGSv3-PPO is the only generation with stable monotone convergence, reaching 68.4~s mean delay at episode~90.}
   \label{fig:fgs_generation_improvement}
 \end{figure}
