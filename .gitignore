@@ -1,3 +1,4 @@
 out/
 *.log
 network_topology/
+raw_data/
