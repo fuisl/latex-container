@@ -46,7 +46,7 @@ The work reported in this thesis pursues five interconnected objectives:
 \section{Research Questions and Hypotheses}
 \label{sec:Introduction_ResearchQuestions}
 
-The empirical investigation is organized around one overarching main research question, three focused sub-questions that operationalize it, and one exploratory question.
+The empirical investigation is organized around one overarching main research question and three focused sub-questions that operationalize it.
 
 \medskip
 \noindent\textbf{Main Research Question (MRQ):}
@@ -55,7 +55,7 @@ The empirical investigation is organized around one overarching main research qu
 \end{quote}
 
 \medskip
-The MRQ is operationalized through three sub-questions and one exploratory question. Each sub-question addresses a distinct epistemic dimension: external validity (SQ1), internal design analysis (SQ2), and boundary conditions across scale (SQ3).
+The MRQ is operationalized through three sub-questions. Each sub-question addresses a distinct epistemic dimension: external validity (SQ1), internal design analysis (SQ2), and boundary conditions across scale (SQ3).
 
 \medskip
 \noindent\textbf{SQ1} \textit{(Baseline comparison):} \textit{How do FGS pipeline instantiations compare in performance with classical traffic-control methods and deep RL baselines across the three German RESCO scale tiers?}
@@ -65,9 +65,6 @@ The MRQ is operationalized through three sub-questions and one exploratory quest
 
 \medskip
 \noindent\textbf{SQ3} \textit{(Scale and topology dependency):} \textit{How does the benefit of each design component vary with network scale and topology, from Single-intersection to Regional ($N=21$) scenarios?}
-
-\medskip
-\noindent\textbf{SQ4} \textit{(Exploratory):} \textit{To what extent can the learned multi-agent control behavior be interpreted as decentralized self-organization that produces network-level coordination?}
 
 \medskip
 
@@ -95,7 +92,7 @@ This thesis focuses on the design, implementation, and empirical evaluation of a
 \begin{itemize}
   \item Control algorithm design: the FGS architecture and its first-generation ablation variants described in Chapter~\ref{ch:Methodology}.
   \item Algorithm analysis: ablation across encoder types, communication mechanisms, and RL algorithms.
-  \item Empirical comparison: six German RESCO scenarios across three scale tiers — \textbf{Single-intersection} (cologne1, ingolstadt1), \textbf{Corridor} (cologne3, ingolstadt7), and \textbf{Regional} (cologne8, ingolstadt21) — against a standardized set of classical and deep RL baselines. This tier classification is used consistently throughout the thesis. FGS-variant results for the ingolstadt7 Corridor scenario were not available at the time of writing and are omitted from the FGS comparison columns; baseline results for that scenario are included for reference.
+  \item Empirical comparison: six German RESCO scenarios across three scale tiers — \textbf{Single-intersection} (cologne1, ingolstadt1), \textbf{Corridor} (cologne3, ingolstadt7), and \textbf{Regional} (cologne8, ingolstadt21) — against a standardized set of classical and deep RL baselines. This tier classification is used consistently throughout the thesis. FGSv3 was not evaluated on Corridor-tier scenarios; first-generation $\text{FGS}_\text{P}$ results are available for ingolstadt7 and included in the comparison tables.
 \end{itemize}
 
 \subsection{Limitations}
@@ -130,6 +127,6 @@ The remainder of this thesis is organized as follows.
 
 \textbf{Chapter~\ref{ch:ExperimentalDesign}} specifies the experimental setup: the TapasCologne and InTAS demand models, SUMO simulation parameters, evaluation metrics and protocols, training hyperparameters, and the end-to-end software pipeline.
 
-\textbf{Chapter~\ref{ch:ResultsAndDiscussion}} presents and interprets the experimental results: main performance comparisons, ablation across architectural variants, cross-scenario analysis, and answers to each research question.
+\textbf{Chapter~\ref{ch:ResultsAndDiscussion}} presents and interprets the experimental results: main performance comparisons, ablation across architectural variants, cross-scenario analysis, and answers to the three sub-questions and the main research question.
 
 \textbf{Chapter~\ref{ch:ConclusionFutureWork}} summarizes the contributions, reflects on the hypotheses in light of the experimental findings, and identifies directions for future work.

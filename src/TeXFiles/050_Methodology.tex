@@ -711,3 +711,6 @@ Algorithm~\ref{alg:fgs_training} presents the complete FGS training procedure. A
     \State \Return $\pi_k(\cdot\mid o) = \operatorname{softmax}(\mathbf{l}_k)$; also $\{\mathbf{z}_{i,a}\},\{\mathbf{g}_i\}$ for critic (Eq.~\ref{eq:fgsv3_critic})
   \end{algorithmic}
 \end{algorithm}
+
+\paragraph{Design scope note.}
+The FGSv2-to-FGSv3 transition introduced two simultaneous changes: replacing the competition-derived communication signal with demand-aware embeddings (Module~II) and replacing the centralized critic with the factored neighborhood critic (Module~III). Because both changes were deployed together, their individual contributions to the observed performance difference between FGSv2 and FGSv3 cannot be independently decomposed from the available experimental data. This is an acknowledged methodological limitation; a partial ablation isolating each change is identified as a priority direction for future work (Section~\ref{sec:ConclusionFutureWork_FutureResearch}). The combined change is motivated by the finding that both failures are driven by the same root cause — the centralized-critic constraint forced PPO as the only viable RL algorithm, masking any benefit from the improved Module~II signal until the critic architecture was simultaneously fixed.
