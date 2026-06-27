@@ -9,43 +9,44 @@ This chapter presents and interprets the experimental results of the FGS framewo
 %%─────────────────────────────────────────────────────────────────────────────
 
 \paragraph{Reporting conventions.}
-All performance figures are derived from the best-validation checkpoint --- the policy snapshot that minimised mean validation waiting time on a fixed held-out demand seed during training. Best-checkpoint figures represent an optimistic upper bound on deployed performance. Entries marked~$\ddagger$ are early-training transients (best checkpoint at episode~$\leq35$, single evaluation episode) whose mean delay and queue values are physically inconsistent; they are excluded from the \textbf{Bold} convention and should not be compared directly with converged results. Entries marked~$\dagger$ are partial runs (fewer than 200~episodes). Entries marked~$*$ are live best-checkpoint values from runs still in progress at time of writing. See Section~\ref{sec:ResultsAndDiscussion_Limitations} for detailed discussion of each failure mode.
+All performance figures are derived from the best-validation checkpoint --- the policy snapshot that minimised mean validation waiting time on a fixed held-out demand seed during training. Selecting the best-validation rather than final checkpoint is standard practice in deep RL: training instability means intermediate checkpoints routinely outperform final policies, and a held-out validation signal provides an unbiased proxy for deployment quality~\citep{henderson2018deep}. Best-checkpoint figures therefore represent an optimistic upper bound on deployed performance from single-seed runs. Entries marked~$\ddagger$ exhibit a physically inconsistent queue--delay signature --- anomalously low mean delay coinciding with elevated queue depth, a pattern attributable to reward specification gaming rather than genuine control quality (see Section~\ref{sec:ResultsAndDiscussion_Limitations}) --- and are excluded from the \textbf{Bold} convention. Entries marked~$\dagger$ are partial runs (fewer than 200~episodes). See Section~\ref{sec:ResultsAndDiscussion_Limitations} for detailed discussion of each failure mode.
 
 Table~\ref{tab:main_results} reports best-validation mean delay per scenario for baselines and first-generation FGS variants. Figure~\ref{fig:main_results_bar} provides a log-scale visual summary. FGS architecture progression results (FGSv2, FGSv3) are reported in Table~\ref{tab:fgs_evolution} within Section~\ref{sec:ResultsAndDiscussion_DesignEvolution}.
 
 \begin{table}[htbp]
 \centering
-\caption{Best-validation mean delay (s, $\downarrow$ lower is better) across German RESCO scenarios (single seed). \textbf{Bold}: lowest mean delay per scenario among converged results. $\circ$~=~not run; $\dagger$~=~partial run; $\ddagger$~=~early-training transient (excluded from \textbf{Bold}). FT~=~FixedTime; MP~=~MaxPressure; $\text{FGS}_\text{S}$~=~FGS(MLP+GATv2+SAC); $\text{FGS}_\text{P}$~=~FGS(MLP+GATv2+PPO). Full four-metric results in Appendix~\ref{ch:Appendix_FullResults}.}
+\caption{Best-validation mean delay (s, $\downarrow$ lower is better) across German RESCO scenarios (single seed). \textbf{Bold}: lowest mean delay per scenario among converged results. $\circ$~=~not run; $\dagger$~=~partial run; $\ddagger$~=~physically inconsistent checkpoint (excluded from \textbf{Bold}). FT~=~FixedTime; MP~=~MaxPressure; SAC~=~independent SAC baseline; $\text{FGS}_\text{S}$~=~FGS(MLP+GATv2+SAC); $\text{FGS}_\text{P}$~=~FGS(MLP+GATv2+PPO). Full four-metric results in Appendix~\ref{ch:Appendix_FullResults}.}
 \label{tab:main_results}
 \small
-\setlength{\tabcolsep}{4pt}
+\setlength{\tabcolsep}{3pt}
 \renewcommand{\arraystretch}{1.15}
-\begin{tabular}{lrrrrrrrrr}
+\begin{tabular}{lrrrrrrrrrr}
 \toprule
 \textbf{Scenario}
   & \textbf{FT} & \textbf{MP}
-  & \textbf{DQN} & \textbf{PPO} & \textbf{CoLight} & \textbf{FRAP}
+  & \textbf{DQN} & \textbf{PPO} & \textbf{SAC}
+  & \textbf{CoLight} & \textbf{FRAP}
   & $\mathbf{FGS_S}$ & $\mathbf{FGS_P}$ & \textbf{FGSv3} \\
 \midrule
-\multicolumn{10}{l}{\textit{Single-intersection ($N=1$)}} \\[2pt]
-cologne1    & 54.6 & 24.2 & 28.1 & \textbf{22.8} & 37.0 & 31.7 & 23.0 & 12.5\pdd & 12.0\pdd \\
-ingolstadt1 & 40.8 & 25.3 & \textbf{21.8} & 22.4 & 22.4 & 26.6 & \na           & 18.0\pdd & 17.4\pdd \\
+\multicolumn{11}{l}{\textit{Single-intersection ($N=1$)}} \\[2pt]
+cologne1    & 54.6 & 24.2 & 28.1 & \textbf{22.8} & 23.0 & 37.0 & 31.7 & 23.0 & 12.5\pdd & 12.0\pdd \\
+ingolstadt1 & 40.8 & 25.3 & \textbf{21.8} & 22.4 & 22.3 & 22.4 & 26.6 & \na           & 18.0\pdd & 17.4\pdd \\
 \midrule
-\multicolumn{10}{l}{\textit{Corridor}} \\[2pt]
-cologne3    & 63.7 & 56.4 & 127.2 & \textbf{20.3} & 21.9 & 39.8 & \na & 6.9\pdd  & \na \\
-ingolstadt7 & 122.9 & 212.7 & 34.4 & \textbf{24.1} & 47.0 & 29.8\pt & 17.1\pt  & 26.1   & \na \\
+\multicolumn{11}{l}{\textit{Corridor}} \\[2pt]
+cologne3    & 63.7 & 56.4 & 127.2 & 20.3 & \textbf{18.9} & 21.9 & 39.8 & \na & 6.9\pdd  & \na \\
+ingolstadt7 & 122.9 & 212.7 & 34.4 & 24.1 & \textbf{24.0} & 47.0 & 29.8\pt & 17.1\pdd  & 26.1   & \na \\
 \midrule
-\multicolumn{10}{l}{\textit{Regional}} \\[2pt]
-cologne8    & 51.5 & 257.9 & 25.5 & 21.9 & 51.8 & 44.9 & 22.2 & 24.0    & \textbf{21.6} \\
-ingolstadt21 & 145.7 & 214.4 & 78.7 & \textbf{67.2} & 216.8 & 101.5\pt & 39.1\pdd & 234.9 & 68.4 \\
+\multicolumn{11}{l}{\textit{Regional}} \\[2pt]
+cologne8    & 51.5 & 257.9 & 25.5 & 21.9 & 21.8 & 51.8 & 44.9 & 22.2 & 24.0    & \textbf{21.6} \\
+ingolstadt21 & 145.7 & 214.4 & 78.7 & \textbf{67.2} & 64.6\pdd & 216.8 & 101.5\pt & 39.1\pdd & 234.9 & 68.4 \\
 \bottomrule
 \end{tabular}
 \par\vspace{3pt}%
 \begin{minipage}{\linewidth}%
 \footnotesize\raggedright
 $\dagger$~Partial run (fewer than 200~ep.).\newline
-$\ddagger$~Early-training transient; excluded from \textbf{Bold}.\newline
-$\text{FGS}_\text{S}$ not run on ingolstadt7.\newline
+$\ddagger$~Physically inconsistent checkpoint (gaming artifact); excluded from \textbf{Bold}.\newline
+SAC~=~IndSAC (independent SAC baseline).\newline
 FGSv3: SAC variant at Single tier ($N=1$; graph module no-op, equivalent to FGSv2-SAC); PPO variant at Regional tier; Corridor not run.
 \end{minipage}
 \end{table}
@@ -53,11 +54,11 @@ FGSv3: SAC variant at Single tier ($N=1$; graph module no-op, equivalent to FGSv
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\textwidth]{Figures/plotting/main_results_bar}
-  \caption{Mean delay comparison across all six German RESCO scenarios (log-scale y-axis). Each group of bars represents one scenario; methods are colour-coded consistently with all other figures in this chapter. Entries marked~$\ddagger$ or~$\dagger$ are shown with hatching and excluded from the bold best-result convention. FGSv3-PPO is included for the Regional tier; see Table~\ref{tab:fgs_evolution} for the full architectural progression.}
+  \caption{Mean delay comparison across all six German RESCO scenarios (log-scale y-axis). Each group of bars represents one scenario; methods are colour-coded consistently with all other figures in this chapter. Entries marked~$\ddagger$ are shown with hatching and excluded from the bold best-result convention. FGSv3-PPO is included for the Regional tier; see Table~\ref{tab:fgs_evolution} for the full architectural progression.}
   \label{fig:main_results_bar}
 \end{figure}
 
-Three patterns are immediately visible. At Single-intersection scale ($N=1$), all learning methods converge to similar mean delays (roughly 21--28~s for the strongest converged runs); no FGS variant provides consistent improvement over independent DQN or PPO. At Corridor scale, PPO achieves the lowest converged mean delay on both scenarios (20.3~s on cologne3; 24.1~s on ingolstadt7), and $\text{FGS}_\text{P}$ outperforms DQN and CoLight on ingolstadt7 (26.1~s vs.\ 34.4 and 47.0~s). At Regional scale ($N=21$), FGSv3-PPO achieves 68.4~s and is competitive with the corrected PPO baseline (67.2~s), while first-generation FGS variants remain substantially worse, motivating the three-generation design trajectory in Section~\ref{sec:ResultsAndDiscussion_DesignEvolution}.
+Three patterns are immediately visible. At Single-intersection scale ($N=1$), all learning methods converge to similar mean delays (roughly 21--28~s for the strongest converged runs); no FGS variant provides consistent improvement over independent DQN or PPO. At Corridor scale, the independent SAC baseline achieves the lowest mean delay on both scenarios (18.9~s on cologne3; 24.0~s on ingolstadt7), with PPO closely competitive (20.3~s and 24.1~s respectively), and $\text{FGS}_\text{P}$ outperforms DQN and CoLight on ingolstadt7 (26.1~s vs.\ 34.4 and 47.0~s). At Regional scale ($N=21$), FGSv3-PPO achieves 68.4~s and is competitive with the corrected PPO baseline (67.2~s), while first-generation FGS variants remain substantially worse, motivating the three-generation design trajectory in Section~\ref{sec:ResultsAndDiscussion_DesignEvolution}.
 
 %%─────────────────────────────────────────────────────────────────────────────
 \section{Scale-Dependent Performance}
@@ -106,7 +107,7 @@ Three structural comparisons illuminate the mechanisms behind the scale-dependen
 CoLight~\citep{wei2019colight} uses dot-product attention with globally shared keys and queries; GATv2~\citep{brody2022how} uses per-edge additive attention that assigns distinct weights to structurally similar nodes based on their feature content. On the irregular topology of ingolstadt21 --- where each intersection has a unique combination of upstream demand profiles and phase counts --- GATv2's dynamic distinguishability is essential. CoLight's shared-weight attention assigns nearly uniform coefficients across heterogeneous neighbours, limiting the coordination benefit of the communication channel. The FGSv3-PPO advantage over CoLight is 68\% on ingolstadt21 (68.4~s vs.\ 216.8~s mean delay) and $\text{FGS}_\text{S}$ outperforms CoLight by 57\% on cologne8 (22.2~s vs.\ 51.8~s). Notably, CoLight underperforms even independent DQN on most German scenarios tested, suggesting that its static attention mechanism does not transfer well from the regular Chinese grid networks on which it was validated.
 
 \paragraph{FGS versus independent DQN and PPO.}
-On the largest Regional scenario, FGSv3-PPO outperforms DQN (78.7~s) but is marginally above the corrected PPO result (68.4~s vs.\ 67.2~s) in mean delay. At Corridor scale, independent PPO is competitive with or better than $\text{FGS}_\text{P}$: on ingolstadt7, PPO achieves 24.1~s versus $\text{FGS}_\text{P}$'s 26.1~s. This is consistent with the scale-dependency argument: at $N=7$, the local observation horizon is sufficient for PPO's on-policy updates to converge to effective policies within 200~episodes, and graph communication adds coordination overhead without sufficient benefit at this scale. At $N=21$, the multi-hop dependency structure is large enough that graph-aware variants close much of the gap to the strongest independent controller, though they do not clearly surpass the corrected PPO checkpoint. The result for first-generation $\text{FGS}_\text{P}$ on ingolstadt21 (234.9~s) reflects the centralized-critic computational bottleneck rather than a limit of graph-aware coordination; the architectural fix in FGSv3 closes this gap (Section~\ref{sec:ResultsAndDiscussion_DesignEvolution}).
+On the largest Regional scenario, FGSv3-PPO outperforms DQN (78.7~s) but is marginally above the corrected PPO result (68.4~s vs.\ 67.2~s) in mean delay. At Corridor scale, both independent PPO and the independent SAC baseline are competitive with or better than $\text{FGS}_\text{P}$: on ingolstadt7, PPO achieves 24.1~s and SAC achieves 24.0~s versus $\text{FGS}_\text{P}$'s 26.1~s; on cologne3, SAC achieves 18.9~s versus PPO's 20.3~s. This is consistent with the scale-dependency argument: at $N \leq 7$, the local observation horizon is sufficient for independent controllers to converge to effective policies within 200~episodes, and SAC's sample efficiency provides an additional advantage at compact scales where its entropy bonus supports early exploration without incurring the gaming instability observed at Regional scale. At $N=21$, the multi-hop dependency structure is large enough that graph-aware variants close much of the gap to the strongest independent controller, though they do not clearly surpass the corrected PPO checkpoint. The result for first-generation $\text{FGS}_\text{P}$ on ingolstadt21 (234.9~s) reflects the centralized-critic computational bottleneck rather than a limit of graph-aware coordination; the architectural fix in FGSv3 closes this gap (Section~\ref{sec:ResultsAndDiscussion_DesignEvolution}).
 
 \paragraph{FGS versus standalone FRAP.}
 Standalone FRAP without graph communication or RL achieves 29.8~s on ingolstadt7 and 44.9~s on cologne8 --- considerably worse than FGS variants on the same scenarios but better than the corrected CoLight result on cologne8 (51.8~s). FRAP's phase-competition prior operates without inter-agent coordination, and its encoding assumptions produce a structural mismatch on German intersection topologies that amplifies with scale, as shown in Section~\ref{sec:ResultsAndDiscussion_ComponentAnalysis}.
@@ -115,7 +116,7 @@ Figure~\ref{fig:radar_comparison} provides a multi-metric comparison for the Reg
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=\textwidth]{Figures/plotting/radar_comparison}
+  \includegraphics[width=0.7\textwidth]{Figures/plotting/radar_comparison}
   \caption{Multi-metric radar comparison on Regional-tier scenarios (cologne8 left; ingolstadt21 right). Each axis shows one metric (mean delay, mean waiting time, mean trip time, queue length), normalised to $[0,1]$ where~0 is the best observed value and~1 is the FixedTime baseline. FGSv3-PPO achieves the best overall profile on ingolstadt21 across all four metrics; PPO and $\text{FGS}_\text{S}$ are competitive on cologne8.}
   \label{fig:radar_comparison}
 \end{figure}
@@ -129,7 +130,7 @@ Table~\ref{tab:ablation} isolates each architectural component through the ablat
 
 \begin{table}[htbp]
 \centering
-\caption{Ablation of encoder (MLP vs.\ FRAP), graph layer (GATv2 vs.\ GAT), and RL algorithm (SAC vs.\ PPO) on Regional-tier scenarios. Best-validation mean delay (s) and mean waiting time (s), lower is better. \textbf{Bold}: best mean delay per scenario. $\ddagger$~early-training transient (21/200~ep. for Ingolstadt Regional MLP+GATv2+SAC). Full ablation metrics (trip time, queue) in Appendix~\ref{ch:Appendix_FullResults}.}
+\caption{Ablation of encoder (MLP vs.\ FRAP), graph layer (GATv2 vs.\ GAT), and RL algorithm (SAC vs.\ PPO) on Regional-tier scenarios. Best-validation mean delay (s) and mean waiting time (s), lower is better. \textbf{Bold}: best mean delay per scenario. $\ddagger$~physically inconsistent checkpoint (Ingolstadt Regional MLP+GATv2+SAC, episode~21 of 200). Full ablation metrics (trip time, queue) in Appendix~\ref{ch:Appendix_FullResults}.}
 \label{tab:ablation}
 \footnotesize
 \setlength{\tabcolsep}{5pt}
@@ -154,7 +155,7 @@ MLP  & GATv2 & SAC & 39.1\pdd & 9.4\pdd \\
 \par\vspace{3pt}%
 \begin{minipage}{\linewidth}%
 \footnotesize\raggedright
-$\ddagger$~Early-training transient; Ingolstadt Regional MLP+GATv2+SAC figures are from episode~21 of 200.
+$\ddagger$~Physically inconsistent checkpoint; Ingolstadt Regional MLP+GATv2+SAC (episode~21 of 200) exhibits delay--queue inversion indicative of gaming.
 \end{minipage}
 \end{table}
 
@@ -189,15 +190,16 @@ Near-competitive FRAP performance on cologne8 ($+11\%$) --- despite FRAP's struc
 
 \begin{figure}[htbp]
   \centering
-  \begin{minipage}{0.49\textwidth}
-    \includegraphics[width=\linewidth]{Figures/plotting/ablation_delay_tripcount_cologne8_200ep}
-  \end{minipage}
-  \hfill
-  \begin{minipage}{0.49\textwidth}
-    \includegraphics[width=\linewidth]{Figures/plotting/ablation_delay_tripcount_ingolstadt21_200ep}
-  \end{minipage}
-  \caption{Ablation diagnostic (200 episodes) showing mean delay and completed trip count for encoder, graph, and RL ablation variants on Cologne Regional ($N=8$, left) and Ingolstadt Regional ($N=21$, right). On cologne8 the trip counts are comparable across variants; on ingolstadt21 FRAP-based variants show both degraded delay and reduced throughput, confirming that the structural encoding mismatch incurs a compound penalty on two independent performance dimensions.}
-  \label{fig:ablation_delay_tripcount}
+  \includegraphics[width=\linewidth]{Figures/plotting/ablation_delay_tripcount_cologne8_200ep}
+  \caption{Ablation diagnostic (200 episodes): mean delay and completed trip count for encoder, graph, and RL ablation variants on Cologne Regional ($N=8$). Trip counts are comparable across variants, consistent with the moderate topology allowing all configurations to converge within the training budget.}
+  \label{fig:ablation_delay_tripcount_cologne8}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\linewidth]{Figures/plotting/ablation_delay_tripcount_ingolstadt21_200ep}
+  \caption{Ablation diagnostic (200 episodes): mean delay and completed trip count for encoder, graph, and RL ablation variants on Ingolstadt Regional ($N=21$). FRAP-based variants exhibit both higher mean delay and lower throughput than MLP variants, confirming that the structural encoding mismatch incurs a compound penalty on two independent performance dimensions.}
+  \label{fig:ablation_delay_tripcount_ingolstadt21}
 \end{figure}
 
 \subsection{Graph-attention mechanism: GATv2 versus GAT}
@@ -274,7 +276,7 @@ Figure~\ref{fig:training_curves_regional} shows training and validation mean del
 $\text{FGS}_\text{S}$(MLP+GATv2+SAC) achieves stable convergence on cologne8, stabilising near 22--24~s mean delay between episodes~22 and~35. FGSv3-PPO is the most stable run on this scenario, reaching its best checkpoint (21.6~s delay) at episode~39 with minimal variance. The relatively small differences between FGS variants on cologne8 (22.2--24.9~s mean delay) reflect the moderate topology: at $N=8$ all learning methods converge to competitive policies within 200~episodes, and differences are driven by algorithm-level sample efficiency rather than coordination architecture.
 
 \paragraph{Ingolstadt Regional ($N=21$).}
-FGSv3-PPO is the only FGS variant with stable, convergent behaviour on ingolstadt21: the validation curve stabilises in the 68--85~s mean delay range from episode~7, with the best checkpoint at 68.4~s (episode~90). $\text{FGS}_\text{P}$(MLP+GATv2+PPO) completes all 200~episodes but shows a large train-to-validation gap (training stable at $\approx$78~s; best-validation 234.9~s), suggesting overfitting to the training demand distribution. FGSv2-SAC and FGSv3-SAC exhibit high-variance trajectories with early transient best checkpoints; these checkpoints are reported for completeness but are excluded from converged-result comparisons.
+FGSv3-PPO is the only FGS variant with stable, convergent behaviour on ingolstadt21: the validation curve stabilises in the 68--85~s mean delay range from episode~7, with the best checkpoint at 68.4~s (episode~90). $\text{FGS}_\text{P}$(MLP+GATv2+PPO) completes all 200~episodes but shows a large train-to-validation gap (training stable at $\approx$78~s; best-validation 234.9~s), suggesting overfitting to the training demand distribution. FGSv2-SAC and FGSv3-SAC exhibit high-variance trajectories; their best-checkpoint delay--queue values are physically inconsistent (gaming artifacts, marked~$\ddagger$) and are excluded from converged-result comparisons.
 
 \paragraph{Corridor tier.}
 Figure~\ref{fig:training_curves_corridor} shows that at Corridor scale all learning methods converge to similar mean delay ranges within 100~episodes, with PPO achieving the lowest final delay on both scenarios. There are no persistent multi-episode spikes, recovery from transient demand surges is fast, and variance between methods is smaller than at Regional scale. This is consistent with the scale-dependency argument: at $N \leq 7$, local observations are sufficient for independent policies to converge effectively within the available training budget.
@@ -381,7 +383,7 @@ Table~\ref{tab:fgs_evolution} reports the full performance of all FGS generation
 
 \begin{table}[htbp]
 \centering
-\caption{FGS architecture progression on Regional-tier scenarios (best-validation checkpoint; single seed). Mean delay (s) and mean waiting time (s), $\downarrow$ lower is better. \textbf{Bold}: best mean delay among FGS variants per scenario. $\dagger$~partial run; $\ddagger$~early-training transient. SAC checkpoints marked $\ddagger$ should be read as transient best-validation snapshots rather than converged policies.}
+\caption{FGS architecture progression on Regional-tier scenarios (best-validation checkpoint; single seed). Mean delay (s) and mean waiting time (s), $\downarrow$ lower is better. \textbf{Bold}: best mean delay among FGS variants per scenario. $\dagger$~partial run; $\ddagger$~physically inconsistent checkpoint. SAC checkpoints marked $\ddagger$ exhibit delay--queue inversion indicative of reward specification gaming; they are excluded from the \textbf{Bold} convention.}
 \label{tab:fgs_evolution}
 \small
 \setlength{\tabcolsep}{4pt}
@@ -404,7 +406,7 @@ Table~\ref{tab:fgs_evolution} reports the full performance of all FGS generation
 \begin{minipage}{\linewidth}%
 \footnotesize\raggedright
 $\dagger$~Partial run (fewer than 200~ep.).\newline
-$\ddagger$~Early-training transient; not a converged result --- see Section~\ref{sec:ResultsAndDiscussion_Limitations}.
+$\ddagger$~Physically inconsistent checkpoint (gaming artifact); not a valid performance comparison --- see Section~\ref{sec:ResultsAndDiscussion_Limitations}.
 \end{minipage}
 \end{table}
 
@@ -413,10 +415,10 @@ $\ddagger$~Early-training transient; not a converged result --- see Section~\ref
 \label{sec:ResultsAndDiscussion_ResearchQuestions}
 %%─────────────────────────────────────────────────────────────────────────────
 
-\noindent\textbf{SQ1} \textit{(Baseline comparison):} The FGS pipeline is competitive with the strongest baselines at Regional scale and superior to graph-based CoLight. FGSv3-PPO achieves 68.4~s mean delay on ingolstadt21, outperforming DQN ($-13\%$, 78.7~s) and CoLight ($-68\%$, 216.8~s), while remaining marginally above the corrected PPO checkpoint (67.2~s). At Corridor scale, $\text{FGS}_\text{P}$ outperforms DQN and CoLight on ingolstadt7 but trails independent PPO (26.1~s vs.\ 24.1~s). At Single-intersection scale, FGS provides no consistent improvement. The competitive envelope grows with network scale, as shown in Figure~\ref{fig:scale_benefit}.
+\noindent\textbf{SQ1} \textit{(Baseline comparison):} The FGS pipeline is competitive with the strongest baselines at Regional scale and superior to graph-based CoLight. FGSv3-PPO achieves 68.4~s mean delay on ingolstadt21, outperforming DQN ($-13\%$, 78.7~s) and CoLight ($-68\%$, 216.8~s), while remaining marginally above the corrected PPO checkpoint (67.2~s). At Corridor scale, $\text{FGS}_\text{P}$ outperforms DQN and CoLight on ingolstadt7 but trails both independent PPO (26.1~s vs.\ 24.1~s) and the independent SAC baseline (26.1~s vs.\ 24.0~s); on cologne3 the independent SAC baseline achieves the best converged result (18.9~s) ahead of PPO (20.3~s). At Single-intersection scale, FGS provides no consistent improvement. The competitive envelope grows with network scale, as shown in Figure~\ref{fig:scale_benefit}.
 
 \medskip
-\noindent\textbf{SQ2} \textit{(Design-space analysis):} Encoder choice is the dominant local determinant: FRAP-based encoders produce mean delay 11\% to $2.6\times$ higher than MLP encoders, with the penalty scaling with network size due to structural mismatch with German intersection phase heterogeneity. Graph-attention type governs policy generalization at Regional scale: GATv2 reduces mean delay by $2.1\times$ compared with GAT on ingolstadt21, with negligible difference on cologne8. RL algorithm choice is scenario-dependent: SAC is more sample-efficient at $N \leq 8$ but requires a factored critic architecture to complete training at $N=21$. Full component-level analysis in Section~\ref{sec:ResultsAndDiscussion_ComponentAnalysis}.
+\noindent\textbf{SQ2} \textit{(Design-space analysis):} Encoder choice is the dominant local determinant: FRAP-based encoders produce mean delay 11\% to $2.6\times$ higher than MLP encoders, with the penalty scaling with network size due to structural mismatch with German intersection phase heterogeneity. Graph-attention type governs policy generalization at Regional scale: GATv2 reduces mean delay by $2.1\times$ compared with GAT on ingolstadt21, with negligible difference on cologne8. RL algorithm choice is scenario-dependent: SAC is more sample-efficient at $N \leq 8$ --- corroborated by the independent SAC baseline's competitive Corridor performance (cologne3: 18.9~s, ingolstadt7: 24.0~s) --- but requires a factored critic architecture to complete training at $N=21$, and its entropy bonus creates reward-gaming instability on the differential waiting-time objective at larger scale. Full component-level analysis in Section~\ref{sec:ResultsAndDiscussion_ComponentAnalysis}.
 
 \medskip
 \noindent\textbf{SQ3} \textit{(Scale and topology dependency):} The graph-communication benefit is negligible at $N=1$ (structural no-op), emerging at Corridor scale ($N=7$: FGS beats DQN and CoLight but trails PPO), and strongest at Regional scale ($N=21$: FGSv3-PPO strongly outperforms CoLight and is near the corrected PPO checkpoint). GATv2 becomes critical at $N=21$: substituting GAT doubles mean delay. Encoder mismatch amplifies with scale. The scale threshold for consistent graph-communication advantage is approximately $N=8$--$21$ for the German RESCO topologies evaluated, grounded in the spatio-temporal dependency argument of Section~\ref{sec:ResultsAndDiscussion_ScaleDependency} (see Figure~\ref{fig:scale_benefit}).
@@ -436,7 +438,7 @@ $\ddagger$~Early-training transient; not a converged result --- see Section~\ref
 All performance figures correspond to single training runs (seed~0). The RESCO benchmark protocol targets five independent seeds with result averaging and standard-deviation reporting; resource constraints precluded this within the available training budget. Performance figures are point estimates without variance bounds and should be interpreted as indicative rather than statistically conclusive. Multi-seed completion over seeds $\{0,1,2,3,4\}$ with bootstrap confidence intervals constitutes the highest-priority follow-on validation.
 
 \paragraph{Training instability of SAC variants on ingolstadt21.}
-FGSv2-SAC and FGSv3-SAC complete training at $N=21$ with the factored critic but exhibit high-variance trajectories without clear convergence within 100~episodes. Their best-checkpoint values (FGSv3-SAC: 45.3~s delay at validation episode~3; FGSv2-SAC: 53.7~s at episode~1) are early-training transients driven by entropy-bonus exploration, not evidence of reliable policy quality. This behaviour is consistent with two compounding structural factors: the \emph{deadly triad} of off-policy experience replay, function approximation, and bootstrapped targets identified as a source of instability in deep RL~\citep{van2018deep}; and MARL non-stationarity, where stored transitions become progressively off-distribution as all 21 agents co-evolve~\citep{henderson2018deep}. Stable, converged SAC performance on ingolstadt21 would likely require 300--500 training episodes with entropy-temperature tuning calibrated to the 21-agent joint action space.
+FGSv2-SAC and FGSv3-SAC complete training at $N=21$ with the factored critic but exhibit high-variance trajectories without clear convergence within 100~episodes. Their best-checkpoint values (FGSv3-SAC: 45.3~s delay at episode~20; FGSv2-SAC: 53.7~s at episode~5) exhibit physically inconsistent delay--queue ratios (high queue depth relative to delay) consistent with reward specification gaming rather than genuine control quality. This behaviour is consistent with two compounding structural factors: the \emph{deadly triad} of off-policy experience replay, function approximation, and bootstrapped targets identified as a source of instability in deep RL~\citep{van2018deep}; and MARL non-stationarity, where stored transitions become progressively off-distribution as all 21 agents co-evolve~\citep{henderson2018deep}. Stable, converged SAC performance on ingolstadt21 would likely require 300--500 training episodes with entropy-temperature tuning calibrated to the 21-agent joint action space.
 
 \paragraph{Reward specification gaming.}
 Early-training SAC checkpoints on Corridor scenarios exhibit physically inconsistent queue--delay combinations (Figure~\ref{fig:reward_gaming} and Section~\ref{sec:ResultsAndDiscussion_RLAnalysis}). The root cause is the differential waiting-time reward: a proxy signal reducible by rapid phase cycling without clearing queues~\citep{skalse2022defining}. All affected checkpoints are marked~$\ddagger$ and excluded from comparisons. As noted above, replacing this reward with a pressure or queue-clearing signal~\citep{wei2019presslight} addresses the root cause and is a direct recommendation for future work.
