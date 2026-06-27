@@ -667,14 +667,15 @@ All results from this work are \textit{best-validation} values: the validation c
   & Avg.\ Queue     & 2.55\pdd &  \na  & 12.41\pdd & {---}\pdd &  \na  &  0.43 \\
 \bottomrule
 \end{tabular}
-\vspace{6pt}
-
-\footnotesize
-$\circ$ Not yet run.\quad
-$\dagger$ Partial run.\quad
-$\ddagger$ Early-training transient (single eval episode; wait and queue mutually inconsistent; excluded from comparison).\quad
-$*$ Col.\ Single FGS(FRAP+GAT+SAC) run crashed before producing valid metrics.\quad
+\par\vspace{3pt}%
+\begin{minipage}{\linewidth}%
+\footnotesize\raggedright
+$\circ$~Not yet run.\newline
+$\dagger$~Partial run (fewer than 200~ep.).\newline
+$\ddagger$~Early-training transient (single eval episode; wait and queue mutually inconsistent; excluded from comparison).\newline
+$*$~Col.\ Single FGS(FRAP+GAT+SAC) run crashed before producing valid metrics.\newline
 FGSv2-SAC and FGSv3-SAC produce identical metrics on Single-intersection scenarios ($N=1$): the GATv2 graph module has no neighbors to aggregate, so both generations reduce to the same single-agent controller.
+\end{minipage}
 \end{sidewaystable}
 
 % ─────────────────────────────────────────────────────────────────────────────
@@ -712,8 +713,11 @@ FGS(FRAP+GAT+SAC)   & 96.2 & \na  & \na       & \na\rlap{$^*$} & 62.1 & 95.2 \\
 FGS(FRAP+GATv2+PPO) & \na  & \na  & 60.7      & \na   & \na   & 98.5 \\
 \bottomrule
 \end{tabular}
-\vspace{4pt}
-
-\footnotesize
-$\circ$ Not yet run or throughput metric not available for this run.\quad $\dagger$ Partial run.\quad $*$ Crashed before producing valid metrics.
+\par\vspace{3pt}%
+\begin{minipage}{\linewidth}%
+\footnotesize\raggedright
+$\circ$~Not yet run or throughput metric not available for this run.\newline
+$\dagger$~Partial run.\newline
+$*$~Crashed before producing valid metrics.
+\end{minipage}
 \end{sidewaystable}

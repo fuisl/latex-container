@@ -15,7 +15,7 @@ Table~\ref{tab:main_results} reports best-validation mean delay per scenario for
 
 \begin{table}[htbp]
 \centering
-\caption{Best-validation mean delay (s, $\downarrow$ lower is better) across German RESCO scenarios (single seed). $\circ$~=~not run; $\dagger$~=~partial run (21/200~ep.); $*$~=~training in progress; $\ddagger$~=~early-training transient (excluded from \textbf{Bold}). \textbf{Bold}: lowest mean delay per scenario among converged results. FT~=~FixedTime; MP~=~MaxPressure; $\text{FGS}_\text{S}$~=~FGS(MLP+GATv2+SAC); $\text{FGS}_\text{P}$~=~FGS(MLP+GATv2+PPO). FGSv3-PPO shown for Regional tier; see Table~\ref{tab:fgs_evolution}. Full four-metric results in Appendix~\ref{ch:Appendix_FullResults}.}
+\caption{Best-validation mean delay (s, $\downarrow$ lower is better) across German RESCO scenarios (single seed). \textbf{Bold}: lowest mean delay per scenario among converged results. $\circ$~=~not run; $\dagger$~=~partial run; $\ddagger$~=~early-training transient (excluded from \textbf{Bold}). FT~=~FixedTime; MP~=~MaxPressure; $\text{FGS}_\text{S}$~=~FGS(MLP+GATv2+SAC); $\text{FGS}_\text{P}$~=~FGS(MLP+GATv2+PPO). Full four-metric results in Appendix~\ref{ch:Appendix_FullResults}.}
 \label{tab:main_results}
 \small
 \setlength{\tabcolsep}{4pt}
@@ -25,11 +25,11 @@ Table~\ref{tab:main_results} reports best-validation mean delay per scenario for
 \textbf{Scenario}
   & \textbf{FT} & \textbf{MP}
   & \textbf{DQN} & \textbf{PPO} & \textbf{CoLight} & \textbf{FRAP}
-  & $\mathbf{FGS_S}$ & $\mathbf{FGS_P}$ & \textbf{FGSv3-PPO} \\
+  & $\mathbf{FGS_S}$ & $\mathbf{FGS_P}$ & \textbf{FGSv3} \\
 \midrule
 \multicolumn{10}{l}{\textit{Single-intersection ($N=1$)}} \\[2pt]
-cologne1    & 54.6 & 24.2 & 28.1 & \textbf{22.8} & 37.0 & 31.7 & 23.0 & 12.5\pdd & \na \\
-ingolstadt1 & 40.8 & 25.3 & \textbf{21.8} & 22.4 & 22.4 & 26.6 & \na           & 18.0\pdd & \na \\
+cologne1    & 54.6 & 24.2 & 28.1 & \textbf{22.8} & 37.0 & 31.7 & 23.0 & 12.5\pdd & 12.0\pdd \\
+ingolstadt1 & 40.8 & 25.3 & \textbf{21.8} & 22.4 & 22.4 & 26.6 & \na           & 18.0\pdd & 17.4\pdd \\
 \midrule
 \multicolumn{10}{l}{\textit{Corridor}} \\[2pt]
 cologne3    & 63.7 & 56.4 & 127.2 & \textbf{20.3} & 21.9 & 39.8 & \na & 6.9\pdd  & \na \\
@@ -40,14 +40,14 @@ cologne8    & 51.5 & 257.9 & 25.5 & 21.9 & 51.8 & 44.9 & 22.2 & 24.0    & \textb
 ingolstadt21 & 145.7 & 214.4 & 78.7 & \textbf{67.2} & 216.8 & 101.5\pt & 39.1\pdd & 234.9 & 68.4 \\
 \bottomrule
 \end{tabular}
-\vspace{4pt}
-{\footnotesize
-$\dagger$~Partial run (fewer than 200~ep.; shortest marked partial is 21/200~ep.).\quad
-$*$~In progress.\quad
-$\ddagger$~Early-training transient.\quad
-$\text{FGS}_\text{S}$ not run on ingolstadt7.\quad
-FGSv3-PPO evaluated at Regional tier only.
-}
+\par\vspace{3pt}%
+\begin{minipage}{\linewidth}%
+\footnotesize\raggedright
+$\dagger$~Partial run (fewer than 200~ep.).\newline
+$\ddagger$~Early-training transient; excluded from \textbf{Bold}.\newline
+$\text{FGS}_\text{S}$ not run on ingolstadt7.\newline
+FGSv3: SAC variant at Single tier ($N=1$; graph module no-op, equivalent to FGSv2-SAC); PPO variant at Regional tier; Corridor not run.
+\end{minipage}
 \end{table}
 
 \begin{figure}[htbp]
@@ -151,8 +151,11 @@ FRAP & GATv2 & PPO & 617.0 & 460.7 \\
 MLP  & GATv2 & SAC & 39.1\pdd & 9.4\pdd \\
 \bottomrule
 \end{tabular}
-\vspace{2pt}
-\footnotesize $\ddagger$~Early-training transient; Ingolstadt Regional MLP+GATv2+SAC figures are from episode~21.
+\par\vspace{3pt}%
+\begin{minipage}{\linewidth}%
+\footnotesize\raggedright
+$\ddagger$~Early-training transient; Ingolstadt Regional MLP+GATv2+SAC figures are from episode~21 of 200.
+\end{minipage}
 \end{table}
 
 \subsection{Encoder type: FRAP versus MLP}
@@ -263,7 +266,7 @@ Figure~\ref{fig:training_curves_regional} shows training and validation mean del
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\textwidth]{Figures/plotting/fgs_versions_cologne8_ingolstadt21_train_validation_delay_200ep}
-  \caption{Mean delay training (left column) and validation (right column) curves for Cologne Regional ($N=8$, top row) and Ingolstadt Regional ($N=21$, bottom row) across FGS generations and baselines. FGSv3-PPO achieves stable convergence on both scenarios. First-generation SAC on ingolstadt21 terminates at 17~episodes (short trace). FGSv2-SAC and FGSv3-SAC complete training but exhibit high-variance trajectories on ingolstadt21 without clear convergence; their early-training best checkpoints are marked~$\ddagger$.}
+  \caption{Mean delay training (left column) and validation (right column) curves for Cologne Regional ($N=8$, top row) and Ingolstadt Regional ($N=21$, bottom row) across FGS generations and baselines. FGSv3-PPO achieves stable convergence on both scenarios. First-generation SAC on ingolstadt21 terminates at 21~episodes (short trace). FGSv2-SAC and FGSv3-SAC complete training but exhibit high-variance trajectories on ingolstadt21 without clear convergence; their early-training best checkpoints are marked~$\ddagger$.}
   \label{fig:training_curves_regional}
 \end{figure}
 
@@ -397,11 +400,12 @@ Table~\ref{tab:fgs_evolution} reports the full performance of all FGS generation
   & Wait  & 9.4\pdd  & 88.6  & 13.9\pdd  & 22.9           & 11.1\pdd \\
 \bottomrule
 \end{tabular}
-\vspace{4pt}
-{\footnotesize
-$\dagger$~Partial run.\quad
+\par\vspace{3pt}%
+\begin{minipage}{\linewidth}%
+\footnotesize\raggedright
+$\dagger$~Partial run (fewer than 200~ep.).\newline
 $\ddagger$~Early-training transient; not a converged result --- see Section~\ref{sec:ResultsAndDiscussion_Limitations}.
-}
+\end{minipage}
 \end{table}
 
 %%─────────────────────────────────────────────────────────────────────────────
