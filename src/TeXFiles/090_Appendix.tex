@@ -569,7 +569,7 @@ The following figures supplement the training convergence discussion in Section~
 % ─────────────────────────────────────────────────────────────────────────────
 \begin{sidewaystable}[p]
 \centering
-\caption{Performance of baseline methods across all six RESCO scenarios (best-validation metrics, single seed unless noted). Columns follow the Single / Corridor / Regional tier classification. FixedTime and MaxPressure are 5-episode static baselines from this work. DQN, PPO, IndSAC, CoLight, and FRAP are single-seed learning baselines from this work (best-validation checkpoint). Within each scenario column, \textbf{bold} marks the best value and \underline{underline} marks the second-best value per metric (lower is better for all metrics). $\circ$ = not run or not available.}
+\caption{Performance of baseline methods and final FGS variants across all six RESCO scenarios (best-validation metrics, single seed unless noted). Columns follow the Single / Corridor / Regional tier classification. FixedTime and MaxPressure are 5-episode static baselines from this work. DQN, PPO, IndSAC, CoLight, FRAP, FGSv3-PPO, and FGSv3-SAC are single-seed learning methods from this work (best-validation checkpoint). Within each scenario column, \textbf{bold} marks the best value and \underline{underline} marks the second-best value per metric (lower is better for all metrics). $\circ$ = not run or not available; $\ddagger$ = physically inconsistent checkpoint.}
 \label{tab:appendix_baselines}
 \scriptsize
 \setlength{\tabcolsep}{4pt}
@@ -594,17 +594,17 @@ The following figures supplement the training convergence discussion in Section~
 \midrule
 \multicolumn{8}{l}{\textit{Learning baselines --- this work (200 episodes, best-validation checkpoint)}} \\[2pt]
 \multirow{4}{*}{DQN}
-  & Avg.\ Delay     &  \textbf{21.8} &  34.4 &  \underline{78.7} &  28.1 & 127.2 &  25.5 \\
-  & Avg.\ Trip Time &  \textbf{35.7} &  71.7 & \underline{220.4} &  45.8 & 140.0 &  89.8 \\
-  & Avg.\ Wait      &  \textbf{4.7} &   9.4 &  \underline{33.8} &   8.4 &  93.5 &   6.7 \\
+  & Avg.\ Delay     &  \textbf{21.8} &  34.4 &  78.7 &  28.1 & 127.2 &  25.5 \\
+  & Avg.\ Trip Time &  \textbf{35.7} &  71.7 & 220.4 &  45.8 & 140.0 &  89.8 \\
+  & Avg.\ Wait      &  \textbf{4.7} &   9.4 &  33.8 &   8.4 &  93.5 &   6.7 \\
   & Avg.\ Queue     &  1.10 &  0.81 &  2.18 &  4.56 &  7.64 &  0.46 \\[4pt]
 \multirow{4}{*}{PPO}
-  & Avg.\ Delay     &  22.4 &  \underline{24.1} &  67.2 &  \textbf{22.8} &  \underline{20.3} &  21.9 \\
+  & Avg.\ Delay     &  22.4 &  \underline{24.1} &  \underline{67.2} &  \textbf{22.8} &  \underline{20.3} &  21.9 \\
   & Avg.\ Trip Time &  36.0 &  \underline{64.6} & 207.0 &  \textbf{40.5} &  \underline{56.5} &  86.1 \\
-  & Avg.\ Wait      &  5.2 &  \textbf{5.4} &  25.7 &  \underline{5.1} &  \underline{6.5} &  \underline{4.9} \\
+  & Avg.\ Wait      &  5.2 &  \textbf{5.4} &  \underline{25.7} &  \underline{5.1} &  \underline{6.5} &  4.9 \\
   & Avg.\ Queue     &  \textbf{0.93} &  \textbf{0.38} &  4.77 &  \textbf{2.72} &  \underline{0.83} &  \textbf{0.33} \\[4pt]
 \multirow{4}{*}{IndSAC}
-  & Avg.\ Delay     &  \underline{22.3} &  \textbf{24.0} &  \textbf{64.6} &  \underline{23.0} &  \textbf{18.9} &  \textbf{21.8} \\
+  & Avg.\ Delay     &  \underline{22.3} &  \textbf{24.0} &  \textbf{64.6} &  \underline{23.0} &  \textbf{18.9} &  \underline{21.8} \\
   & Avg.\ Trip Time &  36.0 &  \textbf{64.4} & \textbf{202.6} &  \underline{40.7} &  \textbf{55.1} &  \textbf{86.0} \\
   & Avg.\ Wait      &   \underline{4.9} &  \underline{5.5} &  29.0 &  \textbf{5.1} &   \textbf{5.5} &   \textbf{4.7} \\
   & Avg.\ Queue     &  \underline{1.08} &  0.52 &  8.93 &  \underline{2.74} &  \textbf{0.77} &  \textbf{0.33} \\[4pt]
@@ -617,136 +617,27 @@ The following figures supplement the training convergence discussion in Section~
   & Avg.\ Delay     &  26.6 &  29.8\pt  &  101.5\pt  & 31.7   &  39.8 &  44.9 \\
   & Avg.\ Trip Time &  40.1 &  65.2\pt  &  232.5\pt  & 49.3   &  71.1 & 108.6 \\
   & Avg.\ Wait      &   7.3 &  9.3\pt  &  51.0\pt  & 10.6   &  18.6 &  17.1 \\
-  & Avg.\ Queue     &  1.67 &  18.0\pt  &  7.24\pt  & 4.86   &  2.78 &  1.20 \\
-\bottomrule
-\end{tabular}
-\end{sidewaystable}
-
-% ─────────────────────────────────────────────────────────────────────────────
-%  Table A.2  –  FGS framework variants
-% ─────────────────────────────────────────────────────────────────────────────
-\begin{sidewaystable}[p]
-\centering
-\caption{Performance of FGS framework variants across all six RESCO scenarios (best-validation metrics, single seed). Encoder: MLP = two-layer MLP; FRAP = phase-competition encoder \citep{zheng2019learning}. Graph: GAT = dot-product attention; GATv2 = dynamic additive attention \citep{brody2022how}. RL: SAC = discrete soft actor-critic \citep{christodoulou2019soft}; PPO = proximal policy optimization \citep{schulman2017proximal}. $\circ$ = not yet run; $\dagger$ = partial run; $\ddagger$ = early-training transient (single eval episode; wait and queue mutually inconsistent; see Table~\ref{tab:main_results} notes).}
-\label{tab:appendix_fgs}
-\scriptsize
-\setlength{\tabcolsep}{4pt}
-\renewcommand{\arraystretch}{1.15}
-\begin{tabular}{llrrrrrr}
-\toprule
-\textbf{Variant} & \textbf{Metric}
-  & \textbf{Ing.\ Single} & \textbf{Ing.\ Corr.}  & \textbf{Ing.\ Reg.}
-  & \textbf{Col.\ Single} & \textbf{Col.\ Corr.}  & \textbf{Col.\ Reg.} \\
+  & Avg.\ Queue     &  1.67 &  18.0\pt  &  7.24\pt  & 4.86   &  2.78 &  1.20 \\[4pt]
 \midrule
-\multicolumn{8}{l}{\textit{MLP encoder + SAC}} \\[2pt]
-\multirow{4}{*}{FGS(MLP+GAT+SAC)}
-  & Avg.\ Delay     &  22.6 &  \na  & \na   & \na   & \na   &  23.5 \\
-  & Avg.\ Trip Time &  35.8 &  \na  & \na   & \na   & \na   &  87.8 \\
-  & Avg.\ Wait      &   4.8 &  \na  & \na   & \na   & \na   &   5.5 \\
-  & Avg.\ Queue     &  0.94 &  \na  & \na   & \na   & \na   &  0.38 \\[4pt]
-\multirow{4}{*}{FGS(MLP+GATv2+SAC)}
-  & Avg.\ Delay     &  \na &  17.1\pt  & 39.1\pdd & 23.0 & \na & 22.2 \\
-  & Avg.\ Trip Time &  \na &  52.7\pt  & 175.2\pdd & 40.6 & \na & 86.4 \\
-  & Avg.\ Wait      &  \na &  4.8\pt  &  9.4\pdd &  5.4 & \na &  4.9 \\
-  & Avg.\ Queue     &  \na &  11.8\pt &  12.9\pdd & 2.63 & \na & 0.34 \\
-\midrule
-\multicolumn{8}{l}{\textit{MLP encoder + PPO}} \\[2pt]
-\multirow{4}{*}{FGS(MLP+GAT+PPO)}
-  & Avg.\ Delay     &  \na  &  \na  & 492.0 & \na   & \na   &  24.9 \\
-  & Avg.\ Trip Time &  \na  &  \na  & 406.6 & \na   & \na   &  89.1 \\
-  & Avg.\ Wait      &  \na  &  \na  & 261.2 & \na   & \na   &   6.7 \\
-  & Avg.\ Queue     &  \na  &  \na  &  4.93 & \na   & \na   &  0.47 \\[4pt]
-\multirow{4}{*}{FGS(MLP+GATv2+PPO)}
-  & Avg.\ Delay     & 18.0\pdd & 26.1  & 234.9 & 12.5\pdd & 6.9\pdd  &  24.0 \\
-  & Avg.\ Trip Time & 27.9\pdd & 66.5  & 253.5 & 26.4\pdd & 37.7\pdd &  88.3 \\
-  & Avg.\ Wait      &  2.7\pdd &  6.8  &  88.6 &  1.1\pdd &  0.1\pdd &   6.3 \\
-  & Avg.\ Queue     & 2.54\pdd &  0.50 &  2.58 & {---}\pdd & {---}\pdd &  0.44 \\
-\midrule
-\multicolumn{8}{l}{\textit{FRAP encoder + SAC}} \\[2pt]
-\multirow{4}{*}{FGS(FRAP+GAT+SAC)}
-  & Avg.\ Delay     & 590.7 &  \na  &  \na  & \na\rlap{$^*$} & 1270.4 & 222.9 \\
-  & Avg.\ Trip Time &  95.0 &  \na  &  \na  & \na\rlap{$^*$} &  479.0 & 169.5 \\
-  & Avg.\ Wait      &  78.1 &  \na  &  \na  & \na\rlap{$^*$} &  460.8 &  87.6 \\
-  & Avg.\ Queue     &  2.55 &  \na  &  \na  & \na\rlap{$^*$} &  34.72 &  6.11 \\
-\midrule
-\multicolumn{8}{l}{\textit{FRAP encoder + PPO}} \\[2pt]
-\multirow{4}{*}{FGS(FRAP+GATv2+PPO)}
-  & Avg.\ Delay     &  \na  &  \na  & 617.0 & \na   & \na   &  24.6 \\
-  & Avg.\ Trip Time &  \na  &  \na  & 614.8 & \na   & \na   &  88.9 \\
-  & Avg.\ Wait      &  \na  &  \na  & 460.7 & \na   & \na   &   6.7 \\
-  & Avg.\ Queue     &  \na  &  \na  &  7.77 & \na   & \na   &  0.47 \\
-\midrule
-\multicolumn{8}{l}{\textit{FGS generation 2 (action-token interface fix)}} \\[2pt]
-\multirow{4}{*}{FGSv2-SAC}
-  & Avg.\ Delay     & 17.4\pdd &  \na  & 53.7\pdd  & 12.0\pdd &  \na   &  10.1\pdd \\
-  & Avg.\ Trip Time & 27.4\pdd &  \na  & 191.4\pdd & 33.7\pdd &  \na   &  59.7\pdd \\
-  & Avg.\ Wait      &  2.1\pdd &  \na  &  13.9\pdd &  0.4\pdd &  \na   &   0.4\pdd \\
-  & Avg.\ Queue     &  2.55\pdd &  \na  &  12.90\pdd & {---}\pdd &  \na  &  26.1\pdd \\
-\midrule
-\multicolumn{8}{l}{\textit{FGS generation 3 (demand-aware signal + factored critic)}} \\[2pt]
+\multicolumn{8}{l}{\textit{Final FGS variants --- this work (200 episodes, best-validation checkpoint)}} \\[2pt]
 \multirow{4}{*}{FGSv3-PPO}
-  & Avg.\ Delay     &  \na  &  \na  &  68.4 &  \na  &  \na  &  21.6 \\
-  & Avg.\ Trip Time &  \na  &  \na  & 203.9 &  \na  &  \na  &  86.0 \\
-  & Avg.\ Wait      &  \na  &  \na  &  22.9 &  \na  &  \na  &   4.8 \\
-  & Avg.\ Queue     &  \na  &  \na  &  0.71 &  \na  &  \na  &  0.33 \\[4pt]
+  & Avg.\ Delay     &  \na  &  \na  &  68.4 &  \na  &  \na  &  \textbf{21.6} \\
+  & Avg.\ Trip Time &  \na  &  \na  & \underline{203.9} &  \na  &  \na  &  \textbf{86.0} \\
+  & Avg.\ Wait      &  \na  &  \na  &  \textbf{22.9} &  \na  &  \na  &   \underline{4.8} \\
+  & Avg.\ Queue     &  \na  &  \na  &  \textbf{0.71} &  \na  &  \na  &  \textbf{0.33} \\[4pt]
 \multirow{4}{*}{FGSv3-SAC}
   & Avg.\ Delay     & 17.4\pdd &  \na  & 45.3\pdd  & 12.0\pdd &  \na  &  26.5 \\
   & Avg.\ Trip Time & 27.4\pdd &  \na  & 179.2\pdd & 33.7\pdd &  \na  &  90.7 \\
   & Avg.\ Wait      &  2.1\pdd &  \na  &  11.1\pdd &  0.4\pdd &  \na  &   6.2 \\
-  & Avg.\ Queue     & 2.55\pdd &  \na  & 12.41\pdd & {---}\pdd &  \na  &  0.43 \\
+  & Avg.\ Queue     & 2.55\pdd &  \na  & 12.41\pdd & {---}\pdd &  \na  &  \underline{0.43} \\
 \bottomrule
 \end{tabular}
 \par\vspace{3pt}%
 \begin{minipage}{\linewidth}%
 \footnotesize\raggedright
-$\circ$~Not yet run.\newline
+$\circ$~Not yet run or not available.\newline
 $\dagger$~Partial run (fewer than 200~ep.).\newline
 $\ddagger$~Early-training transient (single eval episode; wait and queue mutually inconsistent; excluded from comparison).\newline
-$*$~Col.\ Single FGS(FRAP+GAT+SAC) run crashed before producing valid metrics.\newline
-FGSv2-SAC and FGSv3-SAC produce identical metrics on Single-intersection scenarios ($N=1$): the GATv2 graph module has no neighbors to aggregate, so both generations reduce to the same single-agent controller.
-\end{minipage}
-\end{sidewaystable}
-
-% ─────────────────────────────────────────────────────────────────────────────
-%  Table A.3  –  Throughput summary
-% ─────────────────────────────────────────────────────────────────────────────
-\begin{sidewaystable}[p]
-\centering
-\caption{Vehicle throughput (arrived / departed, \%) across all methods and scenarios. Higher is better. $\circ$ = not run; $\dagger$ = partial run.}
-\label{tab:appendix_throughput}
-\small
-\setlength{\tabcolsep}{5pt}
-\renewcommand{\arraystretch}{1.2}
-\begin{tabular}{lrrrrrr}
-\toprule
-\textbf{Method}
-  & \textbf{Ing.\ Single} & \textbf{Ing.\ Corr.}  & \textbf{Ing.\ Reg.}
-  & \textbf{Col.\ Single} & \textbf{Col.\ Corr.}  & \textbf{Col.\ Reg.} \\
-\midrule
-\multicolumn{7}{l}{\textit{Static baselines (this work; throughput metric not logged)}} \\[2pt]
-FixedTime         & \na  & \na  & \na  & \na   & \na  & \na  \\
-MaxPressure       & \na  & \na  & \na  & \na   & \na  & \na  \\
-\multicolumn{7}{l}{\textit{Learning baselines (this work)}} \\[2pt]
-DQN               & \na  & 97.6 & 94.1 & \na   & \na  & 98.5 \\
-PPO               & 99.0 & 97.6 & \na  & \na   & 98.9 & 98.5 \\
-IndSAC            & \na  & \na  & \na  & \na   & \na  & \na  \\
-CoLight           & 99.1 & 97.6 & 93.2 & \na   & 98.8 & 97.9 \\
-FRAP              & 99.1 & \na  & \na  & \na   & 97.7 & 97.8 \\
-\midrule
-\multicolumn{7}{l}{\textit{FGS variants (this work)}} \\[2pt]
-FGS(MLP+GAT+SAC)    & 99.2 & \na  & \na       & \na   & \na   & 98.5 \\
-FGS(MLP+GATv2+SAC)  & 99.0 & \na  & 43.0\pt   & 99.2  & 98.9  & 98.5 \\
-FGS(MLP+GAT+PPO)    & \na  & \na  & 77.2      & \na   & \na   & 98.5 \\
-FGS(MLP+GATv2+PPO)  & \na  & \na  & 90.9      & \na   & \na   & 98.4 \\
-FGS(FRAP+GAT+SAC)   & 96.2 & \na  & \na       & \na\rlap{$^*$} & 62.1 & 95.2 \\
-FGS(FRAP+GATv2+PPO) & \na  & \na  & 60.7      & \na   & \na   & 98.5 \\
-\bottomrule
-\end{tabular}
-\par\vspace{3pt}%
-\begin{minipage}{\linewidth}%
-\footnotesize\raggedright
-$\circ$~Not yet run or throughput metric not available for this run.\newline
-$\dagger$~Partial run.\newline
-$*$~Crashed before producing valid metrics.
+FGSv3-SAC single-intersection metrics match FGSv2-SAC because the GATv2 graph module has no neighbors to aggregate at $N=1$.
 \end{minipage}
 \end{sidewaystable}

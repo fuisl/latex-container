@@ -1,7 +1,7 @@
 \chapter{Results and Discussion}
 \label{ch:ResultsAndDiscussion}
 
-This chapter presents and interprets the experimental results of the FGS framework across six German RESCO scenarios, organised around the central finding that the benefit of graph-aware inter-agent communication grows systematically with network scale and topological complexity. Mean delay (MD, Equation~\ref{eq:delay}) is the primary evaluation metric throughout: it isolates time lost to congestion relative to the free-flow baseline and is less susceptible to the reward-specification artefacts described in Section~\ref{sec:ResultsAndDiscussion_Limitations}. All reported figures are best-validation checkpoints from single-seed runs (seed~0). The full four-metric results table (mean delay, mean waiting time, mean trip time, throughput) is provided in Appendix~\ref{ch:Appendix_FullResults}.
+This chapter presents and interprets the experimental results of the FGS framework across six German RESCO scenarios, organised around the central finding that the benefit of graph-aware inter-agent communication grows systematically with network scale and topological complexity. Mean delay (MD, Equation~\ref{eq:delay}) is the primary evaluation metric throughout: it isolates time lost to congestion relative to the free-flow baseline and is less susceptible to the reward-specification artefacts described in Section~\ref{sec:ResultsAndDiscussion_Limitations}. All reported figures are best-validation checkpoints from single-seed runs (seed~0). The full four-metric results table (mean delay, mean waiting time, mean trip time, queue length) is provided in Appendix~\ref{ch:Appendix_FullResults}.
 
 %%─────────────────────────────────────────────────────────────────────────────
 \section{Main Results}
@@ -48,6 +48,7 @@ $\dagger$~Partial run (fewer than 200~ep.).\newline
 $\ddagger$~Physically inconsistent checkpoint (gaming artifact); excluded from \textbf{Bold}.\newline
 SAC~=~IndSAC (independent SAC baseline).\newline
 FGSv3: SAC variant at Single tier ($N=1$; graph module no-op, equivalent to FGSv2-SAC); PPO variant at Regional tier; Corridor not run.
+\newline $\text{FGS}_\text{S}$ Corridor evaluation was not prioritized because the FGS demonstration focuses on Regional-tier scalability; cologne3 was not run and ingolstadt7 is marked as a physically inconsistent checkpoint.
 \end{minipage}
 \end{table}
 
@@ -83,16 +84,12 @@ Figure~\ref{fig:scale_benefit} quantifies this pattern directly. The x-axis repr
 \end{figure}
 
 \paragraph{Network-level interpretation: Macroscopic Fundamental Diagram.}
-Figure~\ref{fig:mfd_ingolstadt21} connects the RL performance results to traffic engineering theory through the Macroscopic Fundamental Diagram (MFD)~\citep{geroliminis2008existence}. The MFD relates network-level vehicle density (vehicles/km) to network outflow (vehicles/h); a controller that keeps the network near the capacity-flow regime (peak of the MFD curve) produces the most efficient throughput. FGSv3-PPO maintains the ingolstadt21 network in the free-flow region for a greater proportion of the evaluation episode than FixedTime, DQN, or PPO, consistent with its graph-aware coordination preventing the queue spillback that pushes the network into hypercongestion~\citep{knoop2012relationship}. This analysis connects the mean delay improvements in Table~\ref{tab:main_results} to a theoretically grounded traffic-engineering explanation: the GATv2 communication layer allows agents to anticipate upstream pressure and preempt spillback conditions that local observation alone cannot detect.
+Figure~\ref{fig:mfd_ingolstadt21} connects the RL performance results to traffic engineering theory through the Macroscopic Fundamental Diagram (MFD)~\citep{geroliminis2008existence}. The MFD relates network-level vehicle density (vehicles/km/lane) to lane flow (vehicles/h/lane); controllers that keep the network on the rising, high-flow branch avoid the density build-up associated with hypercongestion~\citep{knoop2012relationship}. In the ingolstadt21 evaluation, FGSv3-PPO concentrates most checkpoints in a compact high-flow region at low-to-moderate density, while PPO and especially FGSv3-SAC extend into higher-density, lower-flow regions. This pattern is consistent with the mean-delay results in Table~\ref{tab:main_results}: the demand-aware GATv2 communication layer helps the final PPO variant preserve flow without the unstable queue accumulation observed in SAC checkpoints.
 
 \begin{figure}[htbp]
   \centering
-  % TODO: replace this placeholder with Figures/mfd_ingolstadt21.pdf once generated
-  \fbox{\parbox{0.85\textwidth}{\centering\vspace{1.5cm}%
-    \large\textbf{[MFD Figure --- to be generated]}\\[0.5em]
-    \normalsize Network flow vs.\ density for ingolstadt21 under FGSv3-PPO,\\
-    DQN, PPO, and FixedTime during the best-validation episode.\\[1.5cm]}}
-  \caption{Macroscopic Fundamental Diagram (MFD) for the ingolstadt21 network under four control policies. Each curve traces the network operating point (vehicle density vs.\ network outflow) over the 3600\,s evaluation episode. FGSv3-PPO maintains the network closer to the capacity-flow region compared with FixedTime, which repeatedly enters the hypercongested regime.}
+  \includegraphics[width=\textwidth]{Figures/resco_ingolstadt21_mfd_density_flow}
+  \caption{Macroscopic Fundamental Diagram proxy for RESCO ingolstadt21. Each point shows lane-density and lane-flow estimates during evaluation; connected markers summarize the policy trajectory. FGSv3-PPO occupies a compact high-flow band at low-to-moderate density, indicating stable network operation without large queue build-up. PPO-original reaches similar density levels but with more dispersed and lower-flow segments, while FGSv3-SAC extends into high-density/low-flow states consistent with the reward-gaming instability discussed in Section~\ref{sec:ResultsAndDiscussion_Limitations}.}
   \label{fig:mfd_ingolstadt21}
 \end{figure}
 
@@ -117,7 +114,7 @@ Figure~\ref{fig:radar_comparison} provides a multi-metric comparison for the Reg
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=0.7\textwidth]{Figures/plotting/radar_comparison}
-  \caption{Multi-metric radar comparison on Regional-tier scenarios (cologne8 left; ingolstadt21 right). Each axis shows one metric (mean delay, mean waiting time, mean trip time, queue length), normalised to $[0,1]$ where~0 is the best observed value and~1 is the FixedTime baseline. FGSv3-PPO achieves the best overall profile on ingolstadt21 across all four metrics; PPO and $\text{FGS}_\text{S}$ are competitive on cologne8.}
+  \caption{Multi-metric radar comparison on Regional-tier scenarios (cologne8 left; ingolstadt21 right). Each axis shows one metric (mean delay, mean waiting time, mean trip time, queue length), normalised to $[0,1]$ where~0 is the best observed value and~1 is the FixedTime baseline. On ingolstadt21, FGSv3-PPO is strongest on waiting time and queue length and remains competitive on delay, while independent PPO and IndSAC remain close on delay and trip time. PPO and $\text{FGS}_\text{S}$ are competitive on cologne8.}
   \label{fig:radar_comparison}
 \end{figure}
 
