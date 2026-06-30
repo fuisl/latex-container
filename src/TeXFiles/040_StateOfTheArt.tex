@@ -111,14 +111,14 @@ CoLight uses GAT communication but with a generic MLP encoder. FRAP uses a phase
     \hline
     Method               & RL algo  & Encoder     & Graph comm. & Ger.       & Reference                        \\
     \hline
-    Max pressure         & --       & pressure    & --          & \checkmark & \cite{varaiya2013max}            \\
-    IDQN                 & DQN      & MLP         & --          & \checkmark & \cite{mnih2015humanlevel}        \\
-    IPPO                 & PPO      & MLP         & --          & \checkmark & \cite{schulman2017proximal}      \\
-    IndSAC               & SAC      & MLP         & --          & \checkmark & \cite{christodoulou2019soft}     \\
-    PressLight           & DQN      & pressure    & --          & --         & \cite{wei2019presslight}         \\
-    FRAP                 & DQN      & FRAP        & --          & --         & \cite{zheng2019learning}         \\
-    CoLight              & DQN      & MLP         & GAT         & --         & \cite{wei2019colight}            \\
-    MPLight              & DQN      & pressure    & --          & --         & \cite{chen2020toward}            \\
+    Max pressure         & --       & pressure    & --          & \checkmark & \citep{varaiya2013max}            \\
+    IDQN                 & DQN      & MLP         & --          & \checkmark & \citep{mnih2015humanlevel}        \\
+    IPPO                 & PPO      & MLP         & --          & \checkmark & \citep{schulman2017proximal}      \\
+    IndSAC               & SAC      & MLP         & --          & \checkmark & \citep{christodoulou2019soft}     \\
+    PressLight           & DQN      & pressure    & --          & --         & \citep{wei2019presslight}         \\
+    FRAP                 & DQN      & FRAP        & --          & --         & \citep{zheng2019learning}         \\
+    CoLight              & DQN      & MLP         & GAT         & --         & \citep{wei2019colight}            \\
+    MPLight              & DQN      & pressure    & --          & --         & \citep{chen2020toward}            \\
     \hline
     FGS (this thesis)    & SAC/PPO  & MLP/FRAP    & GATv2       & \checkmark & --                               \\
     FGSv2 (this thesis)  & SAC      & FRAP-token  & GATv2       & \checkmark & --                               \\

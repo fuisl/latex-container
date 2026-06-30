@@ -108,7 +108,7 @@ Tabular Q-learning is infeasible when $|\mathcal{S}|$ is large. DQN \citep{mnih2
 \begin{equation}
   \mathcal{L}(\theta) = \mathbb{E}_{(s,a,r,s')\sim\mathcal{D}}\!\left[\bigl(r + \gamma \max_{a'} Q_{\bar\theta}(s', a') - Q_\theta(s,a)\bigr)^2\right].
 \end{equation}
-Two stabilization techniques are essential \citep{mnih2015humanlevel}. First, a \emph{replay buffer} $\mathcal{D}$ stores past transitions and samples mini-batches uniformly, breaking the temporal correlations in sequential experience that would otherwise cause divergence \citep{mnih2015humanlevel}. Second, a \emph{target network} $Q_{\bar\theta}$ with parameters $\bar\theta$ periodically copied from $\theta$ provides stable regression targets; without it, both the prediction and the target shift simultaneously, causing the loss landscape to be non-stationary and training to oscillate \citep{mnih2015humanlevel}.
+Two stabilization techniques are essential \citep{mnih2015humanlevel}. First, a \emph{replay buffer} $\mathcal{D}$ stores past transitions and samples mini-batches uniformly, breaking the temporal correlations in sequential experience that would otherwise cause divergence. Second, a \emph{target network} $Q_{\bar\theta}$ with parameters $\bar\theta$ periodically copied from $\theta$ provides stable regression targets; without it, both the prediction and the target shift simultaneously, causing the loss landscape to be non-stationary and training to oscillate.
 
 \subsection{Policy Gradient Methods}
 \label{sec:TheoreticalBackground_PolicyGradient}

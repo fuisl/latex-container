@@ -48,7 +48,7 @@ $\dagger$~Partial run (fewer than 200~ep.).\newline
 $\ddagger$~Physically inconsistent checkpoint (gaming artifact); excluded from \textbf{Bold}.\newline
 SAC~=~IndSAC (independent SAC baseline).\newline
 FGSv3: SAC variant at Single tier ($N=1$; graph module no-op, equivalent to FGSv2-SAC); PPO variant at Regional tier; Corridor not run.
-\newline $\text{FGS}_\text{S}$ Corridor evaluation was not prioritized because the FGS demonstration focuses on Regional-tier scalability; cologne3 was not run and ingolstadt7 is marked as a physically inconsistent checkpoint.
+\newline $\text{FGS}_\text{S}$: cologne3 (Corridor) was not run ($\circ$); ingolstadt7 (17.1$^\ddagger$) is a physically inconsistent early-training checkpoint, not a converged result.
 \end{minipage}
 \end{table}
 
@@ -221,7 +221,7 @@ Replacing GATv2 with the original dot-product GAT on Ingolstadt Regional inflate
 \subsection{RL algorithm: SAC versus PPO}
 \label{sec:ResultsAndDiscussion_RLAnalysis}
 
-Two findings emerge from the RL algorithm ablation. First, on Cologne Regional, SAC achieves lower mean delay than PPO with the same encoder and graph layer (22.2~s vs.\ 24.0~s, an 8\% improvement), consistent with SAC's off-policy sample efficiency: the prioritized experience replay buffer reuses past transitions more effectively than PPO's on-policy rollouts within the same 200-episode budget. Second, first-generation SAC fails entirely on Ingolstadt Regional: the centralized critic input dimension of approximately 3{,}133 at $N=21$ exhausts GPU memory after 17~episodes (Appendix~\ref{sec:Appendix_critic_complexity}), while PPO's per-agent value function input remains $O(d)$ independent of $N$.
+Two findings emerge from the RL algorithm ablation. First, on Cologne Regional, SAC achieves lower mean delay than PPO with the same encoder and graph layer (22.2~s vs.\ 24.0~s, an 8\% improvement), consistent with SAC's off-policy sample efficiency: the prioritized experience replay buffer reuses past transitions more effectively than PPO's on-policy rollouts within the same 200-episode budget. Second, first-generation SAC fails entirely on Ingolstadt Regional: the centralized critic input dimension of approximately 3{,}133 at $N=21$ exhausts GPU memory after 21~episodes (Appendix~\ref{sec:Appendix_critic_complexity}), while PPO's per-agent value function input remains $O(d)$ independent of $N$.
 
 \begin{figure}[htbp]
   \centering
@@ -232,7 +232,7 @@ Two findings emerge from the RL algorithm ablation. First, on Cologne Regional, 
   \begin{minipage}{0.49\textwidth}
     \includegraphics[width=\linewidth]{Figures/plotting/ingolstadt21/ablation_rl}
   \end{minipage}
-  \caption{RL algorithm ablation: SAC versus PPO with fixed MLP+GATv2. Left: Cologne Regional ($N=8$, SAC converges efficiently to lower mean delay); Right: Ingolstadt Regional ($N=21$, first-generation SAC terminates after 17~episodes due to memory exhaustion; only the short initial trace is visible).}
+  \caption{RL algorithm ablation: SAC versus PPO with fixed MLP+GATv2. Left: Cologne Regional ($N=8$, SAC converges efficiently to lower mean delay); Right: Ingolstadt Regional ($N=21$, first-generation SAC terminates after 21~episodes due to memory exhaustion; only the short initial trace is visible).}
   \label{fig:ablation_rl}
 \end{figure}
 
@@ -312,11 +312,11 @@ The FGS pipeline was developed through three successive generations, each motiva
 \midrule
 Gen-1   & MLP or FRAP (scalar)      & GATv2 on $\mathbf{h}_i$                & SAC/PPO (centralized critic) \\
 FGSv2   & FRAP action tokens        & GATv2 on $\mathbf{s}_i$ (competition)  & SAC (centralized critic)     \\
-FGS     & FRAP action tokens        & GATv2 on demand $\mathbf{d}_i$         & SAC/PPO (factored critic)    \\
+FGSv3   & FRAP action tokens        & GATv2 on demand $\mathbf{d}_i$         & SAC/PPO (factored critic)    \\
 \midrule
 \multicolumn{4}{l}{\textit{Interface failure addressed:}} \\
 Gen-1$\to$FGSv2  & Scalar projection discards per-phase information & ---                                & ---                                          \\
-FGSv2$\to$FGS    & ---                                              & Competition signal encodes ranking, not demand & $O(Nd)$ centralized critic fails at $N=21$ \\
+FGSv2$\to$FGSv3  & ---                                              & Competition signal encodes ranking, not demand & $O(Nd)$ centralized critic fails at $N=21$ \\
 \bottomrule
 \end{tabular}
 \end{table}
