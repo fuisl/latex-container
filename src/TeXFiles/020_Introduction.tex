@@ -107,7 +107,7 @@ The following are explicitly outside the scope of this work:
 
   \item \textbf{Scenario construction.} Traffic network files, demand routes, and signal programmes are taken from the RESCO benchmark release without modification. No new traffic scenarios are constructed for this thesis.
 
-  \item \textbf{RL library development.} The thesis does not implement an RL framework from scratch. The implementation builds on RLlib for distributed training, PyTorch Geometric for graph operations, and the SUMO-RL library \citep{alegre2021sumorl} for environment wrapping, each extended with custom modules where required. Earlier exploratory frameworks considered during development include the original RESCO evaluation scripts, CityFlow, LibSignal, and PyTSC; these were not adopted in the final implementation.
+  \item \textbf{RL library development.} The thesis does not implement an RL framework from scratch. The implementation builds on RLlib for distributed training, PyTorch Geometric for graph operations, and the SUMO-RL library \citep{alegre2021sumorl} for environment wrapping, each extended with custom modules where required.\footnote{The full implementation is available at \url{https://github.com/fuisl/sumo-rl}.} Earlier exploratory frameworks considered during development include the original RESCO evaluation scripts, CityFlow, LibSignal, and PyTSC; these were not adopted in the final implementation.
 
   \item \textbf{Reward design.} The reward function is fixed as the differential waiting time (Section~\ref{sec:Methodology_DiffWaitingTime}). Systematic reward shaping or fairness-constrained reward design is not investigated.
 
