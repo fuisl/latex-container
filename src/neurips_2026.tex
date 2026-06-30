@@ -1,496 +1,672 @@
 \documentclass{article}
 
-% if you need to pass options to natbib, use, e.g.:
-%     \PassOptionsToPackage{numbers, compress}{natbib}
-% before loading neurips_2026
+\usepackage[preprint]{neurips_2026}
 
-% The authors should use one of these tracks.
-% Before accepting by the NeurIPS conference, select one of the options below.
-% 0. "default" for submission
-\usepackage{neurips_2026}
-% the "default" option is equal to the "main" option, which is used for the Main Track with double-blind reviewing.
-% 1. "main" option is used for the Main Track
-%  \usepackage[main]{neurips_2026}
-% 2. "position" option is used for the Position Paper Track
-%  \usepackage[position]{neurips_2026}
-% 3. "eandd" option is used for the Evaluations & Datasets Track
- % \usepackage[eandd]{neurips_2026}
-% 4. "creativeai" option is used for the Creative AI Track
-%  \usepackage[creativeai]{neurips_2026}
-% 5. "sglblindworkshop" option is used for the Workshop with single-blind reviewing
- % \usepackage[sglblindworkshop]{neurips_2026}
-% 6. "dblblindworkshop" option is used for the Workshop with double-blind reviewing
-%  \usepackage[dblblindworkshop]{neurips_2026}
-% 7. "education" option is used for the Education Track
-%  \usepackage[education]{neurips_2026}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage{graphicx}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{multirow}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
 
-
-% After being accepted, the authors should add "final" behind the track to compile a camera-ready version.
-% 1. Main Track
- % \usepackage[main, final]{neurips_2026}
-% 2. Position Paper Track
-%  \usepackage[position, final]{neurips_2026}
-% 3. Evaluations & Datasets Track
- % \usepackage[eandd, final]{neurips_2026}
-% 4. Creative AI Track
-%  \usepackage[creativeai, final]{neurips_2026}
-% 5. Workshop with single-blind reviewing
-%  \usepackage[sglblindworkshop, final]{neurips_2026}
-% 6. Workshop with double-blind reviewing
-%  \usepackage[dblblindworkshop, final]{neurips_2026}
-% Note. For the workshop paper template, both \title{} and \workshoptitle{} are required, with the former indicating the paper title shown in the title and the latter indicating the workshop title displayed in the footnote.
-% For workshops (5., 6.), the authors should add the name of the workshop, "\workshoptitle" command is used to set the workshop title.
-% \workshoptitle{WORKSHOP TITLE}
-% 7. Education Track
-% \usepackage[education, final]{neurips_2026}
-
-% "preprint" option is used for arXiv or other preprint submissions
- % \usepackage[preprint]{neurips_2026}
-
-% to avoid loading the natbib package, add option nonatbib:
-%    \usepackage[nonatbib]{neurips_2026}
-
-\usepackage[utf8]{inputenc} % allow utf-8 input
-\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
-\usepackage{hyperref}       % hyperlinks
-\usepackage{url}            % simple URL typesetting
-\usepackage{booktabs}       % professional-quality tables
-\usepackage{amsfonts}       % blackboard math symbols
-\usepackage{nicefrac}       % compact symbols for 1/2, etc.
-\usepackage{microtype}      % microtypography
-\usepackage{xcolor}         % colors
-
-% Note. For the workshop paper template, both \title{} and \workshoptitle{} are required, with the former indicating the paper title shown in the title and the latter indicating the workshop title displayed in the footnote. 
-\title{Formatting Instructions For NeurIPS 2026}
-
-
-% The \author macro works with any number of authors. There are two commands
-% used to separate the names and addresses of multiple authors: \And and \AND.
-%
-% Using \And between authors leaves it to LaTeX to determine where to break the
-% lines. Using \AND forces a line break at that point. So, if LaTeX puts 3 of 4
-% authors names on the first line, and the last on the second line, try using
-% \AND instead of \And before the third author name.
-
+\title{Dependency-Coherent Coordination: Flow-Based Partitioning Improves
+    Multi-Agent Traffic Signal Control Across All Coordination Levels}
 
 \author{%
-  David S.~Hippocampus\thanks{Use footnote for providing further information
-    about author (webpage, alternative address)---\emph{not} for acknowledging
-    funding agencies.} \\
-  Department of Computer Science\\
-  Cranberry-Lemon University\\
-  Pittsburgh, PA 15213 \\
-  \texttt{hippo@cs.cranberry-lemon.edu} \\
-  % examples of more authors
-  % \And
-  % Coauthor \\
-  % Affiliation \\
-  % Address \\
-  % \texttt{email} \\
-  % \AND
-  % Coauthor \\
-  % Affiliation \\
-  % Address \\
-  % \texttt{email} \\
-  % \And
-  % Coauthor \\
-  % Affiliation \\
-  % Address \\
-  % \texttt{email} \\
-  % \And
-  % Coauthor \\
-  % Affiliation \\
-  % Address \\
-  % \texttt{email} \\
+  [Author(s) — anonymised for review]
 }
-
 
 \begin{document}
 
-
 \maketitle
 
-
+% ============================================================
 \begin{abstract}
-    The abstract paragraph should be indented \nicefrac{1}{2}~inch (3~picas) on both the left- and right-hand margins. Use 10~point type, with a vertical spacing (leading) of 11~points. The word \textbf{Abstract} must be centered, bold, and in point size 12. Two line spaces precede the abstract. The abstract must be limited to one paragraph.
+% TODO — write after all sections are drafted.
+% Target: 150–200 words.
+% Structure: (1) problem + gap, (2) method, (3) key result, (4) significance.
+%
+% Draft placeholder:
+Coordinating traffic signal agents in multi-agent reinforcement learning
+(MARL) requires partitioning intersections into coordination groups, yet
+existing partitions use road topology rather than vehicle flow structure.
+We ask: \emph{which inter-agent dependencies does a partition preserve or
+    sever, and does preserving more dependencies improve coordination?}
+We apply InfoMap — an information-theoretic community detection algorithm
+grounded in origin-destination (OD) vehicle flow — to define
+flow-coherent coordination modules, and evaluate its effect systematically
+across three coordination coupling levels: reward shaping (IPPO), centralised
+critic (MAPPO), and graph attention (CoLight).
+We introduce the \emph{dependency retention ratio}~$\Psi$, a partition quality
+metric computed from mutual information and Jacobian-based dependency
+instruments, and show that InfoMap achieves higher $\Psi$ than topology-based
+partitions (METIS) across all three levels.
+Experiments on real SUMO scenarios demonstrate up to $2.85\times$ reduction in
+average vehicle waiting time, with verified spatial MI advantage (H1) and
+spill-back containment (H2) as the causal mechanism.
 \end{abstract}
 
-
-
-\section{Submission of papers to NeurIPS 2026}
-
-
-Please read the instructions below carefully and follow them faithfully.
-
-
-\subsection{Style}
-
-
-Papers to be submitted to NeurIPS 2026 must be prepared according to the
-instructions presented here. Papers may only be up to {\bf nine} pages long, including figures. \textbf{Papers that exceed the page limit will not be reviewed (or in any other way considered) for presentation at the conference.}
-Additional pages \emph{containing acknowledgments, references, checklist, and optional technical appendices} do not count as content pages.
-
-
-The margins in 2026 are the same as those in previous years.
-
-
-Authors are required to use the NeurIPS \LaTeX{} style files obtainable at the NeurIPS website as indicated below. Please make sure you use the current files and not previous versions. Tweaking the style files may be grounds for desk rejection.
-
-
-\subsection{Retrieval of style files}
-
-
-The style files for NeurIPS and other conference information are available on the website at
-\begin{center}
-    \url{https://neurips.cc}.
-\end{center}
-% The file \verb+neurips_2026.pdf+ contains these instructions and illustrates the various formatting requirements your NeurIPS paper must satisfy.
-
-
-The only supported style file for NeurIPS 2026 is \verb+neurips_2026.sty+, rewritten for \LaTeXe{}. \textbf{Previous style files for \LaTeX{} 2.09,  Microsoft Word, and RTF are no longer supported.}
-
-
-The \LaTeX{} style file contains three optional arguments:
-\begin{itemize}
-    \item \verb+final+, which creates a camera-ready copy,
-    \item \verb+preprint+, which creates a preprint for submission to, e.g., arXiv, \item \verb+nonatbib+, which will not load the \verb+natbib+ package for you in case of package clash.
-\end{itemize}
-
-
-\paragraph{Preprint option}
-If you wish to post a preprint of your work online, e.g., on arXiv, using the NeurIPS style, please use the \verb+preprint+ option. This will create a nonanonymized version of your work with the text ``Preprint. Work in progress.'' in the footer. This version may be distributed as you see fit, as long as you do not say which conference it was submitted to. Please \textbf{do not} use the \verb+final+ option, which should \textbf{only} be used for papers accepted to NeurIPS.
-
-
-At submission time, please omit the \verb+final+ and \verb+preprint+ options. This will anonymize your submission and add line numbers to aid review. Please do \emph{not} refer to these line numbers in your paper as they will be removed during generation of camera-ready copies.
-
-
-The file \verb+neurips_2026.tex+ may be used as a ``shell'' for writing your paper. All you have to do is replace the author, title, abstract, and text of the paper with your own.
-
-
-The formatting instructions contained in these style files are summarized in Sections \ref{gen_inst}, \ref{headings}, and \ref{others} below.
-
-
-\section{General formatting instructions}
-\label{gen_inst}
-
-
-The text must be confined within a rectangle 5.5~inches (33~picas) wide and
-9~inches (54~picas) long. The left margin is 1.5~inch (9~picas).  Use 10~point
-type with a vertical spacing (leading) of 11~points.  Times New Roman is the
-preferred typeface throughout, and will be selected for you by default.
-Paragraphs are separated by \nicefrac{1}{2}~line space (5.5 points), with no
-indentation.
-
-
-The paper title should be 17~point, initial caps/lower case, bold, centered
-between two horizontal rules. The top rule should be 4~points thick and the
-bottom rule should be 1~point thick. Allow \nicefrac{1}{4}~inch space above and
-below the title to rules. All pages should start at 1~inch (6~picas) from the
-top of the page.
-
-
-For the final version, authors' names are set in boldface, and each name is
-centered above the corresponding address. The lead author's name is to be listed
-first (left-most), and the co-authors' names (if different address) are set to
-follow. If there is only one co-author, list both author and co-author side by
-side.
-
-
-Please pay special attention to the instructions in Section \ref{others}
-regarding figures, tables, acknowledgments, and references.
-
-\section{Headings: first level}
-\label{headings}
-
-
-All headings should be lower case (except for first word and proper nouns),
-flush left, and bold.
-
-
-First-level headings should be in 12-point type.
-
-
-\subsection{Headings: second level}
-
-
-Second-level headings should be in 10-point type.
-
-
-\subsubsection{Headings: third level}
-
-
-Third-level headings should be in 10-point type.
-
-
-\paragraph{Paragraphs}
-
-
-There is also a \verb+\paragraph+ command available, which sets the heading in
-bold, flush left, and inline with the text, with the heading followed by 1\,em
-of space.
-
-
-\section{Citations, figures, tables, references}
-\label{others}
-
-
-These instructions apply to everyone.
-
-
-\subsection{Citations within the text}
-
-
-The \verb+natbib+ package will be loaded for you by default.  Citations may be
-author/year or numeric, as long as you maintain internal consistency.  As to the
-format of the references themselves, any style is acceptable as long as it is
-used consistently.
-
-
-The documentation for \verb+natbib+ may be found at
-\begin{center}
-    \url{http://mirrors.ctan.org/macros/latex/contrib/natbib/natnotes.pdf}
-\end{center}
-Of note is the command \verb+\citet+, which produces citations appropriate for
-use in inline text.  For example,
-\begin{verbatim}
-   \citet{hasselmo} investigated\dots
-\end{verbatim}
-produces
-\begin{quote}
-    Hasselmo, et al.\ (1995) investigated\dots
-\end{quote}
-
-
-If you wish to load the \verb+natbib+ package with options, you may add the
-following before loading the \verb+neurips_2026+ package:
-\begin{verbatim}
-   \PassOptionsToPackage{options}{natbib}
-\end{verbatim}
-
-
-If \verb+natbib+ clashes with another package you load, you can add the optional
-argument \verb+nonatbib+ when loading the style file:
-\begin{verbatim}
-   \usepackage[nonatbib]{neurips_2026}
-\end{verbatim}
-
-
-As submission is double blind, refer to your own published work in the third
-person. That is, use ``In the previous work of Jones et al.\ [4],'' not ``In our
-previous work [4].'' If you cite your other papers that are not widely available
-(e.g., a journal paper under review), use anonymous author names in the
-citation, e.g., an author of the form ``A.\ Anonymous'' and include a copy of the anonymized paper in the supplementary material.
-
-
-\subsection{Footnotes}
-
-
-Footnotes should be used sparingly.  If you do require a footnote, indicate
-footnotes with a number\footnote{Sample of the first footnote.} in the
-text. Place the footnotes at the bottom of the page on which they appear.
-Precede the footnote with a horizontal rule of 2~inches (12~picas).
-
-
-Note that footnotes are properly typeset \emph{after} punctuation
-marks.\footnote{As in this example.}
-
-
-\subsection{Figures}
-
-
-\begin{figure}
+% ============================================================
+\section{Introduction}
+\label{sec:intro}
+% Para 1 — Problem: TSC at scale; coordination graph design as the open question
+% Para 2 — Gap (two layers):
+%   Structural: existing partitions (METIS, Laplacian, feudal) use topology, not OD flow
+%   Theoretical: dynamic graph attention learns structure implicitly but provides no
+%                principled account of which dependencies are preserved or severed
+% Para 3 — Insight + method: OD flow is the natural basis; InfoMap is the
+%           information-theoretic criterion; coordination coupling spectrum (L1/L2/L3)
+% Para 4 — Contributions (bulleted, 4 items)
+\textbf{[To be written — Step 6]}
+
+% ============================================================
+\section{Background}
+\label{sec:background}
+% §2.1 ND-POMDP and the coordination graph
+%   Three TSC-specific motivating attributes:
+%   (a) reward locality: r = Σ_i r_i + Σ_{(i,j)∈G_C} r_ij  (spill-back interaction terms)
+%   (b) tractability: joint action space O(|A|^ω), ω = max clique size in G_C
+%   (c) G_C is a free design variable; InfoMap supplies the principled answer
+% §2.2 Map equation: L(M) = q·H(Q) + Σ p_k·H(P_k); no resolution limit
+\textbf{[To be written — Step 4]}
+
+% ============================================================
+\section{Related Work}
+\label{sec:related}
+% Para 1 — Network partitioning for TSC:
+%   laplacian2009ieee, odflow2019partition, mfdpartition2020,
+%   communitydetection2021plosone, ma2022feudal, liu2023gplight
+%   → structural/geometric criteria; no OD flow objective; no dependency cost analysis
+% Para 2 — MARL communication topology (compressed):
+%   jiang2018atoc, i2c2021, hetib2025, wei2019colight, liu2023gplight,
+%   zhu2026hilight, expocomm2025, li2025topology
+%   → learned or fixed; dynamic graph attention implicit; no dependency accounting
+% Para 3 — GNN dependency + MI in MARL (compressed):
+%   lrd2025, abnar2020rollout, stmarl2020, dependencydyn2025, ding2021imac
+%   → Ψ, D^MI, D^Q, D^G adapt these frameworks to partition quality evaluation
+\textbf{[To be written — Step 5]}
+
+% ============================================================
+\section{Flow-Coherent Dependency Partitioning}
+\label{sec:method}
+
+\subsection{OD Flow Graph Construction}
+\label{sec:odgraph}
+
+We model the traffic network as a directed weighted graph
+$\mathcal{G}_{\mathrm{OD}} = (\mathcal{V}, \mathcal{E}, \mathbf{W})$,
+where $\mathcal{V}$ is the set of $N$ signalised intersections and $W_{ij} \geq 0$
+is the observed vehicle count travelling from intersection $i$ to intersection $j$
+over a representative time window.
+We construct $\mathbf{W}$ from simulation trip logs: for each completed vehicle
+trip, the sequence of intersections visited is recorded and the corresponding
+directed edge weights incremented.
+A warm-up period of approximately one hour under a uniformly random policy provides
+a flow snapshot that reflects network demand structure prior to any learned behaviour.
+
+The key inductive bias is that $\mathbf{W}$ captures \emph{demand} rather than
+\emph{road topology}: two intersections connected by a high-volume corridor appear
+as a strong edge regardless of their hop distance on the road graph.
+This is what separates OD-flow partitioning from METIS on the adjacency matrix
+and from Laplacian spectral methods~\citep{laplacian2009ieee}: both of the latter
+assign edge weight by physical connectivity, not by how many vehicles actually
+travel between node pairs.
+
+\subsection{InfoMap Partitioning and the Dependency Gate}
+\label{sec:infomap}
+
+Given $\mathcal{G}_{\mathrm{OD}}$, we apply the Infomap
+algorithm~\citep{rosvall2008maps,rosvall2009mapequation} to obtain a partition
+$\mathcal{M} = \{M_1, \ldots, M_K\}$ by minimising the map equation:
+\begin{equation}
+    L(\mathcal{M})
+    = q_{\circlearrowleft} H(\mathcal{Q})
+    + \sum_{k=1}^{K} p_k^{\circlearrowleft} H(\mathcal{P}_k)
+    \label{eq:mapequation}
+\end{equation}
+where $q_{\circlearrowleft}$ is the rate of inter-module random-walk transitions
+and $H(\mathcal{Q})$ is the entropy of the between-module codebook.
+Minimising $L(\mathcal{M})$ maximises the fraction of vehicle-flow steps retained
+within modules — equivalent, in the ND-POMDP interpretation, to minimising
+cross-module coordination overhead while maximising within-module coordination
+coherence.
+Crucially, Infomap has no resolution limit~\citep{edler2023community}: it recovers
+modules at any scale present in the data, unlike modularity
+maximisation~\citep{newmangirvan2004}.
+
+We verify two empirical conditions on the partition before MARL training.
+Results are reported as supporting evidence; failure on a given network
+indicates a boundary condition requiring separate investigation.
+
+\medskip
+\noindent\textbf{H1 (Spatial MI Advantage).}
+Within-module agent pairs share higher mutual information about future traffic
+states than cross-module pairs:
+\begin{equation}
+    \mathbb{E}_{i,j\in M_k}\!\left[I(X_i(t);\, X_j(t{+}\tau))\right]
+    >
+    \mathbb{E}_{i\in M_k,\, l\notin M_k}\!\left[I(X_i(t);\, X_l(t{+}\tau))\right]
+    \label{eq:h1}
+\end{equation}
+averaged over propagation lags $\tau \in \{1, 5, 15, 30\}$ steps.
+Verified via Wilcoxon signed-rank test ($p < 0.05$) on KSG-estimated
+MI~\citep{kraskov2004ksg}; visualised as a $|\mathcal{V}|\times|\mathcal{V}|$
+heatmap with InfoMap module boundaries overlaid.
+
+\medskip
+\noindent\textbf{H2 (Spill-back Containment).}
+Spill-back congestion is more likely to remain within InfoMap modules than to
+cross module boundaries:
+\begin{equation}
+    \Pr\!\left(\text{spill-back}_{i\to j}
+    \;\middle|\; i,j \in M_k\right)
+    >
+    \Pr\!\left(\text{spill-back}_{i\to l}
+    \;\middle|\; i \in M_k,\; l \notin M_k\right).
+    \label{eq:h2}
+\end{equation}
+\citet{dependencydyn2025} establish that inter-agent coordination is necessary
+\emph{if and only if} spill-back connects two agents' queues.
+Verified via a one-sample proportion test on SUMO queue trajectory data.
+The apparent directional asymmetry --- OD flow travels $i \to j$ (forward) while
+spill-back propagates $j \to i$ (backward) --- does not invalidate H2: a
+high-volume corridor $W_{ij}$ drives high arrival rates at $j$ which, under
+near-saturated demand, trigger backward-propagating queue waves toward
+$i$~\citep{dependencydyn2025}.
+The coordination-necessary pair and the high-OD-flow pair are thus the same pair
+on the same corridor.
+
+\medskip
+H2 is the traffic-theoretic \emph{mechanism} behind H1: spill-back containment
+causes within-module states to co-vary via shared congestion propagation, raising
+$I(X_i;\,X_j)$ above the cross-module baseline.
+Together, H2$\,\Rightarrow\,$H1 imply the main hypothesis~H: an InfoMap partition
+retains more inter-agent spatial dependency within modules than a topology-based
+partition of equal size --- formally quantified by $\Psi$ (Section~\ref{sec:psi}).
+
+\subsection{Spatial Dependency Instruments and $\Psi$}
+\label{sec:psi}
+
+To measure how much dependency a partition retains, we need per-pair dependency
+weights $D_{ij}$ that (i)~are computable without presupposing the partition,
+(ii)~yield a scalar per pair $(i,j)$, and (iii)~can be aggregated into a
+partition-level score. We introduce three complementary instruments, each matched
+to the coordination mechanism at a given coupling level.
+
+\paragraph{Physical dependency (model-free).}
+H1 directly supplies a model-free dependency weight via the mutual information
+between agent state observations:
+\begin{equation}
+    D^{\mathrm{MI}}_{ij}
+    = \hat{I}\!\left(X_i(t);\, X_j(t{+}\tau)\right)
+    \label{eq:dmi}
+\end{equation}
+estimated by the KSG $k$-nearest-neighbour estimator~\citep{kraskov2004ksg}
+from warm-up trajectories.
+$D^{\mathrm{MI}}_{ij}$ is model-free and applicable at L1: at the reward
+coupling level (IPPO/IDQN), agents act independently and there is no
+cross-agent input path in the policy network, making Jacobian-based measures
+structurally inapplicable.
+Spatial MI dominance in TSC networks is established by~\citet{stmarl2020},
+and its mechanistic link to spill-back is established by~\citet{dependencydyn2025},
+grounding $D^{\mathrm{MI}}$ as the natural physical dependency measure.
+
+\paragraph{Learned dependency (Jacobian on the global model).}
+For models that receive cross-agent inputs, we adapt the Jacobian influence
+framework of~\citet{lrd2025} to the MARL dependency measurement setting.
+For a model $F$ trained \emph{without} partition constraints — the global model
+— define the spatial influence of agent~$j$ on agent~$i$:
+\begin{equation}
+    D_{i\leftarrow j}(F)
+    = \sum_{a,k}
+    \left|\frac{\partial F_{i,a}}{\partial X_{j,k}}\right|
+    \label{eq:djac}
+\end{equation}
+where $X_{j,k}$ is feature~$k$ of agent~$j$'s observation and $F_{i,a}$ is
+output dimension~$a$ at agent~$i$.
+The \emph{global-model restriction} is essential: in a partitioned model,
+cross-module inputs are absent by construction, making cross-module Jacobians
+identically zero — a structural artefact, not evidence of low dependency.
+We instantiate Eq.~\eqref{eq:djac} at two levels:
+\begin{align}
+    D^{Q}_{i\leftarrow j}
+     & = D_{i\leftarrow j}(V^{\mathrm{global}})
+     &                                                         & \text{(global MAPPO critic, L2)}
+    \label{eq:dq}                                                                                          \\
+    D^{G}_{i\leftarrow j}
+     & = D_{i\leftarrow j}(\mathbf{h}^{(L),\mathrm{global}}_i)
+     &                                                         & \text{(global CoLight GAT embedding, L3)}
+    \label{eq:dg}
+\end{align}
+Whereas \citet{lrd2025} use Jacobian profiles to ask whether a GNN suffers
+from over-squashing, we use the same instrument to ask whether a proposed partition
+aligns with what the model has learned to depend on — a distinct scientific question.
+
+\paragraph{Hop-distance profile.}
+For either instrument, aggregate dependency by road-graph hop distance $\rho(i,j)$:
+\begin{equation}
+    \bar{D}_h
+    = \frac{1}{|\mathcal{V}|}\sum_{i}\sum_{j:\,\rho(i,j)=h} D_{i\leftarrow j}
+    \label{eq:barDh}
+\end{equation}
+This is the MARL analogue of the per-hop influence profile $\bar{T}_h$
+of~\citet{lrd2025}: $\bar{D}_h$ quantifies the average spatial dependency
+from agents exactly $h$ road-graph hops away, and its decay rate determines
+the minimum module radius needed for effective coordination.
+
+\paragraph{Dependency retention ratio $\Psi$.}
+Given dependency matrix $\mathbf{D}$ and partition $\mathcal{P}=\{P_1,\ldots,P_K\}$:
+\begin{equation}
+    \Psi(\mathcal{P},\,\mathbf{D})
+    = \frac{\displaystyle\sum_{k}\sum_{i,j\,\in\, P_k} D_{ij}}
+    {\displaystyle\sum_{i,j} D_{ij}}
+    \label{eq:psi}
+\end{equation}
+$\Psi \in [0,1]$ is the \emph{dependency retention ratio}: the fraction of total
+inter-agent dependency captured within module boundaries.
+High $\Psi$ means the partition cuts predominantly low-dependency edges —
+preserving coordination capacity — while low $\Psi$ means high-dependency edges
+are severed, imposing coordination cost.
+
+\paragraph{Relation to existing partition quality metrics.}
+Graph modularity $Q$~\citep{newmangirvan2004} and normalised
+cut~\citep{shimalik2000} are the standard partition quality metrics.
+$\Psi$ differs from both in two respects.
+First, $\Psi$ requires no null model: $\mathbf{D}$ is already a semantically
+meaningful quantity (MI or Jacobian sensitivity), not raw structural adjacency
+for which a random-graph null is appropriate.
+Second, $\mathbf{D}$ is asymmetric and non-negative (direction matters: agent $j$
+influences $i$ via traffic flow), whereas $Q$ and normalised cut assume undirected
+graphs.
+By computing $\Psi(\mathcal{P}_{\mathrm{InfoMap}},\mathbf{D})$ vs.\
+$\Psi(\mathcal{P}_{\mathrm{METIS}},\mathbf{D})$ on the \emph{same} $\mathbf{D}$,
+we obtain a direct, architecture-independent measure of which partition better
+preserves the inter-agent dependency structure.
+
+\subsection{Coordination Coupling Spectrum}
+\label{sec:levels}
+
+We evaluate the InfoMap partition across three coordination coupling levels,
+using established MARL algorithms as probes. The partition is held fixed across
+all three; only the coordination mechanism varies.
+This design isolates the partition's contribution from algorithm-specific effects,
+and tests whether the dependency retention advantage of InfoMap is
+architecture-agnostic.
+
+\begin{table}[t]
     \centering
-    \fbox{\rule[-.5cm]{0cm}{4cm} \rule[-.5cm]{4cm}{0cm}}
-    \caption{Sample figure caption. Explain what the figure shows and add a key take-away message to the caption.}
-\end{figure}
-
-
-All artwork must be neat, clean, and legible. Lines should be dark enough for
-reproduction purposes. The figure number and caption always appear after the
-figure. Place one line space before the figure caption and one line space after
-the figure. The figure caption should be lower case (except for the first word and proper nouns); figures are numbered consecutively.
-
-
-You may use color figures.  However, it is best for the figure captions and the
-paper body to be legible if the paper is printed in either black/white or in
-color.
-
-
-\subsection{Tables}
-
-
-All tables must be centered, neat, clean, and legible.  The table number and
-title always appear before the table.  See Table~\ref{sample-table}.
-
-
-Place one line space before the table title, one line space after the
-table title, and one line space after the table. The table title must
-be lower case (except for the first word and proper nouns); tables are
-numbered consecutively.
-
-
-Note that publication-quality tables \emph{do not contain vertical rules}. We
-strongly suggest the use of the \verb+booktabs+ package, which allows for
-typesetting high-quality, professional tables:
-\begin{center}
-    \url{https://www.ctan.org/pkg/booktabs}
-\end{center}
-This package was used to typeset Table~\ref{sample-table}.
-
-
-\begin{table}
-    \caption{Sample table caption. Explain what the table shows and add a key take-away message to the caption.}
-    \label{sample-table}
-    \centering
-    \begin{tabular}{lll}
+    \caption{Coordination coupling spectrum. The same InfoMap partition is applied
+        at each level. The dependency instrument column indicates which metric from
+        Section~\ref{sec:psi} measures partition quality at that level, and which
+        operational prediction (OP) links $\Psi$ to expected task improvement.}
+    \label{tab:levels}
+    \small
+    \begin{tabular}{llllll}
         \toprule
-        \multicolumn{2}{c}{Part}                   \\
-        \cmidrule(r){1-2}
-        Name     & Description     & Size ($\mu$m) \\
+        Level & Coupling      & Mechanism                   & Algorithm & Instrument        & Prediction \\
         \midrule
-        Dendrite & Input terminal  & $\approx$100  \\
-        Axon     & Output terminal & $\approx$10   \\
-        Soma     & Cell body       & up to $10^6$  \\
+        L1    & Implicit      & Regional reward averaging   & IPPO/IDQN & $D^{\mathrm{MI}}$ & OP1        \\
+        L2    & Semi-explicit & Regional centralised critic & MAPPO     & $D^{Q}$           & OP2        \\
+        L3    & Explicit      & Regional graph attention    & CoLight   & $D^{G}$           & OP3        \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-\subsection{Math}
-Note that display math in bare TeX commands will not create correct line numbers for submission. Please use LaTeX (or AMSTeX) commands for unnumbered display math. (You really shouldn't be using \$\$ anyway; see \url{https://tex.stackexchange.com/questions/503/why-is-preferable-to} and \url{https://tex.stackexchange.com/questions/40492/what-are-the-differences-between-align-equation-and-displaymath} for more information.)
+\noindent\textbf{Operational predictions.}
+The following are the primary empirical targets of our experimental design,
+derived from H1 and H2 via the causal chain H2$\,\Rightarrow\,$H1$\,\Rightarrow\,$H:
+\begin{description}
+    \item[\textbf{OP1 (L1):}]
+          $\Psi(\mathcal{P}_{\mathrm{InfoMap}}, D^{\mathrm{MI}}) >
+              \Psi(\mathcal{P}_{\mathrm{METIS}}, D^{\mathrm{MI}})$.
+          Within-module reward averaging operates on correlated signals, reducing
+          gradient noise and training instability.
+    \item[\textbf{OP2 (L2):}]
+          $\Psi(\mathcal{P}_{\mathrm{InfoMap}}, D^{Q}) >
+              \Psi(\mathcal{P}_{\mathrm{METIS}}, D^{Q})$.
+          The regional critic captures dominant value dependencies without modelling
+          irrelevant cross-module states, reducing credit-assignment variance.
+    \item[\textbf{OP3 (L3):}]
+          $\Psi(\mathcal{P}_{\mathrm{InfoMap}}, D^{G}) >
+              \Psi(\mathcal{P}_{\mathrm{METIS}}, D^{G})$, observed via a lower
+          influence-weighted attention range $\hat{\rho}_u$ for regional vs.\ global
+          CoLight (Section~\ref{sec:attnrange}), provided module size is
+          sufficient (${\geq}4$ agents per module).
+\end{description}
 
-\subsection{Final instructions}
+\noindent The three OPs together constitute \textbf{Hypothesis H}: an InfoMap
+partition achieves higher $\Psi$ than METIS across all three dependency instruments,
+and this advantage translates to better task performance at each coupling level.
 
-Do not change any aspects of the formatting parameters in the style files.  In
-particular, do not modify the width or length of the rectangle the text should
-fit into, and do not change font sizes. Please note that pages should be
-numbered.
+% ============================================================
+\section{Experiments}
+\label{sec:experiments}
+% §5.1 Setup: Cologne8 (8 int.), Ingolstadt21 (21 int.), [6×6 grid if available]
+%      Baselines: L0 (no-partition) → L1.5 (random-sparse) → METIS → InfoMap
+%      Protocol: rliable — IQM ± stratified bootstrap CI, ≥5 seeds, AUC-LC + ATT
+% §5.2 H1/H2 verification — Fig 2: MI heatmap + module boundaries (run before training)
+% §5.3 Main results — Table 1 + Fig 3 learning curves
+%      IQM ± CI: InfoMap / METIS / None × L1 / L2 / L3, primary: Ingolstadt21
+% §5.4 Ψ predicts performance — Fig 4: scatter ΔΨ vs ΔAUC-LC
+% §5.5 Attention range analysis — Fig 5: D̄_h profile + rollout heatmaps
+\label{sec:attnrange}
+% §5.6 Ablations: module size k, L1.5 sparsification control, reward annealing α(e)
+\textbf{[To be written — Step 7]}
 
+% ============================================================
+\section{Conclusion}
+\label{sec:conclusion}
+% Mechanism: InfoMap → high Ψ → better L1/L2/L3
+% Verified causal chain: H2 ⇒ H1 ⇒ H ⇒ OP1/OP2/OP3
+% Boundary: L3 requires ≥4 agents/module
+% Limitations: warm-up OD approximation; static partition
+% Future: dynamic repartitioning; real-world OD data
+\textbf{[To be written — Step 8]}
 
-\section{Preparing PDF files}
-
-
-Please prepare submission files with paper size ``US Letter,'' and not, for
-example, ``A4.''
-
-
-Fonts were the main cause of problems in the past years. Your PDF file must only
-contain Type 1 or Embedded TrueType fonts. Here are a few instructions to
-achieve this.
-
-
-\begin{itemize}
-
-
-    \item You should directly generate PDF files using \verb+pdflatex+.
-
-
-    \item You can check which fonts a PDF files uses.  In Acrobat Reader, select the
-          menu Files$>$Document Properties$>$Fonts and select Show All Fonts. You can
-          also use the program \verb+pdffonts+ which comes with \verb+xpdf+ and is
-          available out-of-the-box on most Linux machines.
-
-
-    \item \verb+xfig+ ``patterned'' shapes are implemented with bitmap fonts.  Use
-          "solid" shapes instead.
-
-
-    \item The \verb+\bbold+ package almost always uses bitmap fonts.  You should use
-          the equivalent AMS Fonts:
-          \begin{verbatim}
-   \usepackage{amsfonts}
-\end{verbatim}
-          followed by, e.g., \verb+\mathbb{R}+, \verb+\mathbb{N}+, or \verb+\mathbb{C}+
-          for $\mathbb{R}$, $\mathbb{N}$ or $\mathbb{C}$.  You can also use the following
-          workaround for reals, natural and complex:
-          \begin{verbatim}
-   \newcommand{\RR}{I\!\!R} %real numbers
-   \newcommand{\Nat}{I\!\!N} %natural numbers
-   \newcommand{\CC}{I\!\!\!\!C} %complex numbers
-\end{verbatim}
-          Note that \verb+amsfonts+ is automatically loaded by the \verb+amssymb+ package.
-
-
-\end{itemize}
-
-
-If your file contains type 3 fonts or non embedded TrueType fonts, we will ask
-you to fix it.
-
-
-\subsection{Margins in \LaTeX{}}
-
-
-Most of the margin problems come from figures positioned by hand using
-\verb+\special+ or other commands. We suggest using the command
-\verb+\includegraphics+ from the \verb+graphicx+ package. Always specify the
-figure width as a multiple of the line width as in the example below:
-\begin{verbatim}
-   \usepackage[pdftex]{graphicx} ...
-   \includegraphics[width=0.8\linewidth]{myfile.pdf}
-\end{verbatim}
-See Section 4.4 in the graphics bundle documentation
-(\url{http://mirrors.ctan.org/macros/latex/required/graphics/grfguide.pdf})
-
-
-A number of width problems arise when \LaTeX{} cannot properly hyphenate a
-line. Please give LaTeX hyphenation hints using the \verb+\-+ command when
-necessary.
-
+% ============================================================
 \begin{ack}
-    Use unnumbered first level headings for the acknowledgments. All acknowledgments
-    go at the end of the paper before the list of references. Moreover, you are required to declare
-    funding (financial activities supporting the submitted work) and competing interests (related financial activities outside the submitted work).
-    More information about this disclosure can be found at: \url{https://neurips.cc/Conferences/2026/PaperInformation/FundingDisclosure}.
-
-
-    Do {\bf not} include this section in the anonymized submission, only in the final paper. You can use the \texttt{ack} environment provided in the style file to automatically hide this section in the anonymized submission.
+    [Omitted in anonymised submission.]
 \end{ack}
 
+% ============================================================
 \section*{References}
-
-
-References follow the acknowledgments in the camera-ready paper. Use unnumbered first-level heading for
-the references. Any choice of citation style is acceptable as long as you are
-consistent. It is permissible to reduce the font size to \verb+small+ (9 point)
-when listing the references.
-Note that the Reference section does not count towards the page limit.
-\medskip
-
-
 {
     \small
-
-
-    [1] Alexander, J.A.\ \& Mozer, M.C.\ (1995) Template-based algorithms for
-    connectionist rule extraction. In G.\ Tesauro, D.S.\ Touretzky and T.K.\ Leen
-        (eds.), {\it Advances in Neural Information Processing Systems 7},
-    pp.\ 609--616. Cambridge, MA: MIT Press.
-
-
-        [2] Bower, J.M.\ \& Beeman, D.\ (1995) {\it The Book of GENESIS: Exploring
-        Realistic Neural Models with the GEneral NEural SImulation System.}  New York:
-    TELOS/Springer--Verlag.
-
-
-        [3] Hasselmo, M.E., Schnell, E.\ \& Barkai, E.\ (1995) Dynamics of learning and
-    recall at excitatory recurrent synapses and cholinergic modulation in rat
-    hippocampal region CA3. {\it Journal of Neuroscience} {\bf 15}(7):5249-5262.
+    \bibliographystyle{plainnat}
+    \bibliography{refs}
 }
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+% ============================================================
 \appendix
 
-\section{Technical appendices and supplementary material}
-Technical appendices with additional results, figures, graphs, and proofs may be submitted with the paper submission before the full submission deadline (see above). You can upload a ZIP file for videos or code, but do not upload a separate PDF file for the appendix. There is no page limit for the technical appendices.
+\section{Algorithm: InfoMap Coordination Graph Construction}
+\label{app:algorithm}
 
-Note: Think of the appendix as ``optional reading'' for reviewers. The paper must be able to stand alone without the appendix; for example, adding critical experiments that support the main claims to an appendix is inappropriate.
+H1 and H2 are \emph{manipulation checks}, not engineering controls.
+The algorithm always returns the InfoMap partition; the verification results are
+reported as supporting evidence and logged for transparency.
+A failure on a given network indicates a network-specific boundary condition
+(e.g.\ very low overall OD volume, or grid topology with uniform flow) and is
+reported separately.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{algorithm}[H]
+    \caption{Flow-coherent coordination graph construction with dependency verification}
+    \label{alg:infomap}
+    \begin{algorithmic}[1]
+        \Require Traffic network $\mathcal{G} = (\mathcal{V}, \mathcal{E})$,
+        number of modules $K$, warm-up steps $T_w$
+        \Ensure  Partition $\mathcal{M} = \{M_1, \ldots, M_K\}$,\;
+        dependency matrix $\mathbf{D}^{\mathrm{MI}}$,\;
+        verification results $(p_{\mathrm{H1}},\, p_{\mathrm{H2}})$
+        \State Run $T_w$ steps under a uniformly random policy; log all vehicle trips
+        \State Construct $\mathbf{W}$: $\;W_{ij} \leftarrow$ vehicle count $i \to j$
+        \State Apply Infomap to $\mathcal{G}_{\mathrm{OD}} = (\mathcal{V}, \mathcal{E}, \mathbf{W})$
+        $\;\Rightarrow\;$ partition $\mathcal{M} = \{M_1,\ldots,M_K\}$
+        \State Estimate $D^{\mathrm{MI}}_{ij}$ via KSG estimator~\citep{kraskov2004ksg}
+        at $\tau \in \{1,5,15,30\}$ steps
+        \Statex \hspace{1em}\textit{// H2 manipulation check}
+        \State Extract spill-back events from SUMO queue trajectories
+        \State Compute within-module and cross-module spill-back proportions;
+        run one-sample proportion test $\;\Rightarrow\; p_{\mathrm{H2}}$
+        \Statex \hspace{1em}\textit{// H1 manipulation check}
+        \State Classify agent pairs as within-module or cross-module under $\mathcal{M}$
+        \State Compare $D^{\mathrm{MI}}_{ij}$ distributions;
+        run Wilcoxon signed-rank test $\;\Rightarrow\; p_{\mathrm{H1}}$
+        \State \textbf{Report} $(p_{\mathrm{H1}},\, p_{\mathrm{H2}})$;
+        generate MI heatmap with module boundaries (Fig.~2 in main text)
+        \State \Return $\mathcal{M}$,\; $\mathbf{D}^{\mathrm{MI}}$,\;
+        $(p_{\mathrm{H1}},\, p_{\mathrm{H2}})$
+    \end{algorithmic}
+\end{algorithm}
 
-\newpage
-\input{checklist.tex}
+% ============================================================
+\section{Regional MARL Architecture}
+\label{app:arch}
+
+All three coordination levels share a common regional infrastructure.
+Partition assignments are stored in \texttt{cfg.management} (one list of
+agent IDs per module), which is populated from the InfoMap or METIS output
+before any training begins.
+A central helper module (\texttt{agents/common/marl.py}) provides
+\texttt{transform\_reward\_array(scope, rewards, cfg)} --- supporting
+\texttt{local}, \texttt{global\_mean}, and \texttt{regional\_mean} scopes ---
+and \texttt{CentralizedInputBuilder}, which assembles critic observations for
+\texttt{global}, \texttt{regional}, or \texttt{local} scopes and zero-pads
+uneven regional input sizes to a common dimension.
+
+\subsection{L1 --- Regional Reward (IPPO)}
+\label{app:arch:ippo}
+
+Regional IPPO applies flow-partition structure at the reward level only.
+Each agent maintains an independent local actor-critic PPO learner
+(\texttt{agents/policy/pfrl\_ppo.py}); there is no cross-agent parameter
+sharing or communication.
+Before each learner's \texttt{observe()} call, individual scalar rewards
+are passed through \texttt{transform\_reward\_array} with
+\texttt{reward\_scope: regional\_mean}, replacing each agent's reward with
+the arithmetic mean of rewards within its InfoMap module.
+Unassigned agents (singletons not covered by \texttt{cfg.management}) retain
+their individual reward.
+The default configuration (\texttt{config/agent.yaml}) sets
+\texttt{reward\_scope: local}; regional behaviour is enabled by
+\texttt{reward\_scope: regional\_mean}.
+IDQN (\texttt{agents/action\_value/pfrl\_dqn.py}) follows the identical
+reward-rewriting path.
+
+\paragraph{Mechanism.}
+Regional averaging reduces credit-assignment noise when agents within the
+same module experience correlated outcomes (high $D^{\mathrm{MI}}$).
+It is harmful when modules group uncorrelated agents, because the averaged
+signal is less informative than the individual reward.
+This makes IPPO performance at L1 a direct diagnostic of partition quality.
+
+\subsection{L2 --- Regional Critic (MAPPO)}
+\label{app:arch:mappo}
+
+MAPPO is implemented in \texttt{agents/policy/actor\_critic.py} on top of
+\texttt{ActorCriticBase}.
+Actors use local observations and mask invalid actions for heterogeneous
+action spaces (shared actor-network weights across agents).
+The critic input is assembled by \texttt{CentralizedInputBuilder} under
+\texttt{critic\_scope: regional}: each agent's critic receives the concatenated
+observations of all agents in its InfoMap module, zero-padded to the maximum
+regional size.
+Reward sharing is controlled separately via \texttt{reward\_scope}; the
+standard regional MAPPO configuration uses both
+\texttt{critic\_scope: regional} and \texttt{reward\_scope: regional\_mean}.
+
+Global MAPPO (\texttt{critic\_scope: global}) feeds all $N$ agents'
+observations to a single shared critic.
+For $N = 21$ (Ingolstadt21), the global critic input dimension is $21 \times
+    d_{\mathrm{obs}}$, making it substantially harder to train than a regional
+critic of dimension $|M_k| \times d_{\mathrm{obs}}$ where $|M_k| \approx 4$--$5$.
+
+\paragraph{Mechanism.}
+The regional critic captures dominant value dependencies
+($D^Q_{i\leftarrow j}$ high within module) without modelling irrelevant
+cross-module states, reducing critic approximation error and policy-gradient
+variance.
+On networks where a global critic is impractical (large $N$), regional InfoMap
+critics can \emph{outperform} global CTDE, as observed on Ingolstadt21.
+
+\subsection{L3 --- Regional Attention (CoLight)}
+\label{app:arch:colight}
+
+CoLight is implemented in \texttt{agents/action\_value/colight.py}.
+The topology is built from \texttt{signal.yaml} downstream links as
+bidirectional graph edges.
+Two distinct regional variants exist; they test different scientific questions.
+
+\paragraph{Variant A: PartitionedAttentionStack.}
+Enabled by \texttt{colight\_partitioned\_message\_passing: True}.
+One GAT attention stack per module is created; all stacks share the same
+underlying network weights and a single replay buffer.
+Attention is structurally restricted to within-module edges --- agents in
+different modules cannot attend to each other.
+This is the correct variant for testing whether InfoMap topology improves
+the quality of \emph{communication}, as the learned $D^G$ Jacobians are
+computed on a globally-unified model but message-passing is constrained.
+
+\paragraph{Variant B: CoLightRegional.}
+Separate agent class that instantiates one independent
+\texttt{\_CoLightRegionLearner} per partition.
+Each regional learner has its own CoLight network, target network, optimizer,
+replay buffer, action mask, regional edge index, and $\epsilon$-schedule.
+\texttt{CoLightRegional.observe()} converts individual rewards to the mean
+reward within each region before inserting transitions into that region's
+replay buffer.
+This variant tests whether divide-and-conquer training by region is beneficial;
+it is \emph{not} equivalent to restricting communication in a global model.
+When module size is small ($|M_k| \lesssim 3$), Variant B creates highly
+under-sampled regional learners with unstable target networks.
+
+\paragraph{Fallback.}
+If \texttt{cfg.management} is absent, both variants fall back to one global
+region covering all agents.
+
+% ============================================================
+\section{Preliminary Results (Work in Progress)}
+\label{app:results}
+
+All values are \textbf{final-episode eval metrics} (single seed) unless noted.
+Episode counts below 1500 indicate runs that have not yet completed.
+Lower is better for all metrics.
+Delay $=$ timeLoss (s/veh); Trip $=$ duration (s/veh);
+Wait $=$ waitingTime (s/veh); Queue $=$ mean queue length (veh/intersection).
+
+\subsection{Cologne8 (C8, 8 intersections, k\,=\,3, seed\,0, 1500\,ep)}
+\label{app:results:c8}
+
+\begin{table}[H]
+\centering
+\caption{Cologne8 --- full 4-metric results. All runs complete (1500\,ep)
+    except IDQN baseline (crashed ep\,1340, marked $\dagger$).
+    Seed 7 used for CoLight runs; all others seed 0.}
+\label{tab:c8_full}
+\small
+\begin{tabular}{llrrrr}
+    \toprule
+    Algorithm & Condition                        & Delay & Trip   & Wait  & Queue \\
+    \midrule
+    \multirow{3}{*}{IPPO}
+              & No partition (baseline)          & 39.17 & 104.35 & 19.32 & 2.22  \\
+              & + InfoMap flow k3                & 27.12 & 91.94  & 11.54 & 1.24  \\
+              & + METIS k3                       & 33.76 & 100.13 & 17.43 & 1.69  \\
+    \midrule
+    \multirow{3}{*}{MAPPO}
+              & No partition (baseline)          & 29.69 & 94.54  & 13.66 & 1.42  \\
+              & + InfoMap flow k3                & 25.27 & 90.20  & 9.63  & 1.12  \\
+              & + METIS k3                       & 26.78 & 91.74  & 10.32 & 1.24  \\
+    \midrule
+    \multirow{3}{*}{IDQN}
+              & No partition (baseline)$\dagger$ & 23.69 & 88.63  & 7.40  & 1.03  \\
+              & + InfoMap flow k3                & 27.68 & 92.55  & 10.50 & 1.32  \\
+              & + METIS k3                       & 25.26 & 90.29  & 8.73  & 1.18  \\
+    \midrule
+    \multirow{3}{*}{CoLight (seed 7)}
+              & No partition (baseline)          & 33.58 & 98.64  & 16.20 & 1.77  \\
+              & + InfoMap flow k3                & 46.81 & 112.22 & 28.06 & 2.69  \\
+              & + METIS k3                       & 34.14 & 99.02  & 15.92 & 1.82  \\
+    \bottomrule
+\end{tabular}
+\end{table}
+
+\noindent\textbf{Notes.}
+IDQN baseline crashed at episode 1340; its metrics are not comparable to
+stable runs and IDQN is excluded from main-text analysis.
+CoLight+flow k3 diverged (wait rises to 40--121\,s/veh after ep\,700);
+root cause: $|M_k| \approx 2$--3 agents per module is insufficient for
+CoLight's attention mechanism.
+CoLight+METIS k3 matches the no-partition baseline within noise.
+MAPPO+flow achieves the best wait time (9.63\,s/veh) across all valid conditions.
+
+\subsection{Ingolstadt21 (I21, 21 intersections, seed\,0)}
+\label{app:results:i21}
+
+\begin{table}[H]
+\centering
+\caption{Ingolstadt21 MAPPO and IPPO --- all runs complete (1500\,ep).
+    IPPO baseline crashed at ep\,1200 (marked $\dagger$).}
+\label{tab:i21_mappo_ippo}
+\small
+\begin{tabular}{lllrrrr}
+\toprule
+Algorithm & Condition & $k$ & Delay & Trip & Wait & Queue \\
+\midrule
+\multirow{5}{*}{MAPPO}
+& Global (no partition) & --- &  566.43 & 659.06 & 484.19 &  9.59 \\
+& + InfoMap flow        & 4   &  191.25 & 326.29 & \textbf{140.96} &  4.44 \\
+& + InfoMap flow        & 5   &  262.48 & 328.83 & 160.51 &  4.24 \\
+& + METIS               & 4   &  607.96 & 547.39 & 401.17 &  7.88 \\
+& + METIS               & 5   &  746.90 & 828.65 & 640.82 & 11.62 \\
+\midrule
+\multirow{5}{*}{IPPO}
+& Local (no partition)$\dagger$ & --- & 908.49 & 870.11 & 733.19 & 11.28 \\
+& + InfoMap flow        & 4   &  619.43 & 725.58 & 564.96 &  8.05 \\
+& + InfoMap flow        & 5   &  253.14 & 382.59 & \textbf{202.71} &  4.89 \\
+& + METIS               & 4   & 1048.57 & 962.23 & 846.14 & 12.14 \\
+& + METIS               & 5   &  694.80 & 670.52 & 526.10 &  7.90 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+    \centering
+    \caption{Ingolstadt21 CoLight --- all runs \textbf{incomplete} (target:
+        1500\,ep). Episode counts indicate training progress at logging time.
+        Two CoLight variants: Variant~A (PartitionedAttentionStack, shared
+        network) and Variant~B (CoLightRegional, separate per-region learners).
+        Seed 7 for Variant~B; seed varies for Variant~A.}
+    \label{tab:i21_colight}
+    \small
+    \begin{tabular}{lllrrrrrr}
+        \toprule
+        Variant & Condition                 & $k$ & Delay   & Trip   & Wait            & Queue & Ep   \\
+        \midrule
+        \multirow{3}{*}{A (Partitioned)}
+                & Fixed topology (baseline) & --- & 731.74  & 734.21 & 591.26          & 9.36  & 800  \\
+                & + InfoMap flow            & --- & 535.18  & 526.03 & \textbf{365.26} & 7.46  & 620  \\
+                & + METIS                   & --- & 953.24  & 832.20 & 702.45          & 13.01 & 630  \\
+        \midrule
+        \multirow{3}{*}{B (Regional)}
+                & No partition (baseline)   & --- & 1031.66 & 870.62 & 747.70          & 9.91  & 1050 \\
+                & + InfoMap flow            & 5   & 902.20  & 746.84 & \textbf{629.34} & 10.37 & 910  \\
+                & + METIS                   & 5   & 944.03  & 784.10 & 656.28          & 9.43  & 820  \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\noindent\textbf{Notes.}
+MAPPO+flow\,k4 (wait\,=\,140.96) outperforms the global no-partition MAPPO
+(484.19) by $3.43\times$, and outperforms METIS\,k4 (401.17) by $2.85\times$.
+IPPO+flow\,k5 (202.71) outperforms IPPO+METIS\,k5 (526.10) by $2.6\times$.
+MAPPO flow benefits from coarser partitions ($k$\,=\,4); IPPO benefits from
+finer partitions ($k$\,=\,5) --- consistent with the different roles of the
+partition at each coupling level.
+CoLight Variant~A with flow partition shows 365.26 wait at ep\,620, the
+best CoLight result on I21; this run should be completed to 1500\,ep.
+CoLight Variant~B (separate learners) is stable on I21 ($|M_k| \approx 4$
+agents/module) unlike on C8 ($|M_k| \approx 2$); flow beats no-partition but
+has not reached convergence.
+
+\paragraph{Open runs (as of 2026-06-30).}
+\begin{itemize}
+    \item CoLight Variant~A flow (I21) --- \textbf{resume to 1500\,ep}
+    \item CoLight Variant~A METIS (I21) --- resume to 1500\,ep
+    \item MAPPO/IPPO no-partition baseline (I21 -- crashed runs)
+    --- rerun with fixed seed
+    \item Multi-seed expansion ($\geq$5 seeds): MAPPO+flow\,k4 on I21
+    (primary condition for rliable evaluation)
+\end{itemize}
 
 
 \end{document}
