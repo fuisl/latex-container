@@ -71,13 +71,83 @@ spill-back containment (H2) as the causal mechanism.
 % ============================================================
 \section{Background}
 \label{sec:background}
-% §2.1 ND-POMDP and the coordination graph
-%   Three TSC-specific motivating attributes:
-%   (a) reward locality: r = Σ_i r_i + Σ_{(i,j)∈G_C} r_ij  (spill-back interaction terms)
-%   (b) tractability: joint action space O(|A|^ω), ω = max clique size in G_C
-%   (c) G_C is a free design variable; InfoMap supplies the principled answer
-% §2.2 Map equation: L(M) = q·H(Q) + Σ p_k·H(P_k); no resolution limit
-\textbf{[To be written — Step 4]}
+
+\subsection{Network-Distributed POMDP and the Coordination Graph}
+\label{sec:ndpomdp}
+
+Each signalised intersection $i \in \mathcal{V}$ observes a local state
+$o_i$ (queue lengths, current phase, elapsed phase time) and selects a
+phase action $a_i \in \mathcal{A}_i$.
+We model the joint problem as a \emph{network-distributed POMDP} (ND-POMDP),
+in which a coordination graph $\mathcal{G}_C = (\mathcal{V}, \mathcal{E}_C)$
+encodes which agent pairs share explicit interaction terms in the joint reward.
+Three structural properties of TSC motivate this formulation.
+
+\textbf{(a) Reward locality with spill-back coupling.}
+The immediate reward $r_i$ depends primarily on queues and delays at
+intersection $i$, making it nearly local.
+However, when downstream lanes saturate, backward-propagating queue waves
+couple $r_i$ to the actions at neighbouring intersection $j$ via
+spill-back~\citep{dependencydyn2025}.
+The ND-POMDP captures this through interaction terms:
+\begin{equation}
+    R(\mathbf{a})
+    \;=\; \sum_{i \in \mathcal{V}} r_i(o_i, a_i)
+    \;+\; \sum_{(i,j)\in\mathcal{E}_C} r_{ij}(o_i, o_j, a_i, a_j).
+    \label{eq:ndpomdp}
+\end{equation}
+Edges in $\mathcal{G}_C$ mark pairs where the cross-agent term $r_{ij}$ is
+non-negligible; omitting a spill-back edge misattributes joint outcomes to
+independent agents.
+
+\textbf{(b) Tractability via maximum clique size.}
+Exact coordination over a clique of $\omega$ agents requires evaluating
+$|\mathcal{A}|^\omega$ joint actions.
+Partitioning $\mathcal{V}$ into modules of bounded size
+$|M_k| \leq \omega_{\max}$ keeps this tractable; in TSC networks
+$\omega_{\max} = 4$--$6$ is sufficient in practice.
+
+\textbf{(c) $\mathcal{G}_C$ is a free design variable.}
+Unlike environments where the coordination graph is determined by the physics,
+in TSC the coordination modules are explicitly constructed before training.
+This makes partition selection the central algorithmic question: which graph
+minimises the coordination cost severed by module boundaries?
+Attribute~(a) answers what ``coordination cost'' means: the mass of spill-back
+interaction terms $r_{ij}$ cut by the partition.
+Attributes~(a)–(c) together motivate using OD vehicle flow as the partition
+criterion, and Section~\ref{sec:infomap} makes this precise.
+
+\subsection{The Map Equation}
+\label{sec:mapeq}
+
+InfoMap~\citep{rosvall2008maps,rosvall2009mapequation} finds a partition by
+minimising the description length of a random walk on a weighted directed graph:
+\begin{equation}
+    L(\mathcal{M})
+    \;=\; q_{\circlearrowleft} H(\mathcal{Q})
+    \;+\; \sum_{k=1}^{K} p_k^{\circlearrowleft} H(\mathcal{P}_k),
+    \label{eq:mapeq}
+\end{equation}
+where $q_{\circlearrowleft}$ is the aggregate rate of inter-module random-walk
+transitions, $H(\mathcal{Q})$ is the entropy of the between-module codebook,
+$p_k^{\circlearrowleft}$ is the within-module random-walk rate for $M_k$, and
+$H(\mathcal{P}_k)$ is the within-module codebook entropy.
+Minimising $L(\mathcal{M})$ minimises the average bits required to describe
+the walker's trajectory, which is achieved by grouping nodes that exchange the
+most flow into the same module --- so that the walker rarely crosses module
+boundaries and the between-module term $q_{\circlearrowleft}H(\mathcal{Q})$
+stays small.
+
+Applied to $\mathcal{G}_{\mathrm{OD}}$, InfoMap groups intersections that
+exchange the most vehicle volume.
+As we show in Section~\ref{sec:infomap}, these are exactly the pairs most
+likely to be coordination-necessary via spill-back, connecting the
+information-theoretic objective of Eq.~\eqref{eq:mapeq} to the traffic-theoretic
+requirement of Eq.~\eqref{eq:ndpomdp}.
+Unlike modularity maximisation~\citep{newmangirvan2004}, the map equation has
+no resolution limit~\citep{edler2023community}: it detects modules at any
+scale present in the data without merging fine-grained clusters that are
+genuinely distinct.
 
 % ============================================================
 \section{Related Work}
