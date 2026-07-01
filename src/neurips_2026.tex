@@ -59,10 +59,13 @@ spill-back containment (H2) as the causal mechanism.
 \section{Introduction}
 \label{sec:intro}
 % Para 1 — Problem: TSC at scale; coordination graph design as the open question
-% Para 2 — Gap (two layers):
+% Para 2 — Gap (two layers, plus the meta-gap that motivates closing them):
 %   Structural: existing partitions (METIS, Laplacian, feudal) use topology, not OD flow
 %   Theoretical: dynamic graph attention learns structure implicitly but provides no
 %                principled account of which dependencies are preserved or severed
+%   Meta-gap: no prior work supplies a principled rationale — connecting graph theory,
+%             information theory, and MARL — for *which* partitioning criterion to
+%             choose; we supply this rationale and operationalise it via InfoMap
 % Para 3 — Insight + method: OD flow is the natural basis; InfoMap is the
 %           information-theoretic criterion; coordination coupling spectrum (L1/L2/L3)
 % Para 4 — Contributions (bulleted, 4 items)
@@ -370,7 +373,9 @@ using established MARL algorithms as probes. The partition is held fixed across
 all three; only the coordination mechanism varies.
 This design isolates the partition's contribution from algorithm-specific effects,
 and tests whether the dependency retention advantage of InfoMap is
-architecture-agnostic.
+architecture-agnostic. IDQN, also compatible in principle with L1's reward-averaging
+mechanism, is deferred from the main results pending further investigation into
+an observed failure mode under regional reward averaging (Appendix~\ref{app:results}).
 
 \begin{table}[t]
     \centering
@@ -384,7 +389,7 @@ architecture-agnostic.
         \toprule
         Level & Coupling      & Mechanism                   & Algorithm & Instrument        & Prediction \\
         \midrule
-        L1    & Implicit      & Regional reward averaging   & IPPO/IDQN & $D^{\mathrm{MI}}$ & OP1        \\
+        L1    & Implicit      & Regional reward averaging   & IPPO      & $D^{\mathrm{MI}}$ & OP1        \\
         L2    & Semi-explicit & Regional centralised critic & MAPPO     & $D^{Q}$           & OP2        \\
         L3    & Explicit      & Regional graph attention    & CoLight   & $D^{G}$           & OP3        \\
         \bottomrule
