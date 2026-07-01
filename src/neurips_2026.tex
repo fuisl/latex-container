@@ -259,6 +259,23 @@ The coordination-necessary pair and the high-OD-flow pair are thus the same pair
 on the same corridor.
 
 \medskip
+\noindent\textbf{Theoretical grounding: why containment, not just correlation, matters.}
+Spill-back containment has a formal interpretation beyond the statistical test above.
+In the Lyapunov-drift framework for constrained queueing networks~\citep{tassiulas1992stability},
+a decentralised scheduler preserves the stability region of a centralised one only if it
+can react to the joint queue state of servers whose queues are dynamically coupled;
+max-pressure signal control~\citep{varaiya2013maxpressure} instantiates exactly this
+drift argument for signalised intersections via a quadratic Lyapunov function over
+per-approach queue lengths.
+Read against that framework, H2 states the condition under which cutting a
+coordination-graph edge is safe: an edge can be severed without sacrificing the
+stability that joint observation would provide only if spill-back across it is rare.
+We do not derive a stability guarantee for the learned MARL policies studied here;
+we invoke this literature as the control-theoretic motivation for treating spill-back
+rate, rather than mutual information alone, as the criterion that should gate which
+edges a partition is permitted to cut.
+
+\medskip
 H2 is the traffic-theoretic \emph{mechanism} behind H1: spill-back containment
 causes within-module states to co-vary via shared congestion propagation, raising
 $I(X_i;\,X_j)$ above the cross-module baseline.
