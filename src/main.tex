@@ -55,7 +55,7 @@ literature---MARL-TSC communication protocols, network partitioning for traffic
 management, and flow-based community detection---reveals a clear gap: no
 existing study applies flow-based community detection to define MARL
 communication neighbourhoods in TSC. The information bottleneck~(IB) framework
-widely applied in MARL communication~\cite{ding2021imac} provides motivating
+widely applied in MARL communication~\cite{wang2020imac} provides motivating
 grounding: InfoMap provides a domain-motivated communication prior that reduces
 the topology search space that IB methods must otherwise explore from task
 reward signals alone---though the formal equivalence between the two objectives
@@ -267,9 +267,13 @@ GAT into regional GATs aligned with InfoMap modules.
 \textbf{Representational communication}~\cite{bokade2023representational} shows
 that message quality limits large-scale TSC coordination; \textbf{CVDMARL}~\cite{cvdmarl2024}
 confirms structured communication outperforms independent learning.
-\textbf{HiLight}~\cite{zhu2026hilight} and \textbf{Li et al.}~\cite{li2025topology}
-show that region definition and explicit topological structure beyond the road
-graph improve MARL performance, though neither uses OD flow as the partitioning signal.
+\textbf{HiLight}~\cite{xu2021hilight} shows that a high-level policy selecting
+among short-term sub-policies, weighted by neighbourhood objectives, improves
+large-scale TSC coordination, and \textbf{HALO}~\cite{zhu2026halo} extends this
+with adversarially-aligned global guidance---but neither defines coordination
+regions from network structure. \textbf{Li et al.}~\cite{li2025topology} does
+introduce explicit topological structure beyond the road graph, though not
+OD-flow-based partitioning.
 \textbf{RegionLight}~\cite{regionlight2024} and \textbf{NeurComm}~\cite{neurcomm}
 further confirm neighbourhood scope shapes coordination quality.
 
@@ -305,8 +309,10 @@ can drift from converged-policy optima; (iii)~InfoMap partitions transfer to
 new networks via OD data alone, without MARL retraining.
 
 \textbf{IB methods} formalise the communication design question.
-IMAC~\cite{ding2021imac} achieves ${>}80\%$ message reduction while retaining
-task-relevant MI; IB-VQ~\cite{sun2026ibvq} extends this to bandwidth-efficient
+IMAC~\cite{wang2020imac} learns a minimal sufficient message representation by
+maximising MI between the message and the selected action while constraining MI
+between the message and the agent's own feature, retaining task-relevant
+information under a bandwidth constraint; IB-VQ~\cite{sun2026ibvq} extends this to bandwidth-efficient
 discrete coding; Heterogeneous IB Coordination Graphs~\cite{hetib2025}
 co-design graph structure and per-edge bandwidth.
 InfoMap provides a domain-motivated topology prior that reduces the search space
@@ -325,21 +331,32 @@ concentrate spatial dependency within InfoMap modules.
 
 \textbf{Laplacian partitioning}~\cite{laplacian2009ieee} identifies signal
 coordination groups spectrally, but from road-network topology rather than flow.
-\textbf{OD-flow partitioning}~\cite{odflow2019partition} demonstrates that
-flow-derived partitions outperform adjacency-based methods on delay and
-speed---the strongest empirical precedent for our hypothesis.
+\textbf{OD-flow partitioning}~\cite{odflow2019partition} demonstrates, on
+real-world smartphone OD trace data, that modularity-based community detection
+recovers spatially coherent regions from directional trip volume rather than
+static adjacency---evidence that flow, not just topology, is a viable partitioning
+signal, though the study targets urban mobility structure rather than TSC control
+outcomes directly.
 \textbf{MFD-based partitioning}~\cite{mfdpartition2020,communitydetection2021plosone}
 targets density homogeneity for perimeter control, not OD flow coherence.
 
 \textbf{Feudal MARL with Adaptive Partition}~\cite{ma2022feudal} is the closest
-prior work, using GNN+MCTS to partition the network for a feudal hierarchy.
-Key differences: criterion is reward-driven (not flow-based OD); partition
-defines a policy hierarchy (not a communication topology); information-theoretic
-partition properties are not analysed.
+prior work: it also partitions the network according to traffic flow, using a
+GNN or MCTS-guided GNN to learn the partition. Key differences: their partition
+is learned end-to-end and opaque, requiring training and re-training per network,
+whereas ours optimises a closed-form, principled objective (the map equation)
+requiring no MARL training; their partition defines a \emph{policy hierarchy}
+(manager/worker), ours defines a \emph{coordination graph}; and no
+information-theoretic partition-quality analysis (analogous to our $\Psi$) is
+reported. Their earlier fixed-region predecessor,
+FMA2C~\cite{ma2020fma2c}, uses static manager-defined regions rather than
+adaptive or flow-derived ones.
 
-\textbf{GPLight}~\cite{liu2023gplight} groups agents by observation MI for
-parameter sharing rather than communication topology design; clusters are
-learned during training, not pre-computed from domain data.
+\textbf{GPLight}~\cite{liu2023gplight} groups agents for parameter sharing using
+an MI-based loss over both real-time traffic flow and static road topology
+jointly with training; unlike our approach, the grouping criterion is fused
+into one architecture-specific loss rather than being a pre-computed,
+algorithm-agnostic prior applicable across different coordination mechanisms.
 
 \subsection{InfoMap in Urban Mobility and Temporal Stability}
 
@@ -706,9 +723,9 @@ properties relevant to our hypothesis.
     ExpoComm~\cite{expocomm2025}
                          & Graph diameter          & Yes     & No       & Yes \\
     GPLight~\cite{liu2023gplight}
-                         & Observation MI          & Partial & No       & Partial \\
+                         & Observation MI + flow   & Partial & Partial  & Partial \\
     Ma \& Wu~\cite{ma2022feudal}
-                         & Reward signal           & No      & Indirect & No \\
+                         & OD flow (learned via GNN/MCTS) & No & Yes & No \\
     \textbf{InfoMap (proposed)}
                          & OD flow dynamics        & \textbf{Yes}
                                                             & \textbf{Yes}
@@ -966,7 +983,7 @@ $k$-hop neighbours is confounded between flow structure and reduced degree.
     L1   & $k=1$ hop neighbours             & Road adjacency \\
     L1.5 & Random sparse graph (same degree as InfoMap) & None (sparsification control) \\
     L2   & METIS partition                  & Graph balance (structural) \\
-    L3   & GPLight MI clustering~\cite{liu2023gplight} & Observation MI \\
+    L3   & GPLight MI clustering~\cite{liu2023gplight} & Observation MI + real-time flow \\
     L4   & \textbf{InfoMap partition (proposed)} & OD flow dynamics \\
     L5   & InfoMap + IB-VQ compression~\cite{sun2026ibvq} & OD flow + bandwidth opt.\\
     \bottomrule
@@ -1514,20 +1531,26 @@ mitigations.
 
 \subsection{Relationship to Prior Work}
 
-\textbf{Ma \& Wu}~\cite{ma2022feudal} use reward-driven partitioning in a
-feudal policy hierarchy. Three distinctions: (i)~their partition criterion
-is reward signal (learned from task), ours is OD flow (domain knowledge,
-independent of training); (ii)~their partition defines a \emph{policy
-  hierarchy}, ours defines a \emph{coordination graph}; (iii)~they provide
-no information-theoretic analysis of partition quality.
+\textbf{Ma \& Wu}~\cite{ma2022feudal} also partition by OD flow, but learn the
+partition end-to-end via a GNN or MCTS-guided GNN in a feudal policy hierarchy.
+Three distinctions remain: (i)~their partition criterion is flow-based but
+\emph{learned and opaque}, requiring training (and re-training per network);
+ours is a closed-form optimisation of the map equation, requiring no MARL
+training and recomputable directly from a new network's OD data; (ii)~their
+partition defines a \emph{policy hierarchy}, ours defines a
+\emph{coordination graph}; (iii)~they provide no information-theoretic
+analysis of partition quality analogous to $\Psi$.
 
 \textbf{GPLight}~\cite{liu2023gplight} groups agents by current-state
-observation MI. Our approach uses future-state propagation (OD flow
-dynamics), which is more directly predictive of coordination needs:
-the relevant MI for communication is $I(X_i(t); X_j(t+\tau))$, the
-future-state signal, not $I(X_i(t); X_j(t))$, the current-state signal.
-Furthermore, GPLight's partition is task-dependent and non-transferable;
-ours is pre-computed from infrastructure data.
+observation MI jointly with real-time traffic flow and static topology, fused
+into one training-time loss. Our approach differs in two ways: (i)~we use
+future-state propagation (OD flow dynamics), which is more directly
+predictive of coordination needs---the relevant MI for communication is
+$I(X_i(t); X_j(t+\tau))$, the future-state signal, not $I(X_i(t); X_j(t))$,
+the current-state signal; (ii)~GPLight's grouping is learned jointly with one
+specific architecture and is not shown to transfer across coordination
+mechanisms, whereas ours is pre-computed from infrastructure data, independent
+of training, and applied identically across three distinct coordination levels.
 
 \textbf{STMARL}~\cite{stmarl2020} demonstrates that spatial coordination
 dependency dominates temporal dependency in MARL-TSC, motivating the
