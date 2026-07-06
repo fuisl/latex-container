@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(lualatex -interaction=nonstopmode -output-directory=out src/main.tex)",
+      "Bash(lualatex --output-directory=out src/neurips_2026.tex)",
+      "Bash(lualatex --output-directory=../out neurips_2026.tex)",
+      "Bash(bibtex ../out/neurips_2026)",
+      "Bash(bibtex neurips_2026)",
+      "Bash(pdfinfo /workspace/out/neurips_2026.pdf)",
+      "Bash(pdfinfo ../out/neurips_2026.pdf)",
+      "WebSearch",
+      "WebFetch(domain:arxiv.org)",
+      "WebFetch(domain:ieeexplore.ieee.org)",
+      "WebFetch(domain:semanticscholar.org)",
+      "WebFetch(domain:www.mdpi.com)",
+      "WebFetch(domain:www.semanticscholar.org)",
+      "WebFetch(domain:pmc.ncbi.nlm.nih.gov)",
+      "WebFetch(domain:kclpure.kcl.ac.uk)",
+      "Bash(grep -v \"^$\")",
+      "Bash(bibtex /workspace/out/neurips_2026)",
+      "Bash(TEXMFOUTPUT=/workspace/out bibtex /workspace/out/neurips_2026)",
+      "mcp__wandb__probe_project_tool",
+      "mcp__wandb__query_wandb_tool",
+      "Bash(find / -iname \"MODE_REGISTRY.md\")",
+      "Bash(find / -path \"*academic-paper/SKILL.md\")",
+      "WebFetch(domain:doi.org)",
+      "WebFetch(domain:aaai.org)",
+      "Bash(echo \"exit:$?\")",
+      "WebFetch(domain:aamas.csc.liv.ac.uk)",
+      "Bash(grep -oP '\\(?<=@\\\\w{3,20}\\\\{\\)[^,]+' src/refs.bib)",
+      "Bash(TEXINPUTS=../src: BIBINPUTS=../src: lualatex -interaction=nonstopmode -output-directory=. ../src/neurips_2026.tex)",
+      "Read(//tmp/**)",
+      "Bash(BIBINPUTS=../src: bibtex neurips_2026)",
+      "Bash(TEXINPUTS=../src: lualatex -interaction=nonstopmode -output-directory=. ../src/neurips_2026.tex)",
+      "Bash(pdftotext neurips_2026.pdf -)",
+      "mcp__wandb__list_entities_tool",
+      "Bash(python3 *)",
+      "Read(//dev/**)",
+      "Bash(pdfinfo neurips_2026.pdf)"
+    ]
+  }
+}
