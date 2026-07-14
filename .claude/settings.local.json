@@ -36,7 +36,16 @@
       "mcp__wandb__list_entities_tool",
       "Bash(python3 *)",
       "Read(//dev/**)",
-      "Bash(pdfinfo neurips_2026.pdf)"
+      "Bash(pdfinfo neurips_2026.pdf)",
+      "Bash(lualatex -interaction=nonstopmode -halt-on-error main.tex)",
+      "Bash(echo \"pass1: $?\")",
+      "Bash(bibtex main *)",
+      "Bash(echo \"bibtex: $?\")",
+      "Bash(echo \"pass3: $?\")",
+      "Bash(echo \"exit: $?\")",
+      "Bash(grep -n \"mapequation\\\\|gate\\\\|Gate\\\\|H2\\\\$\\\\\\\\\\\\\\\\,\\\\\\\\\\\\\\\\Rightarrow\\\\|mandatory\\\\|no resolution limit\\\\|verified\" main.tex)",
+      "Bash(pdfinfo main.pdf)",
+      "Bash(awk -F: '$2 !~ /^[[:space:]]*%/')"
     ]
   }
 }

@@ -17,6 +17,15 @@
 \usepackage{multirow}
 \usepackage{algorithm}
 \usepackage{algpseudocode}
+\usepackage{amsthm}
+
+\newtheorem{proposition}{Proposition}
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}{Corollary}[proposition]
+\newtheorem{lemma}{Lemma}
+\theoremstyle{definition}
+\newtheorem{assumption}{Assumption}
+\renewcommand{\theassumption}{A\arabic{assumption}}
 
 \title{Flow-Retaining Road Network Partitioning for Coordination-Aware Reinforcement Learning in Traffic Signal Control}
 
@@ -30,42 +39,60 @@ Duong Tran Hai
 
 % ============================================================
 \begin{abstract}
-    % TODO — write after all sections are drafted.
-    % Target: 150–200 words.
+    % TODO --- write after all sections are drafted.
+    % Target: 150--200 words.
     % Structure: (1) problem + gap, (2) method, (3) key result, (4) significance
     %
     % Draft placeholder:
     Coordinating traffic signal agents in multi-agent reinforcement learning
     (MARL) requires partitioning intersections into coordination groups, yet
     existing partitions use road topology rather than vehicle flow structure.
-    We therefore study how different partitioning strategies preserve or sever inter-agent dependencies, and whether higher dependency preservation translates into better multi-agent coordination. We apply InfoMap, an information-theoretic community detection algorithm
-    grounded in origin-destination (OD) vehicle flow, to define
-    flow-coherent coordination modules, and evaluate its effect systematically
-    across three coordination coupling levels: reward shaping (IPPO), centralized
-    critic (MAPPO) and graph attention (CoLight).
-    We introduce the \emph{dependency retention ratio}~$\Psi$, a partition quality metric computed from mutual information and Jacobian-based dependency
-    instruments, and show that InfoMap achieves higher $\Psi$ than topology-based
-    partitions (METIS) across all three levels.
-    Experiments in real SUMO scenarios demonstrate up to $2.85\times$ reduction in
-    the average vehicle waiting time, with verified spatial advantage of MI (H1) and
-    spill containment (H2) as the causal mechanism.
+    We develop a retention-based theory of partition quality that answers
+    \emph{what a partition should preserve} and \emph{why flow is a valid
+    training-free surrogate}. The theory is a three-link chain: (i)~the map
+    equation's inter-module codelength term equals one minus the flow retention
+    $\Phi$ exactly, so InfoMap maximises an entropy-regularised flow retention;
+    (ii)~under flow-local traffic dynamics, flow cut by a partition upper-bounds
+    the inter-agent statistical dependency it cuts; and (iii)~under networked-MARL
+    locality assumptions, cut dependency upper-bounds the value loss of regional
+    decomposition. Minimising the map equation therefore minimises an upper bound
+    on the value loss of regional MARL. We operationalise the chain with the
+    \emph{dependency retention ratio}~$\Psi$, computed from mutual-information
+    and Jacobian-based dependency instruments, and evaluate InfoMap against
+    topology-based partitioning (METIS) across three coordination coupling
+    levels: reward sharing (IPPO), centralised critic (MAPPO), and graph
+    attention (CoLight). InfoMap attains higher $\Phi$ and $\Psi$ across
+    networks and instruments, and experiments in real SUMO scenarios show up to
+    $2.85\times$ reduction in average vehicle waiting time, with spill-back
+    containment and spatial mutual-information advantage as operational
+    signatures of the predicted mechanism.
 \end{abstract}
 
 % ============================================================
 \section{Introduction}
 \label{sec:intro}
-% Para 1 — Problem: TSC at scale; coordination graph design as the open question
-% Para 2 — Gap (two layers, plus the meta-gap that motivates closing them):
+% Para 1 --- Problem: TSC at scale; coordination graph design as the open question
+% Para 2 --- Gap (two layers, plus the meta-gap that motivates closing them):
 %   Structural: existing partitions (METIS, Laplacian, feudal) use topology, not OD flow
 %   Theoretical: dynamic graph attention learns structure implicitly but provides no
 %                principled account of which dependencies are preserved or severed
-%   Meta-gap: no prior work supplies a principled rationale — connecting graph theory,
-%             information theory, and MARL — for *which* partitioning criterion to
+%   Meta-gap: no prior work supplies a principled rationale --- connecting graph theory,
+%             information theory, and MARL --- for *which* partitioning criterion to
 %             choose; we supply this rationale and operationalise it via InfoMap
-% Para 3 — Insight + method: OD flow is the natural basis; InfoMap is the
+% Para 3 --- Insight + method: OD flow is the natural basis; InfoMap is the
 %           information-theoretic criterion; coordination coupling spectrum (L1/L2/L3)
-% Para 4 — Contributions (bulleted, 4 items)
-\textbf{[To be written — Step 6]}
+% Para 4 --- Contributions (bulleted, 4 items). Post-2026-07 retention-first framing:
+%   C1 Flow-based regional MARL partitioning: InfoMap on OD-demand graphs across
+%      reward sharing / centralised critic / graph attention coupling levels
+%   C2 Retention-based partition quality theory: first formal chain connecting
+%      map-equation minimisation to an upper bound on regional-MARL value loss
+%      (Prop. 1 exact identity; Prop. 2 flow⇒dependency transfer; Thm. 1 imported
+%      value-loss bound) --- replaces the earlier H1/H2-gated phrasing
+%   C3 Standardised metrics: Φ, Ψ, and size-matched-adjusted Ψ_adj, with a
+%      partition-level permutation test replacing pairwise hypothesis gates
+%   C4 Empirical validation: Ψ predicts performance trends better than
+%      topology-only criteria; k-reversal located as the predicted phase boundary
+\textbf{[To be written --- Step 6]}
 
 % ============================================================
 \section{Background}
@@ -113,7 +140,7 @@ This makes partition selection the central algorithmic question: which graph
 minimises the coordination cost severed by module boundaries?
 Attribute~(a) answers what ``coordination cost'' means: the mass of spill-back
 interaction terms $r_{ij}$ cut by the partition.
-Attributes~(a)–(c) together motivate using OD vehicle flow as the partition
+Attributes~(a)--(c) together motivate using OD vehicle flow as the partition
 criterion, and Section~\ref{sec:infomap} makes this precise.
 
 \subsection{The Map Equation}
@@ -139,30 +166,51 @@ stays small.
 
 Applied to $\mathcal{G}_{\mathrm{OD}}$, InfoMap groups intersections that
 exchange the most vehicle volume.
-As we show in Section~\ref{sec:infomap}, these are exactly the pairs most
+As we show in Section~\ref{sec:theory}, these are exactly the pairs most
 likely to be coordination-necessary via spill-back, connecting the
 information-theoretic objective of Eq.~\eqref{eq:mapeq} to the traffic-theoretic
 requirement of Eq.~\eqref{eq:ndpomdp}.
-Unlike modularity maximisation~\citep{newmangirvan2004}, the map equation has
-no resolution limit~\citep{edler2023community}: it detects modules at any
-scale present in the data without merging fine-grained clusters that are
-genuinely distinct.
+
+The map equation belongs to the family of \emph{flow-based} partition
+objectives, which evaluate a partition by the behaviour of a dynamical process
+on the network, in contrast to \emph{combinatorial} objectives such as
+minimum cut or balanced edge cut (METIS) that count edges irrespective of the
+flow they carry.
+Markov stability~\citep{delvenne2010stability,lambiotte2014multiscale} makes
+this distinction canonical: flow-based objectives reward partitions in which a
+random walker remains in the same module across consecutive steps, so a
+flow-based and a combinatorial partition of the same network are categorically
+different objects even when they look superficially similar.
+Unlike modularity maximisation~\citep{newmangirvan2004}, the map equation does
+not inherit modularity's resolution limit, although it is not scale-free
+either: it has known field-of-view limitations and can over-partition
+constrained, grid-like networks~\citep{edler2023community}.
+Infomap itself is a greedy stochastic search over an NP-hard landscape and
+does not guarantee the global codelength optimum~\citep{edler2023community}.
 
 % ============================================================
 \section{Related Work}
 \label{sec:related}
-% Para 1 — Network partitioning for TSC:
+% Para 1 --- Network partitioning for TSC:
 %   laplacian2009ieee, odflow2019partition, mfdpartition2020,
 %   communitydetection2021plosone, ma2022feudal, liu2023gplight
 %   → structural/geometric criteria; no OD flow objective; no dependency cost analysis
-% Para 2 — MARL communication topology (compressed):
+% Para 2 --- MARL communication topology (compressed):
 %   jiang2018atoc, i2c2021, hetib2025, wei2019colight, liu2023gplight,
 %   xu2021hilight, zhu2026halo, expocomm2025, li2025topology
 %   → learned or fixed; dynamic graph attention implicit; no dependency accounting
-% Para 3 — GNN dependency + MI in MARL (compressed):
+% Para 3 --- GNN dependency + MI in MARL (compressed):
 %   lrd2025, abnar2020rollout, stmarl2020, dependencydyn2025, wang2020imac
 %   → Ψ, D^MI, D^Q, D^G adapt these frameworks to partition quality evaluation
-\textbf{[To be written — Step 5]}
+% Para 4 --- Theory imports (new, post-2026-07 retention framing):
+%   flow-based vs combinatorial objectives: delvenne2010stability,
+%     lambiotte2014multiscale, edler2023community, rosvall2014memory
+%   networked-MARL locality/value bounds: qu2022scalable, qu2020average,
+%     chakraborty2026locality; influence-based abstraction: congeduti2021iba
+%   stylised traffic dynamics: daganzo1994ctm, jin2012linkqueue
+%   → position: we connect these three literatures; none alone links map
+%     equation minimisation to regional-MARL value loss
+\textbf{[To be written --- Step 5]}
 
 % ============================================================
 \section{Flow-Coherent Dependency Partitioning}
@@ -190,94 +238,106 @@ and from Laplacian spectral methods~\citep{laplacian2009ieee}: both of the latte
 assign edge weight by physical connectivity, not by how many vehicles actually
 travel between node pairs.
 
-\subsection{InfoMap Partitioning and the Dependency Gate}
+\subsection{InfoMap Partitioning and Flow Retention}
 \label{sec:infomap}
+\label{sec:theory}
 
 Given $\mathcal{G}_{\mathrm{OD}}$, we apply the Infomap
 algorithm~\citep{rosvall2008maps,rosvall2009mapequation} to obtain a partition
-$\mathcal{M} = \{M_1, \ldots, M_K\}$ by minimising the map equation:
+$\mathcal{M} = \{M_1, \ldots, M_K\}$ by minimising the map equation of
+Eq.~\eqref{eq:mapeq}.
+Our theoretical account of \emph{why} this is the right objective is a
+three-link chain, developed in this and the following two subsections:
+the map equation is an exact statement about the flow a partition retains
+(Proposition~\ref{prop:phi}); under flow-local traffic dynamics, retained flow
+bounds retained inter-agent dependency (Proposition~\ref{prop:transfer});
+and retained dependency bounds the value loss of regional MARL
+(Theorem~\ref{thm:valueloss}).
+The empirical program of Section~\ref{sec:experiments} then estimates the
+constants of these bounds rather than gating on binary hypothesis tests.
+
+\paragraph{Flow retention.}
+For a partition $\mathcal{P} = \{P_1, \ldots, P_K\}$ with module assignment
+$c(\cdot)$ and OD flow matrix $\mathbf{W}$, define the \emph{flow retention
+ratio}
 \begin{equation}
-    L(\mathcal{M})
-    = q_{\circlearrowleft} H(\mathcal{Q})
-    + \sum_{k=1}^{K} p_k^{\circlearrowleft} H(\mathcal{P}_k)
-    \label{eq:mapequation}
+    \Phi(\mathcal{P}, \mathbf{W})
+    = \frac{\displaystyle\sum_{k}\sum_{i,j \,\in\, P_k} W_{ij}}
+    {\displaystyle\sum_{i,j} W_{ij}},
+    \label{eq:phi}
 \end{equation}
-where $q_{\circlearrowleft}$ is the rate of inter-module random-walk transitions
-and $H(\mathcal{Q})$ is the entropy of the between-module codebook.
-Minimising $L(\mathcal{M})$ maximises the fraction of vehicle-flow steps retained
-within modules — equivalent, in the ND-POMDP interpretation, to minimising
-cross-module coordination overhead while maximising within-module coordination
-coherence.
-Crucially, Infomap has no resolution limit~\citep{edler2023community}: it recovers
-modules at any scale present in the data, unlike modularity
-maximisation~\citep{newmangirvan2004}.
+the fraction of observed vehicle movements that stay within module boundaries.
 
-We verify two empirical conditions on the partition before MARL training.
-Results are reported as supporting evidence; failure on a given network
-indicates a boundary condition requiring separate investigation.
+\begin{proposition}[Flow retention is the map equation's inter-module rate]
+    \label{prop:phi}
+    Let the random walk in Eq.~\eqref{eq:mapeq} be the empirical OD walk:
+    visit rates $p_i = \sum_j W_{ij} / \sum_{a,b} W_{ab}$ and transition
+    probabilities $p_{ij} = W_{ij} / \sum_{j'} W_{ij'}$, so that the stationary
+    edge measure is $p_i\, p_{ij} = W_{ij} / \sum_{a,b} W_{ab}$.
+    Then the aggregate inter-module transition rate in Eq.~\eqref{eq:mapeq}
+    satisfies
+    \begin{equation}
+        q_{\circlearrowleft}
+        \;=\; \sum_{k} \sum_{i \in P_k}\sum_{j \notin P_k} p_i\, p_{ij}
+        \;=\; \frac{\sum_{i,j:\, c(i) \neq c(j)} W_{ij}}{\sum_{i,j} W_{ij}}
+        \;=\; 1 - \Phi(\mathcal{P}, \mathbf{W}).
+        \label{eq:qphi}
+    \end{equation}
+\end{proposition}
 
-\medskip
-\noindent\textbf{H1 (Spatial MI Advantage).}
-Within-module agent pairs share higher mutual information about future traffic
-states than cross-module pairs:
-\begin{equation}
-    \mathbb{E}_{i,j\in M_k}\!\left[I(X_i(t);\, X_j(t{+}\tau))\right]
-    >
-    \mathbb{E}_{i\in M_k,\, l\notin M_k}\!\left[I(X_i(t);\, X_l(t{+}\tau))\right]
-    \label{eq:h1}
-\end{equation}
-averaged over propagation lags $\tau \in \{1, 5, 15, 30\}$ steps.
-Verified via Wilcoxon signed-rank test ($p < 0.05$) on KSG-estimated
-MI~\citep{kraskov2004ksg}; visualised as a $|\mathcal{V}|\times|\mathcal{V}|$
-heatmap with InfoMap module boundaries overlaid.
+\begin{proof}
+    Substitute the empirical edge measure into the definition of
+    $q_{\circlearrowleft}$ as the total stationary probability of inter-module
+    steps~\citep[cf.][]{edler2023community} and sum over all ordered pairs with
+    $c(i) \neq c(j)$; the last equality is the complement of
+    Eq.~\eqref{eq:phi}.
+\end{proof}
 
-\medskip
-\noindent\textbf{H2 (Spill-back Containment).}
-Spill-back congestion is more likely to remain within InfoMap modules than to
-cross module boundaries:
-\begin{equation}
-    \Pr\!\left(\text{spill-back}_{i\to j}
-    \;\middle|\; i,j \in M_k\right)
-    >
-    \Pr\!\left(\text{spill-back}_{i\to l}
-    \;\middle|\; i \in M_k,\; l \notin M_k\right).
-    \label{eq:h2}
-\end{equation}
-\citet{dependencydyn2025} establish that inter-agent coordination is necessary
-\emph{if and only if} spill-back connects two agents' queues.
-Verified via a one-sample proportion test on SUMO queue trajectory data.
-The apparent directional asymmetry --- OD flow travels $i \to j$ (forward) while
-spill-back propagates $j \to i$ (backward) --- does not invalidate H2: a
-high-volume corridor $W_{ij}$ drives high arrival rates at $j$ which, under
-near-saturated demand, trigger backward-propagating queue waves toward
-$i$~\citep{dependencydyn2025}.
-The coordination-necessary pair and the high-OD-flow pair are thus the same pair
-on the same corridor.
+$\Phi$ is therefore not a heuristic proxy loosely associated with the map
+equation: it \emph{is} the map equation's between-module rate, exactly, under
+the walk model induced by the observed OD flows.
 
-\medskip
-\noindent\textbf{Theoretical grounding: why containment, not just correlation, matters.}
-Spill-back containment has a formal interpretation beyond the statistical test above.
-In the Lyapunov-drift framework for constrained queueing networks~\citep{tassiulas1992stability},
-a decentralised scheduler preserves the stability region of a centralised one only if it
-can react to the joint queue state of servers whose queues are dynamically coupled;
-max-pressure signal control~\citep{varaiya2013maxpressure} instantiates exactly this
-drift argument for signalised intersections via a quadratic Lyapunov function over
-per-approach queue lengths.
-Read against that framework, H2 states the condition under which cutting a
-coordination-graph edge is safe: an edge can be severed without sacrificing the
-stability that joint observation would provide only if spill-back across it is rare.
-We do not derive a stability guarantee for the learned MARL policies studied here;
-we invoke this literature as the control-theoretic motivation for treating spill-back
-rate, rather than mutual information alone, as the criterion that should gate which
-edges a partition is permitted to cut.
+\begin{corollary}[InfoMap maximises entropy-regularised flow retention]
+    \label{cor:regularised}
+    Writing Eq.~\eqref{eq:mapeq} as
+    $L(\mathcal{M}) = (1 - \Phi)\, H(\mathcal{Q})
+        + \sum_{k} p_k^{\circlearrowleft} H(\mathcal{P}_k)$,
+    the map equation is, at any fixed module-usage profile (fixed codebook
+    entropies and within-module rates), monotone increasing in $1 - \Phi$.
+    Minimising $L(\mathcal{M})$ thus maximises an \emph{entropy-regularised}
+    flow retention: the codebook-entropy terms are the regulariser that rules
+    out the degenerate all-in-one-module solution, which attains $\Phi = 1$
+    but pays the full within-module description cost.
+\end{corollary}
 
-\medskip
-H2 is the traffic-theoretic \emph{mechanism} behind H1: spill-back containment
-causes within-module states to co-vary via shared congestion propagation, raising
-$I(X_i;\,X_j)$ above the cross-module baseline.
-Together, H2$\,\Rightarrow\,$H1 imply the main hypothesis~H: an InfoMap partition
-retains more inter-agent spatial dependency within modules than a topology-based
-partition of equal size --- formally quantified by $\Psi$ (Section~\ref{sec:psi}).
+\paragraph{Information-theoretic reading.}
+By Proposition~\ref{prop:phi}, $1 - \Phi$ is the per-step probability that the
+coarse-grained state --- the walker's module label $m(t)$ --- changes.
+A low inter-module rate means the module-label sequence is highly compressible,
+i.e.\ the coarse-grained dynamics are maximally predictable.
+Up to the null-model term, this is the one-step clustered autocovariance that
+Markov stability maximises~\citep{delvenne2010stability,lambiotte2014multiscale}:
+the probability that a walker occupies the same community at $t$ and $t{+}1$.
+Equivalently, a partition with a low exit rate makes the chain nearly lumpable,
+so InfoMap can be read as finding the coarse-graining of the OD walk that
+loses the least description length.
+In the ND-POMDP interpretation of Section~\ref{sec:ndpomdp}, minimising
+cross-module walk rate is minimising cross-module coordination overhead while
+maximising within-module coordination coherence.
+
+\paragraph{What the empirical $\Phi$ comparison adds.}
+Proposition~\ref{prop:phi} makes
+$\Phi(\mathcal{P}_{\mathrm{InfoMap}}) \geq \Phi(\mathcal{P}_{\mathrm{METIS}})$
+at matched module count a theorem-shaped expectation rather than an empirical
+surprise.
+Measuring it on real OD data (Section~\ref{sec:experiments}) remains
+informative for two reasons.
+First, real trips are path-dependent, so the memoryless-walk model behind
+Eq.~\eqref{eq:mapeq} approximates actual routing; the higher-order map
+equation is the standard refinement~\citep{rosvall2014memory}.
+Second, Infomap's greedy stochastic search does not guarantee the global
+codelength optimum~\citep{edler2023community}.
+The observed margins quantify how much of the identity survives both gaps.
 
 \subsection{Spatial Dependency Instruments and $\Psi$}
 \label{sec:psi}
@@ -289,8 +349,8 @@ partition-level score. We introduce three complementary instruments, each matche
 to the coordination mechanism at a given coupling level.
 
 \paragraph{Physical dependency (model-free).}
-H1 directly supplies a model-free dependency weight via the mutual information
-between agent state observations:
+The mutual information between agent state observations supplies a model-free
+dependency weight:
 \begin{equation}
     D^{\mathrm{MI}}_{ij}
     = \hat{I}\!\left(X_i(t);\, X_j(t{+}\tau)\right)
@@ -309,8 +369,8 @@ grounding $D^{\mathrm{MI}}$ as the natural physical dependency measure.
 \paragraph{Learned dependency (Jacobian on the global model).}
 For models that receive cross-agent inputs, we adapt the Jacobian influence
 framework of~\citet{lrd2025} to the MARL dependency measurement setting.
-For a model $F$ trained \emph{without} partition constraints — the global model
-— define the spatial influence of agent~$j$ on agent~$i$:
+For a model $F$ trained \emph{without} partition constraints --- the global model
+--- define the spatial influence of agent~$j$ on agent~$i$:
 \begin{equation}
     D_{i\leftarrow j}(F)
     = \sum_{a,k}
@@ -321,7 +381,7 @@ where $X_{j,k}$ is feature~$k$ of agent~$j$'s observation and $F_{i,a}$ is
 output dimension~$a$ at agent~$i$.
 The \emph{global-model restriction} is essential: in a partitioned model,
 cross-module inputs are absent by construction, making cross-module Jacobians
-identically zero — a structural artefact, not evidence of low dependency.
+identically zero --- a structural artefact, not evidence of low dependency.
 We instantiate Eq.~\eqref{eq:djac} at two levels:
 \begin{align}
     D^{Q}_{i\leftarrow j}
@@ -335,7 +395,7 @@ We instantiate Eq.~\eqref{eq:djac} at two levels:
 \end{align}
 Whereas \citet{lrd2025} use Jacobian profiles to ask whether a GNN suffers
 from over-squashing, we use the same instrument to ask whether a proposed partition
-aligns with what the model has learned to depend on — a distinct scientific question.
+aligns with what the model has learned to depend on --- a distinct scientific question.
 
 \paragraph{Hop-distance profile.}
 For either instrument, aggregate dependency by road-graph hop distance $\rho(i,j)$:
@@ -359,8 +419,8 @@ Given dependency matrix $\mathbf{D}$ and partition $\mathcal{P}=\{P_1,\ldots,P_K
 \end{equation}
 $\Psi \in [0,1]$ is the \emph{dependency retention ratio}: the fraction of total
 inter-agent dependency captured within module boundaries.
-High $\Psi$ means the partition cuts predominantly low-dependency edges —
-preserving coordination capacity — while low $\Psi$ means high-dependency edges
+High $\Psi$ means the partition cuts predominantly low-dependency edges ---
+preserving coordination capacity --- while low $\Psi$ means high-dependency edges
 are severed, imposing coordination cost.
 
 \paragraph{Relation to existing partition quality metrics.}
@@ -377,6 +437,279 @@ By computing $\Psi(\mathcal{P}_{\mathrm{InfoMap}},\mathbf{D})$ vs.\
 $\Psi(\mathcal{P}_{\mathrm{METIS}},\mathbf{D})$ on the \emph{same} $\mathbf{D}$,
 we obtain a direct, architecture-independent measure of which partition better
 preserves the inter-agent dependency structure.
+
+\paragraph{Size-adjusted retention and partition-level significance.}
+Raw $\Psi$ is biased toward coarse partitions: larger modules retain more of
+any $\mathbf{D}$ simply by cutting fewer pairs.
+We therefore report, alongside $\Psi$, the chance-adjusted score
+\begin{equation}
+    \Psi_{\mathrm{adj}}(\mathcal{P}, \mathbf{D})
+    = \frac{\Psi(\mathcal{P}, \mathbf{D})
+        - \mathbb{E}_{\mathcal{P}' \sim \mathcal{R}(\mathcal{P})}
+        \!\left[\Psi(\mathcal{P}', \mathbf{D})\right]}
+    {1 - \mathbb{E}_{\mathcal{P}' \sim \mathcal{R}(\mathcal{P})}
+        \!\left[\Psi(\mathcal{P}', \mathbf{D})\right]},
+    \label{eq:psiadj}
+\end{equation}
+where $\mathcal{R}(\mathcal{P})$ draws random partitions with the same
+module-size sequence as $\mathcal{P}$.
+$\Psi_{\mathrm{adj}}$ measures the excess dependency retained beyond
+size-matched chance, in the spirit of chance-adjusted clustering-comparison
+scores, and makes partitions with different module-size profiles comparable.
+The same null supplies the partition-level significance test we use in place
+of pairwise hypothesis tests: holding $\mathbf{D}$ fixed, sample size-matched
+random partitions and report the percentile of the candidate partition's
+within-module mass $\sum_{c(i)=c(j)} D_{ij}$ under this null.
+This yields one well-powered statistic per (network, $K$, seed) instead of
+hundreds of noisy pairwise estimates --- the test the theory of
+Section~\ref{sec:transfer} actually licenses.
+
+\subsection{From Flow to Dependency: A Transfer Lemma}
+\label{sec:transfer}
+
+The second link of the chain connects the flow a partition retains
+(Proposition~\ref{prop:phi}) to the dependency it retains
+(Section~\ref{sec:psi}).
+The claim is a stylised-model bound, stated under explicit assumptions on the
+traffic dynamics; it is a property of flow-local traffic networks, not of
+arbitrary multi-agent systems.
+
+\begin{assumption}[Flow-local dynamics]
+    \label{ass:local}
+    The traffic state evolves as a Markov chain whose transition kernel
+    factorises over the road graph: $X_i(t{+}1)$ depends only on
+    $\{X_j(t) : j \in \mathcal{N}(i) \cup \{i\}\}$ and exogenous demand
+    $\xi(t)$, as in cell-transmission and link-queue
+    models~\citep{daganzo1994ctm,jin2012linkqueue}.
+\end{assumption}
+
+\begin{assumption}[Flow-bounded coupling]
+    \label{ass:coupling}
+    One-step inter-intersection coupling is bounded proportionally to the flow
+    exchanged: there exists a constant $\alpha$ (a function of link capacities
+    and saturation rates) such that the Dobrushin-style influence coefficient
+    obeys
+    $C_{j \leftarrow i} \leq \alpha \, (W_{ij} + W_{ji}) + \beta_{ij}$,
+    where $\beta_{ij}$ collects coupling through common exogenous demand.
+    The two flow terms are the two physical transmission channels of traffic:
+    the \emph{forward (arrival) channel} --- downstream queue state depends on
+    upstream state only through the vehicles actually routed between them ---
+    and the \emph{backward (blocking) channel} --- finite link capacity
+    throttles upstream senders in proportion to their sending flow when
+    downstream space runs out~\citep{daganzo1994ctm,jin2012linkqueue}, i.e.\
+    spill-back propagates on the reverse flow graph.
+\end{assumption}
+
+\begin{assumption}[Regime stationarity]
+    \label{ass:stationary}
+    Demand statistics are stationary over the measurement window, so
+    $\mathbf{W}$ and $\mathbf{D}$ are estimated within a single traffic regime.
+\end{assumption}
+
+\begin{proposition}[Cut flow upper-bounds cut dependency]
+    \label{prop:transfer}
+    Under Assumptions~\ref{ass:local}--\ref{ass:stationary}, the dependency
+    mass cut by a partition is bounded by the flow it cuts: there exist
+    $\kappa > 0$ and a demand-confounder term
+    $\epsilon_{\mathrm{dem}} \geq 0$ such that
+    \begin{equation}
+        1 - \Psi(\mathcal{P}, \mathbf{D})
+        \;\leq\;
+        \kappa \left(1 - \Phi(\mathcal{P}, \widetilde{\mathbf{W}})\right)
+        + \epsilon_{\mathrm{dem}},
+        \label{eq:transfer}
+    \end{equation}
+    where $\widetilde{W}_{ij} = W_{ij} + W_{ji}$ is the symmetrised flow,
+    $\kappa$ absorbs $\alpha$ and the normalisations of $\mathbf{D}$ and
+    $\widetilde{\mathbf{W}}$, and $\epsilon_{\mathrm{dem}}$ aggregates the
+    common-demand terms $\beta_{ij}$ across the cut.
+\end{proposition}
+
+A proof sketch --- a one-step entrywise bound followed by a
+path-composition/data-processing argument for longer lags --- is given in
+Appendix~\ref{app:proofs}.
+The direction of the bound matters: low cut flow certifies low cut dependency,
+but high $\Psi$ does not certify high performance --- the bound is necessary-,
+not sufficient-, for lossless decomposition.
+The constant $\kappa$ and the confounder $\epsilon_{\mathrm{dem}}$ are
+network- and regime-dependent; the experiments estimate them rather than
+assume them away.
+
+\paragraph{H1 and H2 as operational signatures.}
+Proposition~\ref{prop:transfer}'s two channels yield two testable empirical
+signatures, which earlier iterations of this work treated as a mandatory
+pre-training gate.
+The theory clarifies their correct epistemic status: they are
+\emph{corollaries in expectation} of the transfer bound --- diagnostics that
+the mechanism is active --- not axioms the method depends on.
+We report both as supporting evidence; failure on a given network localises
+which channel is inactive there, rather than invalidating the partition.
+
+\medskip
+\noindent\textbf{H1 (Spatial MI Advantage --- forward-channel signature).}
+Within-module agent pairs share higher mutual information about future traffic
+states than cross-module pairs:
+\begin{equation}
+    \mathbb{E}_{i,j\in M_k}\!\left[I(X_i(t);\, X_j(t{+}\tau))\right]
+    >
+    \mathbb{E}_{i\in M_k,\, l\notin M_k}\!\left[I(X_i(t);\, X_l(t{+}\tau))\right]
+    \label{eq:h1}
+\end{equation}
+averaged over propagation lags $\tau \in \{1, 5, 15, 30\}$ steps, with MI
+estimated by the KSG estimator~\citep{kraskov2004ksg} and visualised as a
+$|\mathcal{V}|\times|\mathcal{V}|$ heatmap with module boundaries overlaid.
+Note what the theory does and does not predict here:
+Proposition~\ref{prop:transfer} bounds \emph{aggregate} cut dependency mass,
+not the ordering of every individual pair $(i, j, l)$.
+A uniform pairwise test --- e.g.\ a Wilcoxon signed-rank test over all pairs
+--- therefore tests a strictly stronger claim than the theory makes, and
+marginal pairwise pass rates are expected rather than anomalous.
+The theory-matched test is the partition-level permutation test of
+Section~\ref{sec:psi}.
+
+\medskip
+\noindent\textbf{H2 (Spill-back Containment --- backward-channel signature).}
+Spill-back congestion is more likely to remain within InfoMap modules than to
+cross module boundaries:
+\begin{equation}
+    \Pr\!\left(\text{spill-back}_{i\to j}
+    \;\middle|\; i,j \in M_k\right)
+    >
+    \Pr\!\left(\text{spill-back}_{i\to l}
+    \;\middle|\; i \in M_k,\; l \notin M_k\right),
+    \label{eq:h2}
+\end{equation}
+assessed via a proportion test on SUMO queue trajectory data.
+\citet{dependencydyn2025} establish that inter-agent coordination is necessary
+\emph{if and only if} spill-back connects two agents' queues.
+The apparent directional asymmetry --- OD flow travels $i \to j$ (forward)
+while spill-back propagates $j \to i$ (backward) --- is precisely the
+two-channel structure of Assumption~\ref{ass:coupling}: a high-volume corridor
+$W_{ij}$ drives high arrival rates at $j$ which, under near-saturated demand,
+trigger backward-propagating queue waves toward $i$~\citep{dependencydyn2025}.
+The coordination-necessary pair and the high-OD-flow pair are thus the same
+pair on the same corridor.
+Crucially, the backward channel is active \emph{only near saturation}: in a
+network or demand regime that never leaves free flow, spill-back events are
+absent, the backward channel is inert, and all measured dependency is
+arrival-driven.
+An empty H2 test on such a network is a statement about the regime, not a
+refutation of the mechanism.
+
+\medskip
+\noindent\textbf{Why containment, not just correlation, matters.}
+Spill-back containment has a formal interpretation beyond the statistical test
+above.
+In the Lyapunov-drift framework for constrained queueing
+networks~\citep{tassiulas1992stability}, a decentralised scheduler preserves
+the stability region of a centralised one only if it can react to the joint
+queue state of servers whose queues are dynamically coupled; max-pressure
+signal control~\citep{varaiya2013maxpressure} instantiates exactly this drift
+argument for signalised intersections via a quadratic Lyapunov function over
+per-approach queue lengths.
+Read against that framework, H2 states the condition under which cutting a
+coordination-graph edge is safe: an edge can be severed without sacrificing
+the stability that joint observation would provide only if spill-back across
+it is rare.
+We do not derive a stability guarantee for the learned MARL policies studied
+here; we invoke this literature as the control-theoretic motivation for
+treating spill-back rate, rather than mutual information alone, as the
+quantity that determines which edges a partition may safely cut.
+
+\paragraph{The demand confounder.}
+The term $\epsilon_{\mathrm{dem}}$ in Eq.~\eqref{eq:transfer} is not a
+formality.
+Network-wide demand fluctuations act as a common cause, creating mutual
+information between intersections that exchange \emph{no} flow, and this
+common-cause mass grows with network size --- predicting that the raw
+alignment between $\mathbf{W}$ and $D^{\mathrm{MI}}$ weakens on larger
+networks even when the flow-borne coupling is unchanged.
+The theory-driven fix is to estimate $D^{\mathrm{MI}}$ \emph{conditionally}
+on an aggregate demand covariate (e.g.\ total network occupancy at time $t$),
+which removes the common-cause channel by construction.
+Model-derived instruments such as $D^{G}$ (Section~\ref{sec:psi}) largely do
+not inherit the confounder: a trained model has no incentive to route
+gradient through agents that carry no decision-relevant information.
+
+\subsection{From Dependency Retention to Regional Value Loss}
+\label{sec:valueloss}
+
+The third link imports value-loss bounds from networked MARL and
+influence-based abstraction, conditional on the coupling structure established
+by Proposition~\ref{prop:transfer}.
+In networked MARL, when one-step influence is local, the sensitivity of one
+agent's value to another decays exponentially with graph distance, and
+policies truncated to an $r$-hop neighbourhood approximate the global optimum
+with bias decaying exponentially in
+$r$~\citep{qu2022scalable,qu2020average};
+recent work replaces the classical row-sum (Dobrushin) condition for this
+locality with a weaker, policy-dependent spectral certificate
+$\rho(H^{\pi}) < 1$~\citep{chakraborty2026locality}.
+Influence-based abstraction bounds the value loss of a local model by the
+error of its representation of the influence the rest of the system exerts on
+it~\citep{congeduti2021iba}.
+A regional decomposition is exactly such a truncation: each module models
+within-module influence and ignores the rest, so the discarded influence is
+the cut dependency mass.
+
+\begin{theorem}[Regional value loss is controlled by cut dependency; informal]
+    \label{thm:valueloss}
+    Let $J^{\star}$ denote optimal global coordination performance and
+    $J_{\mathcal{P}}$ the performance of regional MARL under partition
+    $\mathcal{P}$.
+    Under Assumptions~\ref{ass:local}--\ref{ass:coupling} and either the
+    value-locality conditions of \citet{qu2022scalable} or the
+    approximate-influence conditions of \citet{congeduti2021iba}, there exists
+    $C > 0$ such that
+    \begin{equation}
+        J^{\star} - J_{\mathcal{P}}
+        \;\leq\;
+        C \left(1 - \Psi(\mathcal{P}, \mathbf{D})\right)
+        + \epsilon_{\mathrm{approx}} + \epsilon_{\mathrm{opt}},
+        \label{eq:valueloss}
+    \end{equation}
+    where $\epsilon_{\mathrm{approx}}$ and $\epsilon_{\mathrm{opt}}$ are
+    function-approximation and optimisation errors, neither of which the
+    partition controls.
+    Chaining Eqs.~\eqref{eq:qphi}, \eqref{eq:transfer}, and
+    \eqref{eq:valueloss}: \emph{minimising the map equation minimises an upper
+        bound on the value loss of regional decomposition in MARL}.
+\end{theorem}
+
+Derivation notes are given in Appendix~\ref{app:proofs}; the theorem imports
+its heavy machinery from \citet{qu2022scalable} and \citet{congeduti2021iba}
+and our contribution is the construction that connects them to OD flow via
+Propositions~\ref{prop:phi} and~\ref{prop:transfer}.
+Three caveats bound the claim's scope.
+The bound is one-directional: high retention is (approximately) necessary for
+lossless regional decomposition, not sufficient, and METIS also retains
+substantial flow --- the theory predicts orderings and bounds, not that
+InfoMap is optimal for $J$.
+The constants are network- and regime-dependent.
+And $\epsilon_{\mathrm{opt}}$ can dominate in practice: the theory predicts
+performance \emph{trends} across partitions, not guaranteed outcomes of any
+single training run.
+
+\paragraph{Per-level reading.}
+Theorem~\ref{thm:valueloss} specialises differently at each coordination
+coupling level of Section~\ref{sec:levels}, yielding level-specific
+predictions.
+\emph{L1 (regional reward).} A shared regional reward is a surrogate for each
+agent's own reward whose bias grows with within-module outcome
+\emph{misalignment}; the forward channel ties alignment to flow coherence, so
+the flow partition should help most where reward coupling is rawest.
+\emph{L2 (regional critic).} The regional critic is precisely the local model
+of influence-based abstraction: its approximation loss is bounded by the
+influence it ignores, i.e.\ the cut dependency~\citep{congeduti2021iba}.
+\emph{L3 (attention masking).} The truncation bound carries a second term
+that grows once modules shrink below the influence-decay length: masking then
+removes edges the decay argument still needs.
+This predicts a \emph{phase boundary} in the module count $K$: below it,
+flow-coherent partitions win; above it, the truncation term dominates and
+geometrically compact partitions can win, with the reversal point shifting
+with network size and demand level.
+Section~\ref{sec:experiments} tests this as a prediction rather than treating
+any observed reversal as an anomaly.
 
 \subsection{Coordination Coupling Spectrum}
 \label{sec:levels}
@@ -411,7 +744,9 @@ an observed failure mode under regional reward averaging (Appendix~\ref{app:resu
 
 \noindent\textbf{Operational predictions.}
 The following are the primary empirical targets of our experimental design,
-derived from H1 and H2 via the causal chain H2$\,\Rightarrow\,$H1$\,\Rightarrow\,$H:
+instances of the retention chain
+(Propositions~\ref{prop:phi} and~\ref{prop:transfer},
+Theorem~\ref{thm:valueloss}) at each coupling level:
 \begin{description}
     \item[\textbf{OP1 (L1):}]
           $\Psi(\mathcal{P}_{\mathrm{InfoMap}}, D^{\mathrm{MI}}) >
@@ -432,33 +767,47 @@ derived from H1 and H2 via the causal chain H2$\,\Rightarrow\,$H1$\,\Rightarrow\
 \end{description}
 
 \noindent The three OPs together constitute \textbf{Hypothesis H}: an InfoMap
-partition achieves higher $\Psi$ than METIS across all three dependency instruments,
-and this advantage translates to better task performance at each coupling level.
+partition achieves higher $\Psi$ than METIS across all three dependency
+instruments, and --- per the monotone bound of Theorem~\ref{thm:valueloss} ---
+this advantage predicts better task-performance trends at each coupling level,
+subject to the L3 module-size phase boundary identified in
+Section~\ref{sec:valueloss}.
 
 % ============================================================
 \section{Experiments}
 \label{sec:experiments}
 % §5.1 Setup: Cologne8 (8 int.), Ingolstadt21 (21 int.), [6×6 grid if available]
 %      Baselines: L0 (no-partition) → L1.5 (random-sparse) → METIS → InfoMap
-%      Protocol: rliable — IQM ± stratified bootstrap CI, ≥5 seeds, AUC-LC + ATT
-% §5.2 H1/H2 verification — Fig 2: MI heatmap + module boundaries (run before training)
-% §5.3 Main results — Table 1 + Fig 3 learning curves
+%      Protocol: rliable --- IQM ± stratified bootstrap CI, ≥5 seeds, AUC-LC + ATT
+% §5.2 Retention estimates + signature diagnostics --- Φ table (Prop 1 confirmation),
+%      Ψ/Ψ_adj + partition-level permutation test (replaces pairwise Wilcoxon as
+%      headline significance test); H1/H2 reported as channel signatures with
+%      honest per-network stats; Fig 2: MI heatmap + module boundaries
+% §5.3 Main results --- Table 1 + Fig 3 learning curves
 %      IQM ± CI: InfoMap / METIS / None × L1 / L2 / L3, primary: Ingolstadt21
-% §5.4 Ψ predicts performance — Fig 4: scatter ΔΨ vs ΔAUC-LC
-% §5.5 Attention range analysis — Fig 5: D̄_h profile + rollout heatmaps
+% §5.4 Ψ predicts performance (Thm 1 monotonicity) --- Fig 4: scatter ΔΨ_adj vs
+%      ΔAUC-LC across partition family {InfoMap, METIS, spectral, random, none,
+%      global}; k-sweep locating the predicted L3 reversal boundary
+% §5.5 Attention range analysis --- Fig 5: D̄_h profile + rollout heatmaps
 \label{sec:attnrange}
 % §5.6 Ablations: module size k, L1.5 sparsification control, reward annealing α(e)
-\textbf{[To be written — Step 7]}
+\textbf{[To be written --- Step 7]}
 
 % ============================================================
 \section{Conclusion}
 \label{sec:conclusion}
-% Mechanism: InfoMap → high Ψ → better L1/L2/L3
-% Verified causal chain: H2 ⇒ H1 ⇒ H ⇒ OP1/OP2/OP3
-% Boundary: L3 requires ≥4 agents/module
-% Limitations: warm-up OD approximation; static partition
-% Future: dynamic repartitioning; real-world OD data
-\textbf{[To be written — Step 8]}
+% Retention chain: map equation ⇒ Φ (Prop 1, exact) ⇒ Ψ (Prop 2, stylised bound)
+%   ⇒ regional value loss (Thm 1, imported) --- InfoMap as training-free surrogate
+%   for coordination-graph design
+% H1/H2 reported as operational signatures (forward/backward channel), not gates
+% Boundary: L3 module-size phase boundary (predicted k-reversal); L3 requires
+%   ≥4 agents/module
+% Limitations: one-directional bounds (necessary, not sufficient); κ and ε_dem
+%   network-dependent (conditional-MI fix); memoryless walk vs. routing
+%   (higher-order map equation pointer); warm-up OD approximation; static
+%   partition (regime stationarity A3)
+% Future: dynamic/regime-indexed repartitioning; real-world OD data
+\textbf{[To be written --- Step 8]}
 
 % ============================================================
 \begin{ack}
@@ -476,15 +825,101 @@ and this advantage translates to better task performance at each coupling level.
 % ============================================================
 \appendix
 
+\section{Proof Sketches and Derivation Notes}
+\label{app:proofs}
+
+\subsection{Proposition~\ref{prop:phi}}
+\label{app:proofs:phi}
+
+With the empirical OD walk, the stationary probability of traversing the
+directed edge $(i, j)$ in one step is
+$p_i \, p_{ij} = \frac{\sum_b W_{ib}}{\sum_{a,b} W_{ab}} \cdot
+    \frac{W_{ij}}{\sum_{b} W_{ib}} = \frac{W_{ij}}{\sum_{a,b} W_{ab}}$.
+The aggregate inter-module rate is the total stationary probability of steps
+whose endpoints lie in different modules,
+$q_{\circlearrowleft} = \sum_{i,j:\, c(i) \neq c(j)} p_i \, p_{ij}
+    = \big(\sum_{i,j:\, c(i) \neq c(j)} W_{ij}\big) / \sum_{a,b} W_{ab}$,
+which is $1 - \Phi(\mathcal{P}, \mathbf{W})$ by Eq.~\eqref{eq:phi}.
+\hfill$\square$
+
+\subsection{Proposition~\ref{prop:transfer} (sketch)}
+\label{app:proofs:transfer}
+
+\emph{Step 1 (one-step bound).}
+Under Assumption~\ref{ass:local} the transition kernel factorises over the
+road graph, so any one-step statistical dependency between the states of
+intersections $i$ and $j$ is mediated by the coupling coefficients of
+Assumption~\ref{ass:coupling}.
+For lag $\tau = 1$, each entry of the dependency matrix is bounded entrywise,
+$D_{ij} \leq \alpha' \widetilde{W}_{ij} + \beta_{ij}$, where $\alpha'$ absorbs
+$\alpha$ and the scale of the instrument (for $D^{\mathrm{MI}}$, via the
+standard relation between influence coefficients and mutual information under
+bounded state spaces).
+Summing over cut pairs,
+$\sum_{c(i) \neq c(j)} D_{ij}
+    \leq \alpha' \sum_{c(i) \neq c(j)} \widetilde{W}_{ij}
+    + \sum_{c(i) \neq c(j)} \beta_{ij}$.
+
+\emph{Step 2 (path composition).}
+For lags $\tau > 1$, dependency between $i$ and $j$ is generated along
+directed paths $i \to \cdots \to j$ in the coupling graph.
+By a data-processing argument, each path contributes at most the product of
+its one-step couplings; every path connecting a cut pair crosses the boundary
+at some step, so its contribution is bounded by a cut-edge flow term
+multiplied by sub-unit within-module coupling factors.
+Summing the resulting geometric series (finite under
+Assumption~\ref{ass:coupling} with bounded total coupling) inflates $\alpha'$
+by a constant but preserves the form of the bound.
+
+\emph{Step 3 (normalisation).}
+Dividing by the total dependency mass $\sum_{i,j} D_{ij}$ and by
+$\sum_{i,j} \widetilde{W}_{ij}$ yields Eq.~\eqref{eq:transfer}, with $\kappa$
+collecting the constants of Steps~1--2 and $\epsilon_{\mathrm{dem}}$ the
+normalised common-demand mass across the cut.
+
+\emph{Honesty notes.}
+$\kappa$ is network- and regime-dependent; Assumption~\ref{ass:stationary}
+matters because pooling across regimes mixes coupling structures with
+different constants.
+$\epsilon_{\mathrm{dem}}$ is not small in general and grows with network size;
+when it dominates, the bound is uninformative --- which is detectable, and
+correctable by estimating $\mathbf{D}$ conditionally on an aggregate demand
+covariate (Section~\ref{sec:transfer}).
+
+\subsection{Theorem~\ref{thm:valueloss} (derivation notes)}
+\label{app:proofs:valueloss}
+
+Two independent routes give the stated shape; we import both rather than
+re-derive them.
+\emph{Exponential-decay route.}
+Assumption~\ref{ass:coupling} bounds one-step influence entrywise; under the
+$(c, \rho)$-exponential-decay conditions of \citet{qu2022scalable} (or the
+policy-dependent spectral certificate $\rho(H^{\pi}) < 1$ of
+\citet{chakraborty2026locality}, which weakens the row-sum condition), the
+sensitivity of agent $i$'s value to agent $j$ decays exponentially in graph
+distance, and truncating each agent's policy/value dependence to its module is
+an approximation whose bias is bounded by the discarded influence mass ---
+which is, by construction, the cut dependency that $1 - \Psi$ measures.
+\emph{Influence-based-abstraction route.}
+A regional critic is a local model that approximates (or ignores) the
+influence sources outside its module; \citet{congeduti2021iba} bound the value
+loss of such a model by its influence-approximation error, which the cut
+dependency mass upper-bounds.
+The $\epsilon_{\mathrm{approx}}$ and $\epsilon_{\mathrm{opt}}$ terms isolate
+neural-approximation and training effects that the partition does not
+control; they are why the theorem predicts trends across partitions rather
+than outcomes of single runs.
+
 \section{Algorithm: InfoMap Coordination Graph Construction}
 \label{app:algorithm}
 
-H1 and H2 are \emph{manipulation checks}, not engineering controls.
-The algorithm always returns the InfoMap partition; the verification results are
+H1 and H2 are \emph{operational signatures} of the transfer bound
+(Section~\ref{sec:transfer}), not engineering controls.
+The algorithm always returns the InfoMap partition; the signature results are
 reported as supporting evidence and logged for transparency.
-A failure on a given network indicates a network-specific boundary condition
-(e.g.\ very low overall OD volume, or grid topology with uniform flow) and is
-reported separately.
+A failure on a given network localises which transmission channel is inactive
+there (e.g.\ an all-free-flow regime yields no spill-back events, so the
+backward channel is inert) and is reported separately.
 
 \begin{algorithm}[H]
     \caption{Flow-coherent coordination graph construction with dependency verification}
@@ -501,11 +936,11 @@ reported separately.
         $\;\Rightarrow\;$ partition $\mathcal{M} = \{M_1,\ldots,M_K\}$
         \State Estimate $D^{\mathrm{MI}}_{ij}$ via KSG estimator~\citep{kraskov2004ksg}
         at $\tau \in \{1,5,15,30\}$ steps
-        \Statex \hspace{1em}\textit{// H2 manipulation check}
+        \Statex \hspace{1em}\textit{// H2 signature check (backward channel)}
         \State Extract spill-back events from SUMO queue trajectories
         \State Compute within-module and cross-module spill-back proportions;
         run one-sample proportion test $\;\Rightarrow\; p_{\mathrm{H2}}$
-        \Statex \hspace{1em}\textit{// H1 manipulation check}
+        \Statex \hspace{1em}\textit{// H1 signature check (forward channel)}
         \State Classify agent pairs as within-module or cross-module under $\mathcal{M}$
         \State Compare $D^{\mathrm{MI}}_{ij}$ distributions;
         run Wilcoxon signed-rank test $\;\Rightarrow\; p_{\mathrm{H1}}$
