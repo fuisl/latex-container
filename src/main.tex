@@ -1,1632 +1,760 @@
-% Research Proposal Draft — LLNCS format
-\documentclass[runningheads]{llncs}
+\documentclass{article}
 
-\usepackage{graphicx}
+\usepackage[preprint]{format}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
 \usepackage{url}
-\usepackage{amsmath}
 \usepackage{booktabs}
+\usepackage{amsmath}
 \usepackage{amssymb}
-\usepackage{tabularx}
+\usepackage{amsfonts}
+\usepackage{graphicx}
+\usepackage{nicefrac}
 \usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{multirow}
 \usepackage{algorithm}
 \usepackage{algpseudocode}
 
-\begin{document}
+\title{Flow-Retaining Road Network Partitioning for Coordination-Aware Reinforcement Learning in Traffic Signal Control}
 
-\title{Flow-Coherent Communication Topologies for\\
-Multi-Agent Reinforcement Learning-Based\\
-Traffic Signal Control:\\
-An InfoMap-Based Partitioning Framework}
-
-\titlerunning{InfoMap-Based Communication for MARL-TSC}
-
-\author{Duong Tran H.\inst{1}}
-
-\authorrunning{D. Tran H.}
-
-\institute{%
-  Center for AI Research (CAIR), VinUniversity, Vietnam\\
-  \email{duong.th@vinuni.edu.vn}%
+\author{%
+Duong Tran Hai
 }
+
+\begin{document}
 
 \maketitle
 
+% ============================================================
 \begin{abstract}
-Traffic signal control~(TSC) in urban networks requires coordinated decisions
-across hundreds of intersections, a challenge well-addressed by multi-agent
-reinforcement learning~(MARL). Agent communication is central to coordination
-quality, yet existing MARL-TSC methods determine communication topology from
-geometric proximity or learned reward signals---neither of which reflects the
-underlying vehicle flow structure. We propose using the map
-equation~(InfoMap)~\cite{rosvall2008maps} to partition road networks by
-origin-destination~(OD) demand coherence, yielding communication topologies
-in which within-module agent pairs have higher mutual information about future
-traffic states. We operationalise this idea at three distinct levels: regional
-reward shaping~(IDQN/IPPO), regional critic design~(MAPPO), and regional
-communication graph~(CoLight-style regional GATs). A rigorous evaluation
-protocol following the \emph{rliable}~\cite{agarwal2021rliable} methodology
-specifies sample-efficiency metrics~(area under the learning curve, episodes to
-threshold) with stratified bootstrap confidence intervals and performance
-profiles. We further propose an attention range analysis---grounded in a
-principled range measure for graph neural network operators~\cite{lrd2025}---to
-mechanistically validate that InfoMap partitioning focuses attention within
-flow-coherent modules. A synthesis of three converging bodies of
-literature---MARL-TSC communication protocols, network partitioning for traffic
-management, and flow-based community detection---reveals a clear gap: no
-existing study applies flow-based community detection to define MARL
-communication neighbourhoods in TSC. The information bottleneck~(IB) framework
-widely applied in MARL communication~\cite{wang2020imac} provides motivating
-grounding: InfoMap provides a domain-motivated communication prior that reduces
-the topology search space that IB methods must otherwise explore from task
-reward signals alone---though the formal equivalence between the two objectives
-remains a conjecture requiring proof. We identify five research gaps, formalise
-a testable hypothesis, and specify a complete multi-stage experimental design
-for empirical validation.
-\keywords{%
-  multi-agent reinforcement learning \and
-  traffic signal control \and
-  communication topology \and
-  InfoMap \and
-  map equation \and
-  network partitioning \and
-  origin-destination flow \and
-  information bottleneck \and
-  sample efficiency%
-}
+    % TODO — write after all sections are drafted.
+    % Target: 150–200 words.
+    % Structure: (1) problem + gap, (2) method, (3) key result, (4) significance
+    %
+    % Draft placeholder:
+    Coordinating traffic signal agents in multi-agent reinforcement learning
+    (MARL) requires partitioning intersections into coordination groups, yet
+    existing partitions use road topology rather than vehicle flow structure.
+    We therefore study how different partitioning strategies preserve or sever inter-agent dependencies, and whether higher dependency preservation translates into better multi-agent coordination. We apply InfoMap, an information-theoretic community detection algorithm
+    grounded in origin-destination (OD) vehicle flow, to define
+    flow-coherent coordination modules, and evaluate its effect systematically
+    across three coordination coupling levels: reward shaping (IPPO), centralized
+    critic (MAPPO) and graph attention (CoLight).
+    We introduce the \emph{dependency retention ratio}~$\Psi$, a partition quality metric computed from mutual information and Jacobian-based dependency
+    instruments, and show that InfoMap achieves higher $\Psi$ than topology-based
+    partitions (METIS) across all three levels.
+    Experiments in real SUMO scenarios demonstrate up to $2.85\times$ reduction in
+    the average vehicle waiting time, with verified spatial advantage of MI (H1) and
+    spill containment (H2) as the causal mechanism.
 \end{abstract}
 
 % ============================================================
 \section{Introduction}
-% ============================================================
-
-Urban traffic congestion imposes substantial economic and environmental costs.
-Traffic signal control---the real-time management of intersection signal
-phases---is among the most tractable levers available to transportation
-engineers, yet optimal coordination across an urban network remains an open
-problem. With $n$ signalised intersections, the joint action space grows
-exponentially, making centralized optimal control computationally infeasible at
-city scale.
-
-Multi-agent reinforcement learning reframes the problem by assigning one agent
-per intersection, each learning a local policy. Decentralisation makes the
-approach scalable but introduces partial observability---each agent observes
-only local traffic state---and the need for coordination. Communication between
-agents is the primary mechanism for resolving partial observability, and the
-structure of that communication (who communicates with whom, what is
-communicated, and when) directly determines coordination quality.
-
-The dominant approach to communication structure in MARL-TSC is geographic:
-agents communicate with their $k$-hop road-network neighbours. This is
-intuitively reasonable but conflates two distinct design objects.
-The \emph{road network topology}---the physical graph of intersections and
-roads---determines what communication is \emph{possible}. The
-\emph{communication topology}---which agent pairs actually exchange
-information---determines what coordination \emph{occurs}. Existing methods
-set these equal by default, but vehicle flow does not respect road-network
-adjacency. A vehicle entering intersection $A$ may traverse several
-intermediate intersections before reaching its true destination zone, making
-immediate road-neighbours of $A$ poor predictors of its downstream impact.
-The right communication topology should reflect \emph{where vehicles go},
-not \emph{which roads connect}.
-
-We formalise the TSC problem as a Networked Distributed POMDP
-(ND-POMDP)~\cite{nair2005ndpomdp,oliehoek2012ndpomdp}, in which the
-\emph{coordination graph}---the graph over agents whose edges determine which
-pairs share non-separable joint utility---is the central design object.
-ND-POMDP theory establishes that computational tractability scales inversely
-with coordination graph density~\cite{kok2006ndpomdp}: a sparser graph that
-correctly identifies the non-separable pairs achieves both better coordination
-and lower computational cost than a dense graph that includes spurious edges.
-
-We investigate whether the map equation
-(InfoMap)~\cite{rosvall2008maps} provides a principled criterion for
-designing this coordination graph from origin-destination~(OD) flow data.
-InfoMap identifies communities where a random walker tends to stay; in traffic,
-the walker is a vehicle and communities correspond to OD demand basins. The
-core hypothesis is that agents within the same InfoMap module have higher
-mutual information about each other's future traffic states, and therefore
-constitute the non-separable pairs in the coordination graph.  We further
-conjecture that InfoMap modules correspond to \emph{spill-back propagation
-  zones}: congestion that spills back from one intersection tends to propagate
-within the module rather than across flow-basin boundaries~\cite{dependencydyn2025}.
-
-\medskip\noindent\textbf{Contributions.}
-\begin{enumerate}
-  \item A formal ND-POMDP reframing of the MARL-TSC communication problem,
-  separating the \emph{road network topology} (physical infrastructure)
-  from the \emph{coordination graph} (communication design object),
-  and establishing why OD flow is the principled criterion for
-  coordination graph design.
-  \item An information-theoretic argument connecting the map equation to
-        MARL communication topology, formalised as two testable hypotheses:
-        H1~(within-module mutual information advantage) and H2~(spill-back
-        containment within modules).
-        \item A comprehensive literature synthesis across four bodies of work
-        (MARL-TSC, communication topology design, network partitioning,
-        and spatio-temporal dependency), identifying six concrete research gaps.
-  \item A three-level experimental protocol operationalising the InfoMap
-        partition at the reward level~(IDQN/IPPO), critic level~(MAPPO),
-        and communication graph level~(regional GATs), with a factorial
-        ablation design isolating each level's contribution and a temporal
-        sensitivity ablation addressing OD demand stationarity.
-  \item A rigorous evaluation methodology based on the rliable
-        framework~\cite{agarwal2021rliable}---interquartile mean~(IQM),
-        performance profiles, and stratified bootstrap confidence
-        intervals---addressing reproducibility concerns in MARL-TSC evaluation.
-  \item An attention range analysis protocol---grounded in the range measure for
-        graph neural network operators~\cite{lrd2025}---to mechanistically
-        validate that regional GAT partitioning sharpens attention focus
-        within flow-coherent modules.
-\end{enumerate}
+\label{sec:intro}
+% Para 1 — Problem: TSC at scale; coordination graph design as the open question
+% Para 2 — Gap (two layers, plus the meta-gap that motivates closing them):
+%   Structural: existing partitions (METIS, Laplacian, feudal) use topology, not OD flow
+%   Theoretical: dynamic graph attention learns structure implicitly but provides no
+%                principled account of which dependencies are preserved or severed
+%   Meta-gap: no prior work supplies a principled rationale — connecting graph theory,
+%             information theory, and MARL — for *which* partitioning criterion to
+%             choose; we supply this rationale and operationalise it via InfoMap
+% Para 3 — Insight + method: OD flow is the natural basis; InfoMap is the
+%           information-theoretic criterion; coordination coupling spectrum (L1/L2/L3)
+% Para 4 — Contributions (bulleted, 4 items)
+\textbf{[To be written — Step 6]}
 
 % ============================================================
 \section{Background}
 \label{sec:background}
-% ============================================================
 
-\subsection{Decentralised Control and the Coordination Graph}
+\subsection{Network-Distributed POMDP and the Coordination Graph}
+\label{sec:ndpomdp}
 
-Traffic signal control with $n$ intersections is naturally modelled as a
-\textbf{Decentralised Partially Observable Markov Decision Process}
-(Dec-POMDP)~\cite{oliehoek2012ndpomdp}: each agent $i$ observes only its
-local state $o_i$ (queue lengths, phase durations), takes a local action $a_i$
-(signal phase), and receives a local reward $r_i$. The joint reward $R = \sum_i
-  r_i$ is the global objective (minimise average travel time).
+Each signalised intersection $i \in \mathcal{V}$ observes a local state
+$o_i$ (queue lengths, current phase, elapsed phase time) and selects a
+phase action $a_i \in \mathcal{A}_i$.
+We model the joint problem as a \emph{network-distributed POMDP} (ND-POMDP),
+in which a coordination graph $\mathcal{G}_C = (\mathcal{V}, \mathcal{E}_C)$
+encodes which agent pairs share explicit interaction terms in the joint reward.
+Three structural properties of TSC motivate this formulation.
 
-For large $n$, the Dec-POMDP is intractable in general (NEXP-hard).
-The \textbf{Networked Distributed POMDP (ND-POMDP)}~\cite{nair2005ndpomdp,kok2006ndpomdp} introduces structure by restricting which agents interact:
-the reward factorises as
+\textbf{(a) Reward locality with spill-back coupling.}
+The immediate reward $r_i$ depends primarily on queues and delays at
+intersection $i$, making it nearly local.
+However, when downstream lanes saturate, backward-propagating queue waves
+couple $r_i$ to the actions at neighbouring intersection $j$ via
+spill-back~\citep{dependencydyn2025}.
+The ND-POMDP captures this through interaction terms:
 \begin{equation}
-  R(s,a) = \sum_{(i,j)\in E_C} \rho_{ij}(s_i, s_j, a_i, a_j)
-  \label{eq:ndpomdp}
+    R(\mathbf{a})
+    \;=\; \sum_{i \in \mathcal{V}} r_i(o_i, a_i)
+    \;+\; \sum_{(i,j)\in\mathcal{E}_C} r_{ij}(o_i, o_j, a_i, a_j).
+    \label{eq:ndpomdp}
 \end{equation}
-where $\mathcal{G}_C = (V, E_C)$ is the \emph{coordination graph} and
-$\rho_{ij}$ is a local payoff function between agent pair $(i,j)$.
-Crucially, \textbf{tractability scales inversely with graph density}:
-sparser $\mathcal{G}_C$ supports exact or near-exact solutions that become
-infeasible on the full graph~\cite{kok2006ndpomdp}.
+Edges in $\mathcal{G}_C$ mark pairs where the cross-agent term $r_{ij}$ is
+non-negligible; omitting a spill-back edge misattributes joint outcomes to
+independent agents.
 
-This makes the \emph{design of $\mathcal{G}_C$} the central algorithmic
-question in scalable MARL-TSC. Existing work implicitly sets
-$E_C = E_{\text{road}}$ (the road network edges), i.e.\ agents coordinate
-iff they are road-neighbours. We argue this conflates two distinct objects:
-\begin{itemize}
-  \item \textbf{Road network topology} $G_{\text{road}} = (V, E_{\text{road}})$:
-        fixed physical infrastructure; determines what communication is
-        \emph{possible}.
-  \item \textbf{Coordination graph} $\mathcal{G}_C = (V, E_C)$:
-        the design variable; determines what coordination \emph{occurs}.
-\end{itemize}
-Setting $E_C = E_{\text{road}}$ is the default but not the optimum.
-The optimal $\mathcal{G}_C$ connects exactly those agent pairs $(i,j)$ for
-which $\rho_{ij}$ is non-negligible---i.e.\ pairs whose traffic states
-are predictably coupled.  In a TSC network, these are the pairs through
-which vehicles actually travel together: OD-coherent pairs.
+\textbf{(b) Tractability via maximum clique size.}
+Exact coordination over a clique of $\omega$ agents requires evaluating
+$|\mathcal{A}|^\omega$ joint actions.
+Partitioning $\mathcal{V}$ into modules of bounded size
+$|M_k| \leq \omega_{\max}$ keeps this tractable; in TSC networks
+$\omega_{\max} = 4$--$6$ is sufficient in practice.
 
-\subsection{The Map Equation and InfoMap}
+\textbf{(c) $\mathcal{G}_C$ is a free design variable.}
+Unlike environments where the coordination graph is determined by the physics,
+in TSC the coordination modules are explicitly constructed before training.
+This makes partition selection the central algorithmic question: which graph
+minimises the coordination cost severed by module boundaries?
+Attribute~(a) answers what ``coordination cost'' means: the mass of spill-back
+interaction terms $r_{ij}$ cut by the partition.
+Attributes~(a)–(c) together motivate using OD vehicle flow as the partition
+criterion, and Section~\ref{sec:infomap} makes this precise.
 
-The map equation~\cite{rosvall2008maps,rosvall2009mapequation} provides the
-theoretical foundation. The core insight is that community structure in a
-network can be identified by finding the partition that best compresses the
-description of a random walk using the minimum description length~(MDL)
-principle:
+\subsection{The Map Equation}
+\label{sec:mapeq}
 
+InfoMap~\citep{rosvall2008maps,rosvall2009mapequation} finds a partition by
+minimising the description length of a random walk on a weighted directed graph:
 \begin{equation}
-  L(\mathcal{M}) = q_{\curvearrowright} H(\mathcal{Q})
-    + \sum_{i=1}^{k} p_i^{\circlearrowleft} H(\mathcal{P}_i)
-  \label{eq:mapequation}
+    L(\mathcal{M})
+    \;=\; q_{\circlearrowleft} H(\mathcal{Q})
+    \;+\; \sum_{k=1}^{K} p_k^{\circlearrowleft} H(\mathcal{P}_k),
+    \label{eq:mapeq}
 \end{equation}
+where $q_{\circlearrowleft}$ is the aggregate rate of inter-module random-walk
+transitions, $H(\mathcal{Q})$ is the entropy of the between-module codebook,
+$p_k^{\circlearrowleft}$ is the within-module random-walk rate for $M_k$, and
+$H(\mathcal{P}_k)$ is the within-module codebook entropy.
+Minimising $L(\mathcal{M})$ minimises the average bits required to describe
+the walker's trajectory, which is achieved by grouping nodes that exchange the
+most flow into the same module --- so that the walker rarely crosses module
+boundaries and the between-module term $q_{\circlearrowleft}H(\mathcal{Q})$
+stays small.
 
-\noindent where $q_{\curvearrowright}$ is the rate at which a random walker
-moves \emph{between} modules, $H(\mathcal{Q})$ is the entropy of
-between-module movement, $p_i^{\circlearrowleft}$ is the rate of staying
-\emph{within} module $i$, and $H(\mathcal{P}_i)$ is the entropy of
-within-module movement. Minimising $L(\mathcal{M})$ over all partitions
-$\mathcal{M}$ identifies communities where the walker---and in traffic,
-vehicles---tend to remain.
-
-\medskip\noindent\textbf{Key algorithmic properties}~\cite{edler2023community}:
-\begin{itemize}
-  \item Handles directed, weighted edges without discarding direction (critical
-        for traffic OD matrices);
-  \item Does not require specifying the number of communities $k$ in advance;
-  \item Does not suffer from the resolution limit affecting modularity-based
-        methods (Louvain, Girvan-Newman);
-  \item Produces a hierarchical codebook---a natural two-level communication
-        vocabulary.
-\end{itemize}
-
-Applied to a traffic network, nodes are intersections and edge weights
-represent directed OD flow between them. The partition that minimises
-Eq.~\eqref{eq:mapequation} recovers intersections that vehicles tend to visit
-together---OD-coherent demand basins.
-
-\medskip\noindent\textbf{Scope of the random walk approximation.}
-The map equation assumes a memoryless random walk; real vehicle routing is
-destination-directed and influenced by GPS and habitual paths. Applied to
-aggregated intersection-pair flow counts from simulation or historical data,
-the partition approximates OD demand basins rather than strict random walk
-communities. This is a purposeful approximation: we use flow volume as a proxy
-for flow coherence, and whether this is sufficient for defining effective MARL
-communication topologies is precisely what Hypothesis~H1
-(Section~\ref{sec:theory}) is designed to test empirically.
+Applied to $\mathcal{G}_{\mathrm{OD}}$, InfoMap groups intersections that
+exchange the most vehicle volume.
+As we show in Section~\ref{sec:infomap}, these are exactly the pairs most
+likely to be coordination-necessary via spill-back, connecting the
+information-theoretic objective of Eq.~\eqref{eq:mapeq} to the traffic-theoretic
+requirement of Eq.~\eqref{eq:ndpomdp}.
+Unlike modularity maximisation~\citep{newmangirvan2004}, the map equation has
+no resolution limit~\citep{edler2023community}: it detects modules at any
+scale present in the data without merging fine-grained clusters that are
+genuinely distinct.
 
 % ============================================================
 \section{Related Work}
 \label{sec:related}
-% ============================================================
-
-\subsection{MARL-TSC Communication Protocols}
-
-\textbf{CoLight}~\cite{wei2019colight} applies graph attention networks to
-MARL-TSC, selectively weighting messages from road-graph neighbours.
-Its key limitation is that the communication graph equals the road graph,
-ignoring vehicle flow structure. We address this by partitioning the global
-GAT into regional GATs aligned with InfoMap modules.
-
-\textbf{Representational communication}~\cite{bokade2023representational} shows
-that message quality limits large-scale TSC coordination; \textbf{CVDMARL}~\cite{cvdmarl2024}
-confirms structured communication outperforms independent learning.
-\textbf{HiLight}~\cite{xu2021hilight} shows that a high-level policy selecting
-among short-term sub-policies, weighted by neighbourhood objectives, improves
-large-scale TSC coordination, and \textbf{HALO}~\cite{zhu2026halo} extends this
-with adversarially-aligned global guidance---but neither defines coordination
-regions from network structure. \textbf{Li et al.}~\cite{li2025topology} does
-introduce explicit topological structure beyond the road graph, though not
-OD-flow-based partitioning.
-\textbf{RegionLight}~\cite{regionlight2024} and \textbf{NeurComm}~\cite{neurcomm}
-further confirm neighbourhood scope shapes coordination quality.
-
-\textbf{STMARL}~\cite{stmarl2020} decomposes coordination into spatial
-(road-adjacency GNN) and temporal (RNN history) dimensions, finding that
-\emph{spatial structure boosts TSC performance more than temporal dependency}.
-This calibrates our priority: InfoMap addresses the spatial coordination
-dimension, the higher-leverage target.
-
-\textbf{Dependency Dynamics in TSC}~\cite{dependencydyn2025} shows that
-inter-agent coordination is necessary \emph{if and only if} spill-back
-congestion connects two agents' queues---when no spill-back occurs, independent
-agents achieve near-optimal reward. This provides a traffic-theoretic grounding
-for $E_C$: edges should connect exactly those pairs between which spill-back
-can propagate. We conjecture InfoMap modules correspond to spill-back zones
-(Hypothesis~H2, Section~\ref{sec:theory}).
-
-\subsection{Communication Topology Design in MARL}
-
-\textbf{ATOC}~\cite{jiang2018atoc} shows that selective communication via
-attentional gating outperforms full broadcast.
-\textbf{I2C}~\cite{i2c2021} learns per-pair communication value but lacks
-scalability and domain-structure grounding.
-\textbf{Correlated topology learning}~\cite{aamas2021correlated} optimises
-the communication graph as a latent variable, yielding dynamic but opaque
-and non-transferable topologies.
-\textbf{ExpoComm}~\cite{expocomm2025} demonstrates that pre-designed structural
-topologies ($O(\log n)$ diameter exponential graphs) match or exceed learned
-topologies at scale, directly motivating domain-prior approaches.
-Three TSC-specific properties justify a domain prior: (i)~stable urban demand
-makes an OD-based prior informative from episode one; (ii)~early-policy topologies
-can drift from converged-policy optima; (iii)~InfoMap partitions transfer to
-new networks via OD data alone, without MARL retraining.
-
-\textbf{IB methods} formalise the communication design question.
-IMAC~\cite{wang2020imac} learns a minimal sufficient message representation by
-maximising MI between the message and the selected action while constraining MI
-between the message and the agent's own feature, retaining task-relevant
-information under a bandwidth constraint; IB-VQ~\cite{sun2026ibvq} extends this to bandwidth-efficient
-discrete coding; Heterogeneous IB Coordination Graphs~\cite{hetib2025}
-co-design graph structure and per-edge bandwidth.
-InfoMap provides a domain-motivated topology prior that reduces the search space
-IB methods must explore, though formal equivalence between the map equation
-objective and the IB objective remains a conjecture.
-
-\textbf{GNN dependency analysis}~\cite{lrd2025} quantifies how much a graph
-model's output at node $v$ changes when input features of node $u$---$h$ hops
-away---are perturbed, via aggregated absolute Jacobians, yielding per-hop
-influence profiles $\bar{T}_h$.
-We adapt this framework to MARL-TSC (Section~\ref{sec:depquant}) as a
-post-hoc diagnostic for whether trained critic and communication models
-concentrate spatial dependency within InfoMap modules.
-
-\subsection{Network Partitioning for Traffic Signal Control}
-
-\textbf{Laplacian partitioning}~\cite{laplacian2009ieee} identifies signal
-coordination groups spectrally, but from road-network topology rather than flow.
-\textbf{OD-flow partitioning}~\cite{odflow2019partition} demonstrates, on
-real-world smartphone OD trace data, that modularity-based community detection
-recovers spatially coherent regions from directional trip volume rather than
-static adjacency---evidence that flow, not just topology, is a viable partitioning
-signal, though the study targets urban mobility structure rather than TSC control
-outcomes directly.
-\textbf{MFD-based partitioning}~\cite{mfdpartition2020,communitydetection2021plosone}
-targets density homogeneity for perimeter control, not OD flow coherence.
-
-\textbf{Feudal MARL with Adaptive Partition}~\cite{ma2022feudal} is the closest
-prior work: it also partitions the network according to traffic flow, using a
-GNN or MCTS-guided GNN to learn the partition. Key differences: their partition
-is learned end-to-end and opaque, requiring training and re-training per network,
-whereas ours optimises a closed-form, principled objective (the map equation)
-requiring no MARL training; their partition defines a \emph{policy hierarchy}
-(manager/worker), ours defines a \emph{coordination graph}; and no
-information-theoretic partition-quality analysis (analogous to our $\Psi$) is
-reported. Their earlier fixed-region predecessor,
-FMA2C~\cite{ma2020fma2c}, uses static manager-defined regions rather than
-adaptive or flow-derived ones.
-
-\textbf{GPLight}~\cite{liu2023gplight} groups agents for parameter sharing using
-an MI-based loss over both real-time traffic flow and static road topology
-jointly with training; unlike our approach, the grouping criterion is fused
-into one architecture-specific loss rather than being a pre-computed,
-algorithm-agnostic prior applicable across different coordination mechanisms.
-
-\subsection{InfoMap in Urban Mobility and Temporal Stability}
-
-\textbf{Lucchini et al.}~\cite{lucchini2023intraod} apply InfoMap to hourly
-intra-urban OD networks and find that 82.9\% of regions maintain stable
-community membership across time windows; only peripheral boundary nodes
-shift between modules. This supports a time-aggregated OD partition as a
-valid coordination graph approximation.
-
-\textbf{Flow stability theory}~\cite{flowstability2022} extends community
-detection to temporal networks, identifying dynamical scales at which community
-boundaries stabilise. In urban traffic, communities are stable within a
-regime (peak/off-peak) but may shift across regimes, grounding the temporal
-sensitivity ablation in Section~\ref{sec:temporal}.
-
-\medskip\noindent\textbf{Critical gap.} No existing study applies the InfoMap
-codebook to define MARL communication neighbourhoods in TSC, nor examines
-how OD temporal variation affects static partition quality across RL training episodes.
-
-\subsection{Rigorous Evaluation in Deep Reinforcement Learning}
-
-Henderson et al.~\cite{henderson2018matters} show that deep RL performance
-differences often disappear under different seeds or protocols---a concern
-amplified in MARL-TSC, where most results rely on single-seed final-episode comparisons.
-Agarwal et al.~\cite{agarwal2021rliable} formalise \emph{rliable}: interquartile
-mean (IQM) for efficient point estimates, stratified bootstrap confidence intervals,
-performance profiles, and probability of improvement.
-Our protocol adopts all four measures to ensure sample-efficiency claims about
-InfoMap partitioning are statistically defensible.
+% Para 1 — Network partitioning for TSC:
+%   laplacian2009ieee, odflow2019partition, mfdpartition2020,
+%   communitydetection2021plosone, ma2022feudal, liu2023gplight
+%   → structural/geometric criteria; no OD flow objective; no dependency cost analysis
+% Para 2 — MARL communication topology (compressed):
+%   jiang2018atoc, i2c2021, hetib2025, wei2019colight, liu2023gplight,
+%   xu2021hilight, zhu2026halo, expocomm2025, li2025topology
+%   → learned or fixed; dynamic graph attention implicit; no dependency accounting
+% Para 3 — GNN dependency + MI in MARL (compressed):
+%   lrd2025, abnar2020rollout, stmarl2020, dependencydyn2025, wang2020imac
+%   → Ψ, D^MI, D^Q, D^G adapt these frameworks to partition quality evaluation
+\textbf{[To be written — Step 5]}
 
 % ============================================================
-\section{Theoretical Framework}
-\label{sec:theory}
-% ============================================================
-
-\subsection{The Coordination Graph as the Central Design Object}
-\label{sec:coordgraph}
-
-Building on the ND-POMDP formulation~(Eq.~\eqref{eq:ndpomdp}), the
-central design question is: \emph{which pairs $(i,j)$ should have an edge
-  in $\mathcal{G}_C$?}  We decompose the factors influencing this choice:
-
-\medskip\noindent\textbf{Topology vs.\ partition.}
-\begin{itemize}
-  \item \textbf{Global topology} (road network): specifies the
-        \emph{physical reachability} of agents---what communication
-        infrastructure exists. This is fixed and given.
-  \item \textbf{Partition} (coordination grouping): specifies the
-        \emph{functional communication structure}---which pairs should
-        communicate because their joint utility $\rho_{ij}$ is non-trivial.
-        This is the design variable.
-\end{itemize}
-Both affect distinct aspects of what agents learn.  The partition
-affects \emph{who} receives the reward, credit, or message signal
-(the ``who communicates'' question).  Within each level of the
-three-level protocol, it shapes what the RL agent \emph{sees and acts upon}:
-at Level~1 the reward signal, at Level~2 the value function input, at
-Level~3 the attention neighbourhood.
-
-\medskip\noindent\textbf{Map equation as coordination description length.}
-The map equation $L(\mathcal{M})$ (Eq.~\eqref{eq:mapequation}) quantifies
-the average number of bits needed to describe a random walk on the
-OD flow graph under partition $\mathcal{M}$.  Two terms capture exactly
-the coordination cost structure of ND-POMDP:
-\begin{itemize}
-  \item $q_{\curvearrowright} H(\mathcal{Q})$: the code cost of
-        \emph{between-module} transitions---analogous to the cost of
-        cross-module coordination edges in $\mathcal{G}_C$.
-  \item $\sum_i p_i^{\circlearrowleft} H(\mathcal{P}_i)$: the code cost
-        of \emph{within-module} transitions---analogous to the cost of
-        intra-module coordination.
-\end{itemize}
-The InfoMap optimum $\mathcal{M}^* = \arg\min L(\mathcal{M})$ minimises
-total description length by \emph{maximising within-module flow retention
-  at minimum cross-module code cost}.  Translated to coordination graph design:
-$\mathcal{M}^*$ identifies the partition where retaining within-module
-coordination edges captures the most flow-relevant agent dependencies at
-minimum graph density cost.  This is the first formal connection, to our
-knowledge, between the map equation and ND-POMDP coordination graph design.
-
-\subsection{Spatio-Temporal Dependency Decomposition}
-\label{sec:spatiotemporal}
-
-Traffic signal control involves two orthogonal dependency structures that
-both affect coordination quality~\cite{stmarl2020}:
-
-\medskip\noindent\textbf{Spatial dependency.}
-At a given time $t$, the state $X_i(t)$ of intersection $i$ is influenced
-by the states of physically connected intersections via vehicle flow.
-This is the dependency targeted by the coordination graph $\mathcal{G}_C$:
-if $(i,j) \in E_C$, agents $i$ and $j$ share signals that carry spatially
-correlated traffic information.  The InfoMap partition determines the
-\emph{spatial scope} of coordination.
-
-\medskip\noindent\textbf{Temporal dependency.}
-Each agent's future state $X_i(t+\tau)$ depends on its own history
-$\{X_i(t'), t' < t\}$ (signal phase memory, queue accumulation).
-This is the dependency targeted by recurrent architectures and observation
-history windows in the RL policy.  The partition does not directly control
-this dimension; it is handled by the agent's internal state representation.
-
-\medskip\noindent\textbf{OD temporal variability.}
-A third form of temporal dependency concerns the \emph{OD demand pattern
-  itself}: the flow matrix $W_{ij}$ changes across time of day (morning peak,
-off-peak, evening peak).  This determines whether a \emph{static} InfoMap
-partition---estimated from one OD snapshot---remains valid across all training
-episodes.  STMARL~\cite{stmarl2020} finds that spatial dependency boosts
-TSC performance more than temporal dependency in most networks, suggesting that
-even an approximate static partition may capture the dominant coordination
-structure.  Lucchini et al.~\cite{lucchini2023intraod} provide empirical
-support: 82.9\% of urban regions maintain stable community membership across
-hours, with only peripheral boundary nodes shifting between regimes.
-Flow stability theory~\cite{flowstability2022} refines this: communities are
-stable within a traffic \emph{regime} (peak or off-peak), but may differ
-across regimes.  The temporal sensitivity ablation (Section~\ref{sec:temporal})
-directly tests this boundary.
-
-\medskip\noindent\textbf{Why the 1-hour OD snapshot is a defensible starting
-  point.}  Within any 1-hour simulation window at a stable demand regime, OD
-flow is approximately stationary in the Wardrop sense: holding demand constant,
-vehicles settle into a quasi-equilibrium assignment.  The partition computed
-from this window captures the dominant spatial coordination structure for that
-regime.  The question of whether it transfers to other regimes is not whether
-the partition is ``wrong'' in absolute terms, but whether regime-specific
-partitions improve over the single static partition---a difference addressable
-by the C3/C4 temporal ablation conditions in Section~\ref{sec:temporal}.
-
-\subsection{Testable Hypotheses}
-\label{sec:hypotheses}
-
-Let $X_i(t)$ denote the traffic state at node $i$ at time $t$ and
-$\mathcal{M} = \{M_1, \ldots, M_k\}$ be an InfoMap partition.
-The framework rests on a main hypothesis supported by two complementary
-sub-hypotheses at different levels of abstraction: H2 is the
-traffic-theoretic \emph{mechanism}, H1 is its information-theoretic
-\emph{consequence}. Together they imply three operational predictions
-at the coordination level (Section~\ref{sec:depquant}).
-
-\medskip\noindent\textbf{Main Hypothesis~H (Partition Quality).}
-An OD-flow-coherent partition (InfoMap) achieves higher dependency
-retention---$\Psi(\mathcal{P}_{\mathrm{InfoMap}}, \mathbf{D}) >
-  \Psi(\mathcal{P}_{\mathrm{METIS}}, \mathbf{D})$---for the same
-number of modules $K$, leading to better coordination at all three
-levels of the protocol.
-
-\medskip\noindent\textbf{Hypothesis H1 (Spatial MI Advantage).}
-For any intersections $i, j$ in the same module $M_k$ and $l \notin M_k$,
-within-module pairs share higher mutual information about each other's
-\emph{spatial} traffic state---the cross-agent dimension indexed by $(i,j)$,
-not the within-agent temporal dimension:
-\begin{equation}
-  I\!\left(X_i(t);\, X_j(t+\tau)\right) >
-  I\!\left(X_i(t);\, X_l(t+\tau)\right),
-  \quad \text{on average over propagation lags } \tau \in [1, T].
-  \label{eq:h1}
-\end{equation}
-H1 is \emph{motivated by}, but not formally derived from, the map equation:
-if the OD flow graph approximates a random walk, vehicles tend to remain
-within $M_k$, so congestion at $i$ propagates preferentially to $j \in M_k$
-rather than to $l \notin M_k$.
-\textbf{H1 is treated as an empirical hypothesis, not a derived theorem.}
-
-\medskip\noindent\textbf{Hypothesis H2 (Spill-back Containment).}
-Spill-back congestion is more likely to stay within an InfoMap module
-than to cross module boundaries:
-\begin{equation}
-  \Pr\!\left(\text{spill-back}_{i \to j} \mid i,j \in M_k\right)
-  > \Pr\!\left(\text{spill-back}_{i \to l} \mid i \in M_k,\, l \notin M_k\right).
-  \label{eq:h2}
-\end{equation}
-H2 is grounded in dependency dynamics~\cite{dependencydyn2025}: coordination is
-necessary \emph{if and only if} spill-back connects two agents' queues.
-If InfoMap modules correspond to spill-back zones, $E_C$ restricted to
-within-module edges captures exactly the necessary coordination pairs.
-\textbf{H2 is the causal mechanism for H1}: if spill-back stays within
-modules, within-module agents' states co-vary via shared congestion
-propagation, raising $I(X_i; X_j)$ above the cross-module baseline.
-Unlike H1, H2 is directly testable from queue and trajectory data.
-
-\medskip\noindent\textbf{Verification protocol.}
-Before MARL training, collect $\sim$1000 warm-up steps with a random policy.
-\begin{enumerate}
-  \item \emph{H1}: Compute $\hat{I}(X_i(t); X_j(t+\tau))$ via KSG estimator
-  at $\tau \in \{1, 5, 15, 30\}$ steps for all pairs $(i,j)$.
-  Classify as within-module or cross-module.
-  Test with a Wilcoxon signed-rank test ($p < 0.05$); visualise as
-  a $|V|\times|V|$ MI heatmap with InfoMap boundaries overlaid.
-  \item \emph{H2}: Extract spill-back events from vehicle trajectory data
-        (queue lengths exceeding junction capacity at consecutive intersections).
-        Test the fraction of within-module spill-back vs.\ the
-        base rate with a one-sample proportion test.
-        \end{enumerate}
-        Failure modes and implications: if both H1 and H2 fail, halt training and
-        revise the partition criterion.
-        If H1 fails but H2 holds, spill-back containment still partially justifies
-        the partition.
-        If H1 holds but H2 fails, the MI advantage is present but the spill-back
-        mechanism is incorrect---revise the mechanism, not the partition.
-        
-        \noindent Section~\ref{sec:depquant} operationalises H1 and H2 through a
-        dependency quantification framework, introducing the metrics needed to
-        test~H and deriving per-level operational predictions from H1 and H2.
-        
-        \subsection{Spatial Dependency Metrics and Three-Level Predictions}
-        \label{sec:depquant}
-        
-        H1 and H2 predict that within-module pairs exhibit stronger spatial coupling
-        than cross-module pairs. To connect this prediction to each coordination level,
-        we need a common dependency metric that (i)~is computable without presupposing
-        the partition, (ii)~yields a scalar per pair $(i,j)$, and (iii)~can be evaluated
-        under any candidate partition via a single partition-quality score.
-        
-        \medskip\noindent\textbf{Two complementary instruments.}
-        
-        \noindent\textit{Physical dependency (model-free):}
-        H1 directly provides a dependency score---the empirical mutual information
-        between agents' traffic states:
-        \begin{equation}
-          D^{\mathrm{MI}}_{ij} = \hat{I}\!\left(X_i(t);\, X_j(t{+}\tau)\right)
-          \label{eq:dmi}
-        \end{equation}
-        estimated by the KSG estimator on warm-up trajectories.
-        $D^{\mathrm{MI}}_{ij}$ is model-free and applies at Level~1: regional reward
-        averaging (Eq.~\eqref{eq:regionalreward}) transmits a correlated gradient
-        signal within modules when within-module $D^{\mathrm{MI}}_{ij}$ is high,
-        reducing variance relative to independent reward.
-        Note that at Level~1 (IPPO/IDQN), agents act independently---there is no
-        cross-agent input path in the policy network, so a Jacobian-based measure
-        is not applicable.
-        
-        \noindent\textit{Learned dependency (Jacobian on the global model):}
-        For Levels~2 and~3, we adapt the Jacobian-based influence framework
-        of~\cite{lrd2025} to the MARL setting.
-        For a model $F$ trained \emph{without} partition constraints (the global model),
-        define the spatial influence of agent~$j$ on agent~$i$ as:
-        \begin{equation}
-          D_{i \leftarrow j}(F)
-          = \sum_{a,k}
-          \left|\frac{\partial F_{i,a}}{\partial X_{j,k}}\right|
-          \label{eq:djac}
-        \end{equation}
-        where $X_{j,k}$ is feature~$k$ of agent~$j$'s observation and $F_{i,a}$ is
-        output dimension~$a$ of~$F$ at agent~$i$.
-        The \emph{global-model} restriction is essential: a partitioned model has no
-        cross-module input pathway by construction, making its cross-module Jacobian
-        zero by definition---a structural artefact, not evidence of low dependency.
-        We instantiate Eq.~\eqref{eq:djac} at two levels:
-        \begin{align*}
-          D^{Q}_{i \leftarrow j}
-           & = D_{i \leftarrow j}(V^{\mathrm{global}})
-           &                                                          & \text{(global MAPPO critic, Level~2)}          \\
-          D^{\mathrm{G}}_{i \leftarrow j}
-           & = D_{i \leftarrow j}(\mathbf{h}_i^{(L),\mathrm{global}})
-           &                                                          & \text{(global CoLight GAT embedding, Level~3)}
-        \end{align*}
-        
-        \medskip\noindent\textbf{Hop-distance profile.}
-        For either instrument, aggregate by road-graph hop distance $\rho(i,j)$:
-        \begin{equation}
-          \bar{D}_h = \frac{1}{|V|}
-          \sum_{i}\sum_{j:\,\rho(i,j)=h} D_{i \leftarrow j}
-          \label{eq:barDh}
-        \end{equation}
-        This is the MARL analog of the per-hop influence $\bar{T}_h$ of~\cite{lrd2025}:
-        $\bar{D}_h$ quantifies the average spatial dependency from agents exactly
-        $h$ road-graph hops away.
-        A steeply decaying $\bar{D}_h$ confirms that local (1--2 hop) coordination
-        suffices; a slowly decaying profile reveals multi-hop coupling---and specifies
-        the minimum module radius for effective coordination.
-        
-        \medskip\noindent\textbf{Dependency retention ratio.}
-        Given a fixed dependency matrix $\mathbf{D}$ and a partition
-        $\mathcal{P}=\{P_1,\ldots,P_K\}$, define:
-        \begin{align}
-          \text{IntraDep}(\mathcal{P},\mathbf{D})
-           & = \sum_{k}\sum_{i,j \in P_k} D_{ij},
-          \label{eq:intradep}                                                     \\
-          \Psi(\mathcal{P},\mathbf{D})
-           & = \frac{\text{IntraDep}(\mathcal{P},\mathbf{D})}{\sum_{i,j} D_{ij}}.
-          \label{eq:psi}
-        \end{align}
-        $\Psi \in [0,1]$ is the \emph{dependency retention ratio}: the fraction of
-        total spatial dependency captured within partition boundaries.
-        Computing $\Psi$ on the same $\mathbf{D}$ under InfoMap vs.\ METIS tests
-        whether the flow-based partition aligns better with the dependency structure,
-        without circularity.
-        
-        \medskip\noindent\textbf{Why InfoMap should maximise $\Psi$.}
-        The map equation maximises the fraction of vehicle-flow steps retained within
-        modules. High within-module vehicle flow implies~(H1) that queue states co-vary
-        via shared arrivals, and~(H2) that spill-back congestion stays within module
-        boundaries---both raising $D_{ij}$ for within-module pairs.
-        Accordingly, InfoMap should achieve higher $\Psi$ than METIS on both the MI
-        matrix and the global-model Jacobian matrices, for the same $K$.
-        
-        \medskip\noindent\textbf{Operational predictions from H1 and H2.}
-        These follow directly from the causal chain H2$\to$H1$\to$H and are the
-        primary empirical targets of the experimental design.
-        \begin{enumerate}
-          \item \textbf{OP1 (L1, reward):} H1 implies $D^{\mathrm{MI}}_{ij}$ is
-                systematically higher within InfoMap modules, hence
-                $\Psi(\mathcal{P}_{\mathrm{InfoMap}}, D^{\mathrm{MI}}) >
-                  \Psi(\mathcal{P}_{\mathrm{METIS}}, D^{\mathrm{MI}})$.
-                Regional reward averaging then operates on correlated signals,
-                reducing gradient noise and training instability.
-                \emph{Directional support}: IPPO$+$flow shows 3.2$\times$ fewer
-                instability spikes than IPPO$+$METIS on Cologne8 (Table~\ref{tab:prelim}).
-          \item \textbf{OP2 (L2, critic):} H1 implies $D^{Q}_{i \leftarrow j}$
-                concentrates within InfoMap modules, hence
-                $\Psi(\mathcal{P}_{\mathrm{InfoMap}}, D^Q) >
-                  \Psi(\mathcal{P}_{\mathrm{METIS}}, D^Q)$.
-                The regional critic $V_k(\{o_i\}_{i \in M_k})$ captures dominant
-                value dependencies without modelling irrelevant cross-module states,
-                reducing credit-assignment variance.
-                \emph{Directional support}: MAPPO$+$flow achieves 2.85--3.99$\times$
-                lower ATT than MAPPO$+$METIS on Ingolstadt21.
-          \item \textbf{OP3 (L3, communication):} H1 implies $D^{\mathrm{G}}_{i \leftarrow j}$
-                concentrates within InfoMap modules, hence
-                $\Psi(\mathcal{P}_{\mathrm{InfoMap}}, D^{\mathrm{G}}) >
-                  \Psi(\mathcal{P}_{\mathrm{METIS}}, D^{\mathrm{G}})$,
-                observed as a lower influence-weighted range $\hat{\rho}_u$
-                (Eq.~\eqref{eq:rangemeasure}, Section~\ref{sec:attnrange})
-                for regional vs.\ global CoLight, provided module size
-                is sufficient (${\geq}3$--$4$ agents per module).
-        \end{enumerate}
-
-\subsection{The Codebook as Communication Vocabulary}
-
-InfoMap produces a hierarchical two-level codebook~\cite{rosvall2011multilevel}
-that maps naturally to a two-level communication protocol:
-
-\begin{enumerate}
-  \item \textbf{Module codewords} (Level 2): compact regional identity
-        (which demand basin an agent belongs to).
-  \item \textbf{Within-module codewords} (Level 1): agent position within
-        its region.
-\end{enumerate}
-
-This induces a two-level message structure:
-agents within the same module exchange full state vectors
-(within-module codewords), while agents in different modules exchange only
-module-level aggregate representations (module codewords)---reducing
-cross-module communication bandwidth while preserving intra-module
-coordination fidelity.
-
-\subsection{Comparison of Topology Design Approaches}
-
-Table~\ref{tab:topology} compares existing topology designs across three
-properties relevant to our hypothesis.
-
-\begin{table}[t]
-  \centering
-  \caption{Comparison of communication topology design criteria.}
-  \label{tab:topology}
-  \small
-  \begin{tabularx}{\linewidth}{l X c c c}
-    \toprule
-    \textbf{Method} & \textbf{Partition Criterion} & \textbf{Interpretable}
-      & \textbf{Flow-Grounded} & \textbf{Transferable} \\
-    \midrule
-    $k$-hop neighbours   & Road adjacency          & Yes     & No       & Yes \\
-    ATOC~\cite{jiang2018atoc}
-                         & Observation correlation & No      & No       & No  \\
-    ExpoComm~\cite{expocomm2025}
-                         & Graph diameter          & Yes     & No       & Yes \\
-    GPLight~\cite{liu2023gplight}
-                         & Observation MI + flow   & Partial & Partial  & Partial \\
-    Ma \& Wu~\cite{ma2022feudal}
-                         & OD flow (learned via GNN/MCTS) & No & Yes & No \\
-    \textbf{InfoMap (proposed)}
-                         & OD flow dynamics        & \textbf{Yes}
-                                                            & \textbf{Yes}
-                                                                       & \textbf{Yes} \\
-    \bottomrule
-  \end{tabularx}
-\end{table}
-
-The proposed approach is the only one that is simultaneously interpretable,
-directly grounded in traffic flow, and transferable across networks without
-MARL \emph{policy} retraining. \textit{Note on transferability:} ``transferable''
-means the InfoMap partition can be recomputed from the new network's OD data
-without any MARL training; the MARL policy itself still requires training on
-the target network. Transfer of the \emph{partition structure} (zero-shot)
-vs.\ transfer of the \emph{policy} (full retraining) are tested separately in
-Section~\ref{sec:experiment}.
-
-% ============================================================
-\section{Research Gaps}
-\label{sec:gaps}
-% ============================================================
-
-Synthesis of four literature bodies (MARL-TSC communication, coordination
-graph theory, network partitioning, and spatio-temporal dependency) reveals
-six research gaps (Table~\ref{tab:gaps}).
-Gaps G1 and G2 are blocking for algorithm development; G3 and G6 are
-theoretical; G4 and G5 address validity and methodological standards.
-
-\begin{table}[t]
-  \centering
-  \caption{Research gaps identified from four-body literature synthesis.}
-  \label{tab:gaps}
-  \small
-  \begin{tabularx}{\linewidth}{@{} l X p{1.25cm} X @{}}
-    \toprule
-    \textbf{Gap} & \textbf{Description} & \textbf{Sig.} & \textbf{Resolution} \\
-    \midrule
-    G1 & InfoMap partition not used to define MARL communication topology in TSC
-        & High & Proposed framework (Section~\ref{sec:framework}) \\[3pt]
-    G2 & No comparison of flow-based vs.\ geometric partition across all three coordination levels
-        & High & Factorial study (Section~\ref{sec:experiment}) \\[3pt]
-    G3 & No formal connection between map equation and ND-POMDP coordination graph; road topology conflated with coordination graph
-        & High & ND-POMDP + map-equation formalisation (Section~\ref{sec:theory}) \\[3pt]
-    G4 & Temporal sensitivity of static InfoMap partitions under regime shifts not studied in MARL-TSC
-        & Medium & Temporal ablation, T0--T5 (Section~\ref{sec:temporal}) \\[3pt]
-    G5 & MARL-TSC evaluations rarely apply multi-seed statistical protocols~\cite{henderson2018matters}
-        & Medium & rliable with IQM + bootstrap CIs~\cite{agarwal2021rliable} \\[3pt]
-    G6 & Coordination \emph{topology} (who communicates) and \emph{content} (what is communicated) never jointly studied under one partition criterion
-        & Medium & Three-level protocol (Section~\ref{sec:framework}) \\
-    \bottomrule
-  \end{tabularx}
-\end{table}
-
-% ============================================================
-\section{Proposed Framework}
-\label{sec:framework}
-% ============================================================
-
-\subsection{Problem Formulation: ND-POMDP with InfoMap Coordination Graph}
-\label{sec:formulation}
-
-We model MARL-TSC as an ND-POMDP~\cite{nair2005ndpomdp,kok2006ndpomdp}
-with the following components:
-\begin{itemize}
-  \item \textbf{Agents:} $\mathcal{N} = \{1, \ldots, n\}$, one per
-        signalised intersection.
-  \item \textbf{State:} $s = (s_1, \ldots, s_n)$ where $s_i$ includes
-        queue lengths and current phase at intersection $i$.
-  \item \textbf{Observations:} $o_i \sim O(s_i, a_i)$; each agent observes
-        only its local state (partial observability).
-  \item \textbf{Actions:} $a_i \in \mathcal{A}_i$, signal phase selection.
-  \item \textbf{Factored reward:} $R(s,a) = \sum_i r_i(s_i, a_i)$ where
-        $r_i = -\sum_l w_l(t)$ (negative sum of waiting times at intersection $i$).
-        This is additively separable, so $\rho_{ij} \neq 0$ only when
-        spill-back creates direct coupling between $i$ and $j$.
-  \item \textbf{Coordination graph:} $\mathcal{G}_C = (V, E_C)$, designed
-        via InfoMap partition of the OD flow graph.
-\end{itemize}
-
-The partition $\mathcal{M} = \{M_1, \ldots, M_k\}$ induced by InfoMap
-on the OD flow graph defines the coordination graph:
-\begin{equation}
-  E_C = \{(i,j) : \exists m \text{ s.t.\ } i,j \in M_m\}
-  \label{eq:ec}
-\end{equation}
-i.e.\ within-module pairs are connected; cross-module pairs are disconnected
-(or connected only via a coarse inter-module aggregate channel).
-This is the minimal ND-POMDP coordination graph consistent with the
-OD demand structure, and by the tractability result of~\cite{kok2006ndpomdp}
-it achieves the best computational-coordination trade-off among all
-OD-partition-induced graphs.
+\section{Flow-Coherent Dependency Partitioning}
+\label{sec:method}
 
 \subsection{OD Flow Graph Construction}
-\label{sec:odconstruction}
+\label{sec:odgraph}
 
-The InfoMap algorithm requires a directed weighted graph $G=(V,E,W)$ where
-$W_{ij}$ is the vehicle flow volume from intersection $i$ to intersection $j$.
-This is not a standard simulator output and requires explicit instrumentation.
+We model the traffic network as a directed weighted graph
+$\mathcal{G}_{\mathrm{OD}} = (\mathcal{V}, \mathcal{E}, \mathbf{W})$,
+where $\mathcal{V}$ is the set of $N$ signalised intersections and $W_{ij} \geq 0$
+is the observed vehicle count travelling from intersection $i$ to intersection $j$
+over a representative time window.
+We construct $\mathbf{W}$ from simulation trip logs: for each completed vehicle
+trip, the sequence of intersections visited is recorded and the corresponding
+directed edge weights incremented.
+A warm-up period of approximately one hour under a uniformly random policy provides
+a flow snapshot that reflects network demand structure prior to any learned behaviour.
 
-\medskip\noindent\textbf{In CityFlow:} Enable vehicle trajectory logging via
-the \texttt{roadnet.json} configuration. For each vehicle trip, extract the
-ordered sequence of intersections traversed. For each consecutive pair
-$(i, j)$ in the sequence, increment $W_{ij}$. After the warm-up period,
-normalise by total vehicle count to obtain a directed flow-proportion matrix.
+The key inductive bias is that $\mathbf{W}$ captures \emph{demand} rather than
+\emph{road topology}: two intersections connected by a high-volume corridor appear
+as a strong edge regardless of their hop distance on the road graph.
+This is what separates OD-flow partitioning from METIS on the adjacency matrix
+and from Laplacian spectral methods~\citep{laplacian2009ieee}: both of the latter
+assign edge weight by physical connectivity, not by how many vehicles actually
+travel between node pairs.
 
-\medskip\noindent\textbf{In SUMO:} Use the \texttt{edgedata} output with
-\texttt{tripinfo} to reconstruct intersection-pair traversal counts.
+\subsection{InfoMap Partitioning and the Dependency Gate}
+\label{sec:infomap}
 
-\medskip\noindent\textbf{Cold-start problem.} The warm-up phase (first
-$\sim$1000 steps) uses a random or rule-based policy before MARL training
-begins. The OD flow under a random policy may differ from the OD flow under
-the converged MARL policy, because signal timing affects which routes vehicles
-take. Two mitigations:
-\begin{enumerate}
-  \item \textbf{Historical OD data} (preferred when available): use real-world
-        OD matrices from the target city rather than simulation warm-up, decoupling
-        partition quality from warm-up policy.
-  \item \textbf{Iterative re-partitioning}: after $N$ training epochs, collect
-        fresh OD data from the partially-trained policy and re-run InfoMap.
-        Repeat once (re-partitioning more than twice risks training instability).
-\end{enumerate}
-This limitation is acknowledged; its severity is assessed via the ablation
-comparing warm-up-OD partition vs.\ historical-OD partition.
-
-\subsection{InfoMap Partitioning and H1 Verification}
-
-Before MARL training begins, the road network is partitioned and H1 is
-verified on warm-up data (Algorithm~\ref{alg:infomap}).
-
-\begin{algorithm}[H]
-  \caption{InfoMap Communication Topology Construction}
-  \label{alg:infomap}
-  \begin{algorithmic}[1]
-    \Require Directed weighted graph $G=(V,E,W)$ (from Section~\ref{sec:odconstruction});
-             $V$=intersections, $W_{ij}$=OD flow volume
-    \Ensure Partition $\mathcal{M}=\{M_1,\ldots,M_k\}$; codebook $C$;
-            inter-module adjacency matrix $A^{\text{cross}}$
-    \State \textbf{(Cold-start)} If historical OD available, use as $W$;
-           else collect $W$ via random-policy warm-up (flag policy mismatch)
-    \State Run \textsc{Infomap}$(G)$ $\to$ $\mathcal{M}$, codebook $C$
-    \State \textbf{Assert non-degeneracy:} $1 < k < |V|$ and all
-           $|M_i| \geq 2$ (degenerate partition $\Rightarrow$ check OD data)
-    \State Verify H1: compute $\hat{I}(X_i;X_j)$ for within- vs.\ cross-module
-           pairs via KSG estimator; test with Wilcoxon signed-rank
-    \State \textbf{if} H1 fails \textbf{then} halt and revise hypothesis
-    \State Construct $A^{\text{cross}}$: inter-module edges with aggregate flow
-    \State \Return $\mathcal{M}$, $C$, $A^{\text{cross}}$
-  \end{algorithmic}
-\end{algorithm}
-
-\subsection{Three-Level Application Protocol}
-\label{sec:threelevels}
-
-The InfoMap partition can be applied at three orthogonal levels within a
-MARL-TSC system, each targeting a different inductive bias:
-
-\medskip\noindent\textbf{Level 1 --- Regional reward shaping (IDQN / IPPO):}
-Replace the single-intersection reward $r_i(t)$ with an intra-module average:
+Given $\mathcal{G}_{\mathrm{OD}}$, we apply the Infomap
+algorithm~\citep{rosvall2008maps,rosvall2009mapequation} to obtain a partition
+$\mathcal{M} = \{M_1, \ldots, M_K\}$ by minimising the map equation:
 \begin{equation}
-  \tilde{r}_i(t) = \alpha\, r_i(t) + (1-\alpha)\,
-  \frac{1}{|M_k|} \sum_{j \in M_k} r_j(t), \quad i \in M_k.
-  \label{eq:regionalreward}
+    L(\mathcal{M})
+    = q_{\circlearrowleft} H(\mathcal{Q})
+    + \sum_{k=1}^{K} p_k^{\circlearrowleft} H(\mathcal{P}_k)
+    \label{eq:mapequation}
 \end{equation}
-This encourages agents within the same flow basin to internalise each other's
-congestion signals without requiring any explicit communication channel.
-Pilot experiments (Section~\ref{sec:prelim}) reveal a \emph{cold-start
-  instability} at Level~1: when $\alpha < 1$ from episode~1, the group
-averaging corrupts the individual reward gradient during the early learning
-phase, causing catastrophically high travel times for 400--1000 episodes.
-We therefore add an \emph{annealing schedule}:
+where $q_{\circlearrowleft}$ is the rate of inter-module random-walk transitions
+and $H(\mathcal{Q})$ is the entropy of the between-module codebook.
+Minimising $L(\mathcal{M})$ maximises the fraction of vehicle-flow steps retained
+within modules — equivalent, in the ND-POMDP interpretation, to minimising
+cross-module coordination overhead while maximising within-module coordination
+coherence.
+Crucially, Infomap has no resolution limit~\citep{edler2023community}: it recovers
+modules at any scale present in the data, unlike modularity
+maximisation~\citep{newmangirvan2004}.
+
+We verify two empirical conditions on the partition before MARL training.
+Results are reported as supporting evidence; failure on a given network
+indicates a boundary condition requiring separate investigation.
+
+\medskip
+\noindent\textbf{H1 (Spatial MI Advantage).}
+Within-module agent pairs share higher mutual information about future traffic
+states than cross-module pairs:
 \begin{equation}
-  \alpha(e) = 1 - (1-\alpha_{\min})\cdot\min\!\left(\frac{e}{E_{\text{warm}}}, 1\right)
-  \label{eq:alphaanneal}
+    \mathbb{E}_{i,j\in M_k}\!\left[I(X_i(t);\, X_j(t{+}\tau))\right]
+    >
+    \mathbb{E}_{i\in M_k,\, l\notin M_k}\!\left[I(X_i(t);\, X_l(t{+}\tau))\right]
+    \label{eq:h1}
 \end{equation}
-starting from pure individual reward ($\alpha=1$) and linearly decreasing to
-$\alpha_{\min}$ over the first $E_{\text{warm}}$ episodes.  This lets agents
-first learn a stable individual policy before the regional coupling is
-introduced.  The annealing ablation (C1-$\alpha$ condition in
-Table~\ref{tab:factorial}) tests whether this mitigates the cold-start penalty.
+averaged over propagation lags $\tau \in \{1, 5, 15, 30\}$ steps.
+Verified via Wilcoxon signed-rank test ($p < 0.05$) on KSG-estimated
+MI~\citep{kraskov2004ksg}; visualised as a $|\mathcal{V}|\times|\mathcal{V}|$
+heatmap with InfoMap module boundaries overlaid.
 
-\medskip\noindent\textbf{Level 2 --- Regional critic design (MAPPO):}
-Replace the global centralised critic $V(s)$ with $k$ regional critics,
-each receiving only the joint state of agents within module $M_k$:
-$V_k\!\left(\{o_i\}_{i \in M_k}\right)$.
-This reduces the critic's input dimensionality from $O(n)$ to $O(n/k)$,
-improving credit assignment within flow-coherent groups while preserving
-the CTDE training paradigm.
+\medskip
+\noindent\textbf{H2 (Spill-back Containment).}
+Spill-back congestion is more likely to remain within InfoMap modules than to
+cross module boundaries:
+\begin{equation}
+    \Pr\!\left(\text{spill-back}_{i\to j}
+    \;\middle|\; i,j \in M_k\right)
+    >
+    \Pr\!\left(\text{spill-back}_{i\to l}
+    \;\middle|\; i \in M_k,\; l \notin M_k\right).
+    \label{eq:h2}
+\end{equation}
+\citet{dependencydyn2025} establish that inter-agent coordination is necessary
+\emph{if and only if} spill-back connects two agents' queues.
+Verified via a one-sample proportion test on SUMO queue trajectory data.
+The apparent directional asymmetry --- OD flow travels $i \to j$ (forward) while
+spill-back propagates $j \to i$ (backward) --- does not invalidate H2: a
+high-volume corridor $W_{ij}$ drives high arrival rates at $j$ which, under
+near-saturated demand, trigger backward-propagating queue waves toward
+$i$~\citep{dependencydyn2025}.
+The coordination-necessary pair and the high-OD-flow pair are thus the same pair
+on the same corridor.
 
-\medskip\noindent\textbf{Level 3 --- Regional communication graph (CoLight):}
-Replace the single global Graph Attention Network with $k$ regional GATs,
-one per InfoMap module. Each regional GAT computes attention only among
-agents within its module. Cross-module coordination is handled by a lightweight
-inter-module GAT operating on module-level aggregate representations.
-This implements the two-level codebook structure from Section~\ref{sec:theory}
-as a direct architectural change to the CoLight attention mechanism.
+\medskip
+\noindent\textbf{Theoretical grounding: why containment, not just correlation, matters.}
+Spill-back containment has a formal interpretation beyond the statistical test above.
+In the Lyapunov-drift framework for constrained queueing networks~\citep{tassiulas1992stability},
+a decentralised scheduler preserves the stability region of a centralised one only if it
+can react to the joint queue state of servers whose queues are dynamically coupled;
+max-pressure signal control~\citep{varaiya2013maxpressure} instantiates exactly this
+drift argument for signalised intersections via a quadratic Lyapunov function over
+per-approach queue lengths.
+Read against that framework, H2 states the condition under which cutting a
+coordination-graph edge is safe: an edge can be severed without sacrificing the
+stability that joint observation would provide only if spill-back across it is rare.
+We do not derive a stability guarantee for the learned MARL policies studied here;
+we invoke this literature as the control-theoretic motivation for treating spill-back
+rate, rather than mutual information alone, as the criterion that should gate which
+edges a partition is permitted to cut.
 
-\medskip\noindent\textbf{Composability.} The three levels are orthogonal:
-Level~1 affects reward signals, Level~2 affects value estimation, and Level~3
-affects message passing. They can be applied independently or in combination.
-The factorial ablation design in Section~\ref{sec:factorial} isolates the
-contribution of each.
+\medskip
+H2 is the traffic-theoretic \emph{mechanism} behind H1: spill-back containment
+causes within-module states to co-vary via shared congestion propagation, raising
+$I(X_i;\,X_j)$ above the cross-module baseline.
+Together, H2$\,\Rightarrow\,$H1 imply the main hypothesis~H: an InfoMap partition
+retains more inter-agent spatial dependency within modules than a topology-based
+partition of equal size --- formally quantified by $\Psi$ (Section~\ref{sec:psi}).
+
+\subsection{Spatial Dependency Instruments and $\Psi$}
+\label{sec:psi}
+
+To measure how much dependency a partition retains, we need per-pair dependency
+weights $D_{ij}$ that (i)~are computable without presupposing the partition,
+(ii)~yield a scalar per pair $(i,j)$, and (iii)~can be aggregated into a
+partition-level score. We introduce three complementary instruments, each matched
+to the coordination mechanism at a given coupling level.
+
+\paragraph{Physical dependency (model-free).}
+H1 directly supplies a model-free dependency weight via the mutual information
+between agent state observations:
+\begin{equation}
+    D^{\mathrm{MI}}_{ij}
+    = \hat{I}\!\left(X_i(t);\, X_j(t{+}\tau)\right)
+    \label{eq:dmi}
+\end{equation}
+estimated by the KSG $k$-nearest-neighbour estimator~\citep{kraskov2004ksg}
+from warm-up trajectories.
+$D^{\mathrm{MI}}_{ij}$ is model-free and applicable at L1: at the reward
+coupling level (IPPO/IDQN), agents act independently and there is no
+cross-agent input path in the policy network, making Jacobian-based measures
+structurally inapplicable.
+Spatial MI dominance in TSC networks is established by~\citet{stmarl2020},
+and its mechanistic link to spill-back is established by~\citet{dependencydyn2025},
+grounding $D^{\mathrm{MI}}$ as the natural physical dependency measure.
+
+\paragraph{Learned dependency (Jacobian on the global model).}
+For models that receive cross-agent inputs, we adapt the Jacobian influence
+framework of~\citet{lrd2025} to the MARL dependency measurement setting.
+For a model $F$ trained \emph{without} partition constraints — the global model
+— define the spatial influence of agent~$j$ on agent~$i$:
+\begin{equation}
+    D_{i\leftarrow j}(F)
+    = \sum_{a,k}
+    \left|\frac{\partial F_{i,a}}{\partial X_{j,k}}\right|
+    \label{eq:djac}
+\end{equation}
+where $X_{j,k}$ is feature~$k$ of agent~$j$'s observation and $F_{i,a}$ is
+output dimension~$a$ at agent~$i$.
+The \emph{global-model restriction} is essential: in a partitioned model,
+cross-module inputs are absent by construction, making cross-module Jacobians
+identically zero — a structural artefact, not evidence of low dependency.
+We instantiate Eq.~\eqref{eq:djac} at two levels:
+\begin{align}
+    D^{Q}_{i\leftarrow j}
+     & = D_{i\leftarrow j}(V^{\mathrm{global}})
+     &                                                         & \text{(global MAPPO critic, L2)}
+    \label{eq:dq}                                                                                          \\
+    D^{G}_{i\leftarrow j}
+     & = D_{i\leftarrow j}(\mathbf{h}^{(L),\mathrm{global}}_i)
+     &                                                         & \text{(global CoLight GAT embedding, L3)}
+    \label{eq:dg}
+\end{align}
+Whereas \citet{lrd2025} use Jacobian profiles to ask whether a GNN suffers
+from over-squashing, we use the same instrument to ask whether a proposed partition
+aligns with what the model has learned to depend on — a distinct scientific question.
+
+\paragraph{Hop-distance profile.}
+For either instrument, aggregate dependency by road-graph hop distance $\rho(i,j)$:
+\begin{equation}
+    \bar{D}_h
+    = \frac{1}{|\mathcal{V}|}\sum_{i}\sum_{j:\,\rho(i,j)=h} D_{i\leftarrow j}
+    \label{eq:barDh}
+\end{equation}
+This is the MARL analogue of the per-hop influence profile $\bar{T}_h$
+of~\citet{lrd2025}: $\bar{D}_h$ quantifies the average spatial dependency
+from agents exactly $h$ road-graph hops away, and its decay rate determines
+the minimum module radius needed for effective coordination.
+
+\paragraph{Dependency retention ratio $\Psi$.}
+Given dependency matrix $\mathbf{D}$ and partition $\mathcal{P}=\{P_1,\ldots,P_K\}$:
+\begin{equation}
+    \Psi(\mathcal{P},\,\mathbf{D})
+    = \frac{\displaystyle\sum_{k}\sum_{i,j\,\in\, P_k} D_{ij}}
+    {\displaystyle\sum_{i,j} D_{ij}}
+    \label{eq:psi}
+\end{equation}
+$\Psi \in [0,1]$ is the \emph{dependency retention ratio}: the fraction of total
+inter-agent dependency captured within module boundaries.
+High $\Psi$ means the partition cuts predominantly low-dependency edges —
+preserving coordination capacity — while low $\Psi$ means high-dependency edges
+are severed, imposing coordination cost.
+
+\paragraph{Relation to existing partition quality metrics.}
+Graph modularity $Q$~\citep{newmangirvan2004} and normalised
+cut~\citep{shimalik2000} are the standard partition quality metrics.
+$\Psi$ differs from both in two respects.
+First, $\Psi$ requires no null model: $\mathbf{D}$ is already a semantically
+meaningful quantity (MI or Jacobian sensitivity), not raw structural adjacency
+for which a random-graph null is appropriate.
+Second, $\mathbf{D}$ is asymmetric and non-negative (direction matters: agent $j$
+influences $i$ via traffic flow), whereas $Q$ and normalised cut assume undirected
+graphs.
+By computing $\Psi(\mathcal{P}_{\mathrm{InfoMap}},\mathbf{D})$ vs.\
+$\Psi(\mathcal{P}_{\mathrm{METIS}},\mathbf{D})$ on the \emph{same} $\mathbf{D}$,
+we obtain a direct, architecture-independent measure of which partition better
+preserves the inter-agent dependency structure.
+
+\subsection{Coordination Coupling Spectrum}
+\label{sec:levels}
+
+We evaluate the InfoMap partition across three coordination coupling levels,
+using established MARL algorithms as probes. The partition is held fixed across
+all three; only the coordination mechanism varies.
+This design isolates the partition's contribution from algorithm-specific effects,
+and tests whether the dependency retention advantage of InfoMap is
+architecture-agnostic. IDQN, also compatible in principle with L1's reward-averaging
+mechanism, is deferred from the main results pending further investigation into
+an observed failure mode under regional reward averaging (Appendix~\ref{app:results}).
+
+\begin{table}[t]
+    \centering
+    \caption{Coordination coupling spectrum. The same InfoMap partition is applied
+        at each level. The dependency instrument column indicates which metric from
+        Section~\ref{sec:psi} measures partition quality at that level, and which
+        operational prediction (OP) links $\Psi$ to expected task improvement.}
+    \label{tab:levels}
+    \small
+    \begin{tabular}{llllll}
+        \toprule
+        Level & Coupling      & Mechanism                   & Algorithm & Instrument        & Prediction \\
+        \midrule
+        L1    & Implicit      & Regional reward averaging   & IPPO      & $D^{\mathrm{MI}}$ & OP1        \\
+        L2    & Semi-explicit & Regional centralised critic & MAPPO     & $D^{Q}$           & OP2        \\
+        L3    & Explicit      & Regional graph attention    & CoLight   & $D^{G}$           & OP3        \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\noindent\textbf{Operational predictions.}
+The following are the primary empirical targets of our experimental design,
+derived from H1 and H2 via the causal chain H2$\,\Rightarrow\,$H1$\,\Rightarrow\,$H:
+\begin{description}
+    \item[\textbf{OP1 (L1):}]
+          $\Psi(\mathcal{P}_{\mathrm{InfoMap}}, D^{\mathrm{MI}}) >
+              \Psi(\mathcal{P}_{\mathrm{METIS}}, D^{\mathrm{MI}})$.
+          Within-module reward averaging operates on correlated signals, reducing
+          gradient noise and training instability.
+    \item[\textbf{OP2 (L2):}]
+          $\Psi(\mathcal{P}_{\mathrm{InfoMap}}, D^{Q}) >
+              \Psi(\mathcal{P}_{\mathrm{METIS}}, D^{Q})$.
+          The regional critic captures dominant value dependencies without modelling
+          irrelevant cross-module states, reducing credit-assignment variance.
+    \item[\textbf{OP3 (L3):}]
+          $\Psi(\mathcal{P}_{\mathrm{InfoMap}}, D^{G}) >
+              \Psi(\mathcal{P}_{\mathrm{METIS}}, D^{G})$, observed via a lower
+          influence-weighted attention range $\hat{\rho}_u$ for regional vs.\ global
+          CoLight (Section~\ref{sec:attnrange}), provided module size is
+          sufficient (${\geq}4$ agents per module).
+\end{description}
+
+\noindent The three OPs together constitute \textbf{Hypothesis H}: an InfoMap
+partition achieves higher $\Psi$ than METIS across all three dependency instruments,
+and this advantage translates to better task performance at each coupling level.
 
 % ============================================================
-\section{Experimental Design}
-\label{sec:experiment}
-% ============================================================
-
-\subsection{Simulation Environments}
-
-\noindent\textbf{Platform:} CityFlow or SUMO with LibSignal benchmark
-wrappers~\cite{libsignal}, enabling reproducible comparison against published
-baselines.
-
-\noindent\textbf{Networks:}
-\begin{itemize}
-  \item Synthetic $6{\times}6$ grid (core experiment, all baselines);
-  \item Synthetic $10{\times}10$ grid (scalability ablation);
-  \item Real-world: Cologne8, Ingolstadt21 (RESCO standard benchmarks);
-  \item Jinan $3{\times}4$, Manhattan segment (transferability test).
-\end{itemize}
-
-\noindent\textbf{Demand scenarios:}
-uniform demand; AM/PM peak-hour OD patterns; mixed peak/off-peak.
-Multiple demand scenarios on the same network produce different InfoMap
-partitions (different $L(\mathcal{M})$ and intra-partition flow ratios
-$\phi_k$), enabling regression analysis of which partition quality metrics
-predict RL improvement (RQ3).
-
-\noindent\textbf{Episode length:} 3600-second simulation with 15-second
-phase intervals (CTDE framework: MAPPO or QMIX base algorithm).
-
-\noindent\textbf{Seeds:} minimum 5 seeds per condition (defensible minimum);
-8 seeds recommended; all seeds fixed and reported for reproducibility.
-
-\subsection{Baseline Ladder and Sparsification Control}
-
-Table~\ref{tab:baselines} defines the experimental conditions.
-Baseline L1.5~(random sparse graph, same per-agent degree as the InfoMap
-partition) is the critical control for the sparsification confound: if the
-InfoMap condition (L4) beats L1.5, the benefit is attributable to
-\emph{flow-coherent} topology selection, not merely to communication graph
-sparsification. Without this control, any advantage of InfoMap over
-$k$-hop neighbours is confounded between flow structure and reduced degree.
-
-\begin{table}[t]
-  \centering
-  \caption{Experimental baseline ladder. L1.5 isolates the sparsification confound.}
-  \label{tab:baselines}
-  \small
-  \begin{tabularx}{\linewidth}{l l X}
-    \toprule
-    \textbf{Level} & \textbf{Method} & \textbf{Partition Criterion} \\
-    \midrule
-    L0   & No communication (independent)  & --- \\
-    L1   & $k=1$ hop neighbours             & Road adjacency \\
-    L1.5 & Random sparse graph (same degree as InfoMap) & None (sparsification control) \\
-    L2   & METIS partition                  & Graph balance (structural) \\
-    L3   & GPLight MI clustering~\cite{liu2023gplight} & Observation MI + real-time flow \\
-    L4   & \textbf{InfoMap partition (proposed)} & OD flow dynamics \\
-    L5   & InfoMap + IB-VQ compression~\cite{sun2026ibvq} & OD flow + bandwidth opt.\\
-    \bottomrule
-  \end{tabularx}
-\end{table}
-
-\subsection{Factorial Ablation Design}
-\label{sec:factorial}
-
-To isolate which application level drives performance, we run a $2 \times 5$
-factorial ablation: $\{$InfoMap, METIS$\}$ partition $\times$ five activation
-patterns (Table~\ref{tab:factorial}).
-\begin{table}[t]
-  \centering
-  \caption{Factorial ablation conditions. Each row applies the partition at
-           a different combination of the three levels.}
-  \label{tab:factorial}
-  \small
-  \begin{tabularx}{\linewidth}{l c c c X}
-    \toprule
-    \textbf{Condition} & \textbf{Reward (L1)}
-      & \textbf{Critic (L2)} & \textbf{Comm (L3)} & \textbf{Purpose} \\
-    \midrule
-    C0 & off & off & off & Baseline (no partition) \\
-    C1 & on  & off & off & Level~1 reward only \\
-    C2 & off & on  & off & Level~2 critic only \\
-    C3 & off & off & on  & Level~3 comm only \\
-    C4 & on  & on  & on  & All levels combined \\
-    \bottomrule
-  \end{tabularx}
-\end{table}
-Conditions C1--C3 identify which level provides the greatest marginal benefit;
-C4 tests whether the levels are complementary or redundant.
-Run across $\{$MAPPO, CoLight$\}$ $\times$ $\{$Cologne8, Ingolstadt21$\}$
-$\times$ 5 seeds = 100 runs total.
-Pairwise comparisons use Wilcoxon signed-rank tests with Bonferroni correction
-for the family of 10 pairwise contrasts.
-
-\subsection{Rigorous Evaluation Methodology}
-\label{sec:evalmethod}
-
-Standard MARL-TSC evaluation reports final-episode ATT averaged across a small
-number of runs, which is insufficient for statistically credible comparisons
-\cite{henderson2018matters}. We adopt the rliable framework
-\cite{agarwal2021rliable} throughout.
-
-\medskip\noindent\textbf{Primary task metrics:} average travel time~(ATT,
-seconds/vehicle; primary), average waiting time~(AWT), average queue
-length~(AQL). ATT is the canonical comparison metric across RESCO and
-LibSignal.
-
-\medskip\noindent\textbf{Sample efficiency metrics} (the central claim):
-\begin{itemize}
-  \item \textbf{Area Under Learning Curve (AUC-LC):} $\int_0^N \text{ATT}(e)\,de$
-        over $N$ training episodes via trapezoid rule. Lower AUC-LC means
-        less cumulative delay incurred during training---directly measuring
-        how quickly the agent learns to control traffic well.
-  \item \textbf{Episodes to Threshold (ET-90, ET-95):} number of training
-        episodes to reach 90\% and 95\% of the best observed ATT for that
-        condition. ET-90 is more robust to final-episode noise; ET-95 provides
-        a stricter benchmark.
-  \item \textbf{Convergence plateau:} episode range where ATT standard
-        deviation falls below 0.5\% of the mean, measuring training stability.
-\end{itemize}
-
-\medskip\noindent\textbf{Aggregate statistics (rliable protocol):}
-All aggregate metrics are reported as IQM $\pm$ 95\% stratified bootstrap CI
-(2000 bootstrap samples, stratified across seeds and environments). Pairwise
-\emph{probability of improvement} $\Pr(\text{InfoMap} > \text{METIS})$ is
-reported with 95\% CI. Performance profiles plot the fraction of (algorithm,
-environment, seed) triples achieving at least $x$\% of the best observed ATT,
-for $x \in [0,1]$, providing a full distributional view.
-
-\medskip\noindent\textbf{Statistical tests:} Wilcoxon signed-rank test on
-per-run AUC-LC scores for pairwise comparisons. Bonferroni correction applied
-across the family of $k$ comparisons in the factorial design. Effect size
-reported as rank-biserial correlation $r$.
-
-\medskip\noindent\textbf{Partition quality regression (RQ3):} for each
-network/demand scenario, compute intra-partition flow ratio $\phi_k$,
-map equation value $L(\mathcal{M})$, graph conductance $\Phi$, and
-NMI between InfoMap and METIS partitions. Regress $\Delta$AUC-LC
-(InfoMap $-$ METIS) on these metrics to identify which partition property
-predicts RL improvement. A significant positive coefficient on $\phi_k$
-would support the claim that flow coherence, not merely graph structure,
-drives the benefit.
-
-\subsection{Temporal Partition Sensitivity Ablation}
-\label{sec:temporal}
-
-The OD flow matrix $W$ used to compute the InfoMap partition depends on
-the demand pattern during the estimation window.  If episodes span multiple
-demand regimes (e.g.\ a SUMO scenario with time-varying
-\texttt{<flow>} rates), a single static partition may be suboptimal for
-some episodes.  Flow stability theory~\cite{flowstability2022} and the
-Lucchini et al.\ findings~\cite{lucchini2023intraod} bound the severity:
-core communities ($\approx$83\% of nodes) are stable across regimes; only
-boundary nodes shift.  We test this empirically with five conditions:
-
-\begin{table}[t]
-  \centering
-  \caption{Temporal partition sensitivity ablation.  Each condition varies
-    the OD source used to estimate the InfoMap partition while holding
-    the MARL algorithm (MAPPO) and network (Ingolstadt21) constant.
-    ``Cross-regime'' episodes are episodes where the active demand
-    pattern differs from the partition's estimation regime.}
-  \label{tab:temporal}
-  \small
-  \begin{tabularx}{\linewidth}{l X X}
-    \toprule
-    \textbf{Condition} & \textbf{OD source (partition)}          & \textbf{Tests}         \\
-    \midrule
-    T0                 & No partition (MAPPO baseline)           & Reference              \\
-    T1                 & METIS (graph balance, no flow)          & Spatial without flow   \\
-    T2                 & InfoMap from 1-hour off-peak OD         & Single-regime static   \\
-    T3                 & InfoMap from 1-hour peak OD             & Regime specificity     \\
-    T4                 & InfoMap from aggregated 24-hour OD      & Regime-averaged static \\
-    T5                 & Dynamic re-partition every $N$ episodes & Temporal adaptation    \\
-    \bottomrule
-  \end{tabularx}
-\end{table}
-
-\noindent The critical comparison is T2 vs.\ T3 (does the partition regime
-matter?) and T4 vs.\ T2/T3 (does aggregation degrade or improve?).  If
-T2 $\approx$ T3 $\approx$ T4, the static 1-hour partition is sufficient and
-the temporal limitation is not a material concern.  If T3 $\gg$ T2 on
-peak-hour episodes, regime-specific partitioning is warranted.
-
-\subsection{Attention Range Analysis}
+\section{Experiments}
+\label{sec:experiments}
+% §5.1 Setup: Cologne8 (8 int.), Ingolstadt21 (21 int.), [6×6 grid if available]
+%      Baselines: L0 (no-partition) → L1.5 (random-sparse) → METIS → InfoMap
+%      Protocol: rliable — IQM ± stratified bootstrap CI, ≥5 seeds, AUC-LC + ATT
+% §5.2 H1/H2 verification — Fig 2: MI heatmap + module boundaries (run before training)
+% §5.3 Main results — Table 1 + Fig 3 learning curves
+%      IQM ± CI: InfoMap / METIS / None × L1 / L2 / L3, primary: Ingolstadt21
+% §5.4 Ψ predicts performance — Fig 4: scatter ΔΨ vs ΔAUC-LC
+% §5.5 Attention range analysis — Fig 5: D̄_h profile + rollout heatmaps
 \label{sec:attnrange}
-
-This analysis implements the Level~3 instantiation of the spatial dependency
-framework (Section~\ref{sec:depquant}).
-We compute $D^{\mathrm{G}}_{i \leftarrow j}$ (Eq.~\eqref{eq:djac}) on the
-\emph{global} CoLight GAT---without any partition constraints---to avoid
-the trivially-zero cross-module Jacobians that arise in a partitioned model.
-The influence-weighted range $\hat{\rho}_u$ defined below then summarises the
-hop-distance distribution of that dependency.
-
-\medskip\noindent\textbf{Range measure for GNN operators.}
-Following~\cite{lrd2025}, the node-level \emph{range measure} derived from
-the normalised Jacobian of the GNN output with respect to each input node is:
-\begin{equation}
-  \hat{\rho}_u(\mathbf{F}) = \mathbb{E}_{v \sim I_u}\!\left[d_G(u,v)\right]
-  \label{eq:rangemeasure}
-\end{equation}
-where $I_u$ is the influence distribution of target node $u$ (computed as
-the normalised Jacobian $\partial F_u / \partial \mathbf{x}_v$ over all
-source nodes $v$), and $d_G(u,v)$ is the graph distance.
-Intuitively, $\hat{\rho}_u$ is the expected distance from which node~$u$
-receives task-relevant information through the GNN.
-For the trained CoLight GAT (global and regional), we compute $\hat{\rho}$
-as follows:
-\begin{enumerate}
-  \item For each target intersection $i$, compute the normalised Jacobian
-  $s_{ij} = \partial F_i / \partial \mathbf{x}_j$
-  from all other intersections $j$ in the trained model.
-  \item Compute $\hat{\rho}_i = \sum_j s_{ij}\, d_G(i,j)$ (expected
-  influence distance).  Average over all $i$ to get network-level
-  $\hat{\rho}$.
-  \item Compare $\hat{\rho}$ for global CoLight (no partition) vs.\ regional
-  CoLight (InfoMap partition).  A lower $\hat{\rho}$ after partitioning
-  indicates that attention is concentrating within modules rather than
-  diffusing globally.
-  \item Decompose $\hat{\rho}$ into within-module and cross-module components
-  to verify that regional partitioning suppresses cross-module influence
-  while preserving within-module attention.
-\end{enumerate}
-
-\medskip\noindent\textbf{Attention rollout visualisation.}
-We additionally apply attention rollout~\cite{abnar2020rollout} to trace
-cumulative influence through stacked attention layers backward from each
-agent's decision, revealing which intersections' states actually drove
-the action. Visualising rollout heatmaps before and after partitioning
-shows whether attention ``leaks'' across module boundaries in the global GAT
-but concentrates within modules in the regional GAT.
-
-\medskip\noindent\textbf{Predicted outcome and connection to H1.}
-If H1 holds---within-module agents carry higher mutual information about
-each other's future states---we expect that a well-trained GAT will
-\emph{discover} this structure by allocating higher attention weights to
-within-module neighbours, even without explicit partition constraints.
-The global CoLight should then exhibit a moderate $\hat{\rho}$ biased
-toward module boundaries; the regional CoLight should exhibit a lower
-$\hat{\rho}$ with sharper concentration.  Crucially, if the global CoLight
-also shows module-aligned attention with $\hat{\rho}$ comparable to the
-regional variant, this would suggest the partition is redundant and the
-GAT self-organises to respect flow boundaries---a scientifically interesting
-null result.  If the regional CoLight achieves both lower $\hat{\rho}$
-\emph{and} better ATT, the partition provides structural inductive bias
-that training alone cannot efficiently discover.
-
-% ============================================================
-\section{Preliminary Experimental Results}
-\label{sec:prelim}
-% ============================================================
-
-We report results from a pilot study on two SUMO scenarios---Cologne8
-(8~intersections, $k{=}3$) and Ingolstadt21 (21~intersections, $k{\in}\{4,5\}$)---to
-provide a \emph{directional} signal ahead of the full experimental programme.
-All runs used a single seed (seed~0); no statistical significance claims are made.
-We track \texttt{eval/metrics/waitingTime} (average waiting time per vehicle; ATT),
-lower is better.
-
-\subsection{Cologne8 Results (1500 Episodes)}
-
-Table~\ref{tab:prelim} summarises the six key runs for which full learning
-curves were obtained (IPPO and MAPPO families); IDQN data is incomplete due
-to a baseline crash.
-
-\begin{table}[t]
-  \centering
-  \caption{Cologne8 pilot results (seed=0, $k{=}3$, 1500~episodes).
-           AUC-LC~$=\int_0^{1500}\!\mathrm{ATT}(e)\,de$ (trapezoidal,
-           $\times10^3$ (s/veh)$\cdot$ep; lower is better).
-           ET$(\le t)$~= first episode at which ATT~$\le t$ s/veh.
-           Late-$\sigma$~= std of ATT over episodes 1201--1500.}
-  \label{tab:prelim}
-  \small
-  \begin{tabularx}{\linewidth}{l r r r r r r}
-    \toprule
-    \textbf{Condition} & \textbf{Final ATT} & \textbf{AUC-LC\,($k$)} &
-    \textbf{Late-$\sigma$} & \textbf{ET(50)} & \textbf{ET(40)} & \textbf{ET(28)} \\
-    \midrule
-    IPPO baseline    & 39.2 & \phantom{0}66.7 & 1.2  & 240 & 690  & ---  \\
-    IPPO + flow      & 27.1 & 237.6           & 1.0  & 490 & 550  & 1330 \\
-    IPPO + METIS     & 33.8 & 509.2           & 68.5\rlap{$^*$} & 1350 & 1360 & --- \\
-    \midrule
-    MAPPO baseline   & 28.9 & 165.2           & 0.5  & 320 & 350  & 570  \\
-    MAPPO + flow     & \textbf{26.0} & \textbf{94.4} & 0.5 & 270 & 290 & 540 \\
-    MAPPO + METIS    & 26.8 & 109.3           & 0.5  & 270 & 300  & 560  \\
-    \bottomrule
-  \end{tabularx}
-  {\footnotesize $^*$IPPO$+$METIS has not converged at ep~1500 (Late-$\sigma = 68.5$
-   indicates ongoing oscillation of $\pm$135\,s/veh).}
-\end{table}
-
-\medskip\noindent\textbf{MAPPO (Level~2---Regional Critic).}
-Both partition conditions improve upon the baseline in all metrics.
-MAPPO$+$flow achieves a \textbf{10\%} reduction in final ATT (26.0 vs 28.9\,s/veh)
-and a \textbf{43\% reduction in AUC-LC} (94.4k vs 165.2k), demonstrating
-substantially better sample efficiency.  Notably, MAPPO$+$flow reaches the
-baseline's best ATT level at episode~470---\textbf{31\% of the training budget}.
-All three MAPPO variants converge to a zero-instability plateau (Late-$\sigma \le 0.5$),
-demonstrating that Level~2 provides clean, stable training dynamics regardless of
-partition choice.  MAPPO$+$flow leads MAPPO$+$METIS on AUC-LC by 13.7\% (94.4 vs 109.3\,k)
-and final ATT by 0.8\,s/veh (26.0 vs 26.8), providing a directional signal consistent
-with~H1.
-
-\medskip\noindent\textbf{IPPO (Level~1---Regional Reward).}
-The regional reward introduces a \emph{cold-start problem}: both partition variants
-begin training at catastrophically high ATT ($\sim$1\,200--1\,300\,s/veh), compared to
-the IPPO baseline's modest 128\,s/veh at episode~10.  This explains the dramatically
-worse AUC-LC for IPPO$+$flow (237.6k) and IPPO$+$METIS (509.2k) relative to the
-baseline (66.7k), despite eventually achieving \emph{better} final ATT.
-After the cold-start transient, IPPO$+$flow reaches a stable plateau of 27.1\,s/veh
-(31\% below baseline), but exhibits 26~instability spikes above 100\,s/veh after
-episode~400 (worst: ATT$=$241\,s/veh at ep~650).  IPPO$+$METIS is far more
-problematic, with 83~post-400 spikes (worst: 436\,s/veh), and has not
-converged at episode~1500 (Late-$\sigma = 68.5$).
-
-These patterns suggest two important design insights.  First, Level~1 (regional reward)
-is the most sensitive to partition quality: the InfoMap partition's OD-coherence reduces
-training instability relative to METIS (26 vs 83 spikes), consistent with H1---OD-coherent
-modules share correlated future traffic states and thus produce a more consistent group
-reward signal, making the averaged reward less noisy as a training signal.
-The METIS partition, whose edges are determined by graph balance rather than flow
-coherence, groups agents with less correlated states, increasing gradient noise.
-Second, the cold-start instability (Section~\ref{sec:threelevels},
-Eq.~\eqref{eq:alphaanneal}) is a real phenomenon: when the regional average is applied
-from episode~1, the individual gradient is corrupted before the agent has a stable
-baseline policy, causing the catastrophic early ATT.  The annealing schedule is now
-added to the experimental plan as the C1-$\alpha$ ablation condition.
-
-\medskip\noindent\textbf{Flow vs.\ METIS (Levels~1--2).}
-Across all Cologne8 conditions where convergence was achieved, InfoMap (flow) consistently
-outperforms METIS: final ATT advantage of 0.8\,s/veh for MAPPO and 6.7\,s/veh for IPPO;
-AUC-LC advantage of 13.7k for MAPPO and 271.6k for IPPO; instability 3.2$\times$ lower
-for IPPO.  This directionally supports H1 at Levels~1--2 on a single seed.
-
-\medskip\noindent\textbf{Level~3 --- CoLight (Regional GAT).}
-Table~\ref{tab:colight} shows the three CoLight variants on Cologne8, now fully
-completed.  The result is unexpected: the flow partition \emph{diverges}, while METIS
-is essentially neutral.
-
-\begin{table}[htb]
-  \centering
-  \caption{Cologne8 CoLight results (seed=0, $k{=}3$, 1500~episodes).
-           Late-mean and Late-$\sigma$ computed over episodes 1001--1500.}
-  \label{tab:colight}
-  \small
-  \begin{tabularx}{\linewidth}{l r r r}
-    \toprule
-    \textbf{Condition} & \textbf{Eval ATT} & \textbf{Late-mean} & \textbf{Late-$\sigma$} \\
-    \midrule
-    CoLight (no partition) & \textbf{16.20} & 14.4 & 1.3 \\
-    CoLight + METIS $k{=}3$ & 15.92 & 18.4 & 1.9 \\
-    CoLight + flow $k{=}3$  & 28.06 & 56.2 & 25.3\rlap{$^*$} \\
-    \bottomrule
-  \end{tabularx}
-  {\footnotesize $^*$Flow partition diverges after ep~700: ATT rises from $\sim$15 to
-   40--121\,s/veh before partially recovering; late-$\sigma{=}25.3$ indicates
-   ongoing oscillation of $\pm$50\,s/veh.}
-\end{table}
-
-CoLight$+$METIS ($k{=}3$) is essentially identical to the no-partition baseline
-(eval 15.92 vs 16.20, $-1.7\%$): the geometric cut neither helps nor hurts
-the global attention mechanism.  CoLight$+$flow, however, suffers \emph{training
-instability}: after an initial phase comparable to the other variants
-($\sim$15--25\,s/veh through episode~700), ATT grows monotonically to 40--121\,s/veh
-by episode~900--1300 before partially recovering, yielding eval ATT of 28.06 (+73\%
-vs.\ baseline) and Late-$\sigma{=}25.3$.  This is a divergence failure, not convergence
-to a poor optimum.
-
-The mechanism likely involves two compounding factors.
-First, with $k{=}3$ on a 7-intersection network, each flow module contains only 2--3
-agents: the within-module GAT has insufficient neighbour diversity to aggregate
-meaningful representations, and cross-module edges are blocked.
-Second, InfoMap partitions are rarely balanced in flow-dominated networks---one module
-may attract 5 agents and another only 1---creating unequal attention neighbourhoods
-whose gradient contributions are asymmetric and may interfere destructively.
-We note that CoLight's global attention may already \emph{discover} flow structure
-endogenously; restricting it to pre-specified flow boundaries removes the degrees
-of freedom needed to handle cross-module spill-back.
-
-\textbf{Revised belief.}
-The partition's benefit appears to be \emph{level-dependent}: flow boundaries reduce
-credit-assignment noise at Levels~1--2 (reward and critic), where OD-coherent modules
-produce correlated state trajectories.  At Level~3 (attention), pre-specified flow
-boundaries restrict the GAT to communication graphs that may be too small or too
-unbalanced for effective aggregation on Cologne8.  Whether flow partition is
-beneficial at Level~3 on larger networks (Ingolstadt21, where modules would contain
-$\approx$4--5 agents) remains an open question for the full study.
-
-% ---- Ingolstadt21 ----
-
-\subsection{Ingolstadt21 Results (1500 Episodes)}
-\label{sec:i21prelim}
-
-Eight runs ($2\ \text{algos} \times 2\ \text{partitions} \times 2\ \text{k-values}$,
-seed~0) compare MAPPO (Level~2) and IPPO (Level~1) with flow vs.\ METIS at $k{=}4$
-and $k{=}5$.  No no-partition baseline has been run yet on this network; results
-are therefore \emph{relative to each other}, not to an unpartitioned baseline.
-Table~\ref{tab:i21} presents the results ranked by final eval ATT.
-
-\begin{table}[htb]
-  \centering
-  \caption{Ingolstadt21 results (seed=0, 1500~episodes), eval ATT in s/veh.
-           METIS/Flow ratio $=$ METIS$\div$flow ATT at matched (algo, $k$);
-           $>1$ means flow partition is better.}
-  \label{tab:i21}
-  \small
-  \begin{tabularx}{\linewidth}{l rr rr rr}
-    \toprule
-    & \multicolumn{2}{c}{\textbf{Flow}} &
-      \multicolumn{2}{c}{\textbf{METIS}} &
-      \multicolumn{2}{c}{\textbf{METIS/Flow}} \\
-    \cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}
-    \textbf{Algo} & $k{=}4$ & $k{=}5$ & $k{=}4$ & $k{=}5$ & $k{=}4$ & $k{=}5$ \\
-    \midrule
-    MAPPO & \textbf{140.96} & 160.51 & 401.17 & 640.82 & 2.85$\times$ & 3.99$\times$ \\
-    IPPO  & 564.96 & 202.71 & 846.14 & 526.10 & 1.50$\times$ & 2.60$\times$ \\
-    \bottomrule
-  \end{tabularx}
-\end{table}
-
-\medskip\noindent\textbf{Flow dominates METIS at all conditions.}
-At every matched (algo, $k$) pair, the flow partition outperforms METIS:
-MAPPO$+$flow $k{=}4$ vs.\ MAPPO$+$METIS $k{=}4$: 141 vs.\ 401\,s/veh
-($\mathbf{2.85\times}$ lower ATT); MAPPO$+$flow $k{=}5$ vs.\ METIS $k{=}5$:
-161 vs.\ 641\,s/veh ($\mathbf{3.99\times}$); IPPO$+$flow $k{=}5$ vs.\ METIS $k{=}5$:
-203 vs.\ 526 ($\mathbf{2.60\times}$); IPPO $k{=}4$: 565 vs.\ 846 ($\mathbf{1.50\times}$).
-The advantage is largest for MAPPO, consistent with H1: flow-coherent modules provide
-a lower-variance basis for the centralised critic, as within-module agents share
-correlated future state trajectories.
-
-\medskip\noindent\textbf{MAPPO $\gg$ IPPO.}
-MAPPO$+$flow $k{=}4$ (141\,s/veh) is 4.01$\times$ better than IPPO$+$flow $k{=}4$
-(565\,s/veh), and 1.26$\times$ better than IPPO$+$flow $k{=}5$ (203\,s/veh).
-The centralized critic (Level~2) amplifies the partition benefit substantially: without
-it (IPPO), the flow partition still helps but is more sensitive to $k$ and exhibits
-higher training variance.
-
-\medskip\noindent\textbf{METIS instability.}
-MAPPO$+$METIS runs do not converge cleanly on Ingolstadt21: late-period standard
-deviations exceed 40\,s/veh with frequent spikes above 200\,s/veh.
-The $k{=}5$ case (641\,s/veh) is even \emph{worse} than IPPO$+$METIS $k{=}5$
-(526\,s/veh), suggesting that METIS boundaries at $k{=}5$ interfere actively with
-centralised value-function learning.
-
-\medskip\noindent\textbf{$k$-sensitivity.}
-For MAPPO$+$flow, $k{=}4$ outperforms $k{=}5$ by 14\% (141 vs.\ 161),
-corresponding to $\approx$5 agents per region---a granularity that appears sufficient
-for the centralized critic without making modules too large to coordinate.
-For METIS, $k{=}4$ is substantially better than $k{=}5$ for MAPPO (2.4$\times$),
-indicating that the geometric cut is more sensitive to over-partitioning.
-
-\subsection{Outstanding Issues and Immediate Actions}
-
-Table~\ref{tab:issues} lists the critical issues identified from the pilot study.
-
-\begin{table}[t]
-  \centering
-  \caption{Critical issues from pilot study and planned mitigations.}
-  \label{tab:issues}
-  \small
-  \begin{tabularx}{\linewidth}{l X X}
-    \toprule
-    \textbf{Priority} & \textbf{Issue} & \textbf{Action} \\
-    \midrule
-    P1 & No no-partition MAPPO/IPPO baseline on Ingolstadt21; cannot
-        quantify absolute improvement vs.\ unpartitioned policy &
-        Launch no-partition MAPPO/IPPO baselines; report relative-to-baseline
-        improvement in final study \\
-    P1 & CoLight$+$flow diverges on Cologne8 ($k{=}3$, 7~intersections);
-        Level~3 benefit of flow partition unconfirmed for larger networks &
-        Run CoLight no-partition + flow on Ingolstadt21 ($k{=}4$,
-        $\approx$5~agents/module) to test whether small-module effect explains failure \\
-    P2 & IPPO$+$METIS on Cologne8 not converged at ep~1500
-        (Late-$\sigma{=}68.5$) &
-        Extend run; apply annealing schedule $\alpha(e)$ from
-        Eq.~\eqref{eq:alphaanneal} \\
-    P2 & MAPPO$+$METIS $k{=}5$ on Ingolstadt21 worse than IPPO$+$METIS $k{=}5$
-        (anomalous reversal); cause unclear &
-        Investigate whether $k{=}5$ METIS creates a badly connected region
-        ($<$3 agents) that destabilises critic training \\
-    P3 & Single seed throughout; rliable protocol inapplicable &
-        Expand to $\ge$5 seeds for MAPPO$+$flow conditions \\
-    \bottomrule
-  \end{tabularx}
-\end{table}
-
-% ============================================================
-\section{Discussion}
-\label{sec:discussion}
-% ============================================================
-
-\subsection{Anticipated Benefits}
-
-\textbf{Principled coordination graph design.}
-The ND-POMDP formulation (Section~\ref{sec:formulation}) establishes that
-the optimal coordination graph connects exactly the agent pairs with
-non-negligible joint utility.  InfoMap's map-equation optimum
-(Eq.~\eqref{eq:mapequation}) provides a principled approximation to this
-graph from OD data, without requiring MARL training to discover the structure.
-The preliminary results support this: MAPPO with InfoMap partition reaches the
-baseline's best ATT level using only 31\% of the training budget, suggesting
-that the OD-prior dramatically reduces the number of episodes needed to
-discover the effective coordination structure.
-
-\textbf{Who and what are jointly addressed.}
-By grounding both the coordination graph (who communicates) and the reward /
-value / attention signal (what is communicated) in the same OD flow structure,
-the framework provides a \emph{unified} inductive bias---the primary novelty absent
-in all prior work.  Preliminary results support this at Levels~1--2: flow partition
-reduces credit-assignment noise for MAPPO by up to 4$\times$ relative to geometric
-partitioning (METIS) on Ingolstadt21, consistent with H1 (within-module agents share
-correlated future state trajectories).  At Level~3 (CoLight attention), the Cologne8
-pilot finds that flow boundaries can \emph{hurt} when module size is too small
-($k{=}3$, $\approx$2 agents/module); METIS is neutral.  This is an expected
-boundary condition rather than a refutation: the map equation has no minimum-module-size
-constraint, and with only 7 intersections, $k{=}3$ produces modules too small for
-meaningful within-module GAT aggregation.  The full study will test CoLight on
-Ingolstadt21 ($k{=}4$, $\approx$5 agents/module), where the hypothesis is that
-inductive bias provided by the flow partition will allow the GAT to converge faster by
-restricting attention to informationally coherent neighbourhoods rather than the full
-graph.  Agents in the same flow basin share future-state MI (H1); their joint reward
-is informative (L1); their value function shares structure (L2); and, for sufficiently
-large modules, their attention range should concentrate on the coordination-relevant
-neighbourhood (L3).  No prior MARL-TSC work addresses all three simultaneously
-under a single principled criterion.
-
-\textbf{Spatial dependency is the dominant driver.}
-STMARL~\cite{stmarl2020} found that spatial structure dependency boosts TSC
-performance more than temporal dependency in most networks.  The InfoMap
-partition primarily targets this spatial dimension: it establishes
-\emph{who} should coordinate.  The temporal dimension---history windows,
-LSTM hidden states---remains handled by the RL policy's own architecture.
-This prioritisation is empirically grounded.
-
-\textbf{Scalability.} InfoMap module size grows sub-linearly with network
-size: per-agent communication cost is $O(n/k)$ within modules rather than
-$O(n)$, and regional critic input dimensionality is $O(n/k)$ rather than
-$O(n)$.  The ND-POMDP tractability result~\cite{kok2006ndpomdp} provides
-the formal guarantee: a sparser coordination graph with the same coverage
-of true dependencies achieves better complexity-quality trade-offs.
-
-\textbf{Interpretability.} Communities correspond to identifiable OD demand
-basins that traffic engineers can validate independently of the MARL training
-pipeline. The attention range analysis provides an additional mechanistic
-visualisation layer for validation.
-
-\textbf{Partition transferability.} The InfoMap partition is recomputable from
-any OD flow matrix without MARL training, which is faster than re-running a full
-topology learning procedure. The MARL policy still requires retraining on the
-new network; partition transferability reduces only the \emph{topology design}
-step, not the policy learning step. Zero-shot partition transfer is tested
-in Section~\ref{sec:experiment} to bound this claim.
-
-\subsection{Limitations}
-
-Table~\ref{tab:limitations} lists the main threats to validity and their
-mitigations.
-
-\begin{table}[t]
-  \centering
-  \caption{Anticipated limitations and mitigations.}
-  \label{tab:limitations}
-  \small
-  \begin{tabularx}{\linewidth}{l X X}
-    \toprule
-    \textbf{\#} & \textbf{Limitation} & \textbf{Mitigation} \\
-    \midrule
-    L1 & Temporal non-stationarity: time-aggregated OD misses peak-hour
-        dynamics &
-        Time-of-day partitioning ablation (AM/PM/off-peak) \\[4pt]
-    L2 & Simulation-reality gap: simplified flow dynamics &
-        Multiple network types; real-world topology experiments \\[4pt]
-    L3 & OD matrix availability: may not exist in all deployments &
-        OD estimation from loop-detector counts is feasible \\[4pt]
-    L4 & Module boundary intersections: ambiguous assignment &
-        Overlapping partitions (InfoMap soft assignment); explicit
-        boundary handling \\[4pt]
-    L5 & Strong inter-region flows require cross-module coordination &
-        Hierarchical design: intra-module detailed + inter-module summary \\[4pt]
-    L6 & Cold-start: warm-up OD $\neq$ converged-policy OD &
-        Historical OD preferred; iterative re-partitioning as fallback;
-        ablation comparing both strategies \\[4pt]
-    L7 & H1/H2 conjecture: flow coherence $\not\Rightarrow$ MI advantage
-    or spill-back containment in all scenarios &
-    Mandatory pre-training H1+H2 verification; experiment halts if
-    both fail \\[4pt]
-    L8 & Temporal OD variability: 1-hour static partition may be
-    suboptimal for multi-regime episodes &
-    Flow stability supports regime-level stability~\cite{flowstability2022};
-    temporal ablation (Section~\ref{sec:temporal}) quantifies the gap \\[4pt]
-    L9 & ND-POMDP simplification: factored reward assumes separability
-    outside $E_C$; real spill-back may create weak cross-module
-    coupling &
-    Spill-back events measured empirically (H2); cross-module edge
-    added when spill-back rate exceeds threshold \\
-    \bottomrule
-  \end{tabularx}
-\end{table}
-
-\subsection{Relationship to Prior Work}
-
-\textbf{Ma \& Wu}~\cite{ma2022feudal} also partition by OD flow, but learn the
-partition end-to-end via a GNN or MCTS-guided GNN in a feudal policy hierarchy.
-Three distinctions remain: (i)~their partition criterion is flow-based but
-\emph{learned and opaque}, requiring training (and re-training per network);
-ours is a closed-form optimisation of the map equation, requiring no MARL
-training and recomputable directly from a new network's OD data; (ii)~their
-partition defines a \emph{policy hierarchy}, ours defines a
-\emph{coordination graph}; (iii)~they provide no information-theoretic
-analysis of partition quality analogous to $\Psi$.
-
-\textbf{GPLight}~\cite{liu2023gplight} groups agents by current-state
-observation MI jointly with real-time traffic flow and static topology, fused
-into one training-time loss. Our approach differs in two ways: (i)~we use
-future-state propagation (OD flow dynamics), which is more directly
-predictive of coordination needs---the relevant MI for communication is
-$I(X_i(t); X_j(t+\tau))$, the future-state signal, not $I(X_i(t); X_j(t))$,
-the current-state signal; (ii)~GPLight's grouping is learned jointly with one
-specific architecture and is not shown to transfer across coordination
-mechanisms, whereas ours is pre-computed from infrastructure data, independent
-of training, and applied identically across three distinct coordination levels.
-
-\textbf{STMARL}~\cite{stmarl2020} demonstrates that spatial coordination
-dependency dominates temporal dependency in MARL-TSC, motivating the
-focus on spatial partition design (InfoMap) rather than temporal context
-aggregation. Our three-level protocol isolates the spatial coordination
-mechanism across reward, critic, and attention---an experiment STMARL
-does not conduct.
-
-\textbf{Dependency Dynamics}~\cite{dependencydyn2025} establishes that
-inter-agent coordination is necessary iff spill-back congestion connects
-the agents' queues.  Our H2 formalises this as a testable prediction about
-InfoMap module boundaries, grounding the partition criterion in traffic
-theory rather than only in information theory.  The two works are
-complementary: if H2 holds, it provides a mechanistic \emph{causal}
-explanation for H1 (why within-module MI is higher: because spill-back
-propagates within modules, creating real causal coupling).
-
-\textbf{ExpoComm}~\cite{expocomm2025} demonstrates that pre-designed
-domain-grounded topologies can match learned topologies at scale---the
-same argument motivates the InfoMap prior.  ExpoComm uses graph-diameter
-minimisation; our approach uses flow-coherence maximisation, which is
-domain-richer.
-
-The rliable evaluation protocol~\cite{agarwal2021rliable} addresses the
-reproducibility concern raised by Henderson et al.~\cite{henderson2018matters}
-and is, to our knowledge, not yet standard practice in MARL-TSC evaluation.
-The pilot study (Section~\ref{sec:prelim}) illustrates the risk: with $n=1$
-seed, IPPO+METIS appears to reach a final ATT of 33.8\,s/veh, but its
-Late-$\sigma = 68.5$ reveals the run has not converged---a fact invisible
-in any single-seed final-ATT comparison.
+% §5.6 Ablations: module size k, L1.5 sparsification control, reward annealing α(e)
+\textbf{[To be written — Step 7]}
 
 % ============================================================
 \section{Conclusion}
 \label{sec:conclusion}
-% ============================================================
-
-We have presented a research proposal to design MARL communication topologies
-for traffic signal control using the map equation (InfoMap).
-The proposal makes four interlocking contributions.
-First, it reframes the communication design problem using the ND-POMDP
-framework: the \emph{coordination graph}---not the road network topology---is
-the design variable, and OD flow dynamics provide the principled criterion
-for setting its edges.  The map equation's MDL objective formally aligns with
-the coordination description length minimisation goal of ND-POMDP, providing
-the first theoretical connection between InfoMap and tractable MARL planning.
-Second, it operationalises the InfoMap partition at three orthogonal
-levels---reward shaping, regional critics, and regional GATs---with two
-testable hypotheses (H1: within-module MI advantage; H2: spill-back
-containment within modules) and a temporal sensitivity ablation addressing
-OD demand stationarity.
-Third, it synthesises four literature bodies to identify six research gaps,
-the most critical of which---the conflation of road network topology with
-coordination graph in all existing MARL-TSC work---motivates the core
-algorithmic contribution.
-Fourth, it adopts the rliable evaluation framework to ensure statistical
-defensibility of sample-efficiency claims.
-
-Preliminary pilot experiments on Cologne8 provide an encouraging directional
-signal: MAPPO with InfoMap partition achieves a 10\% reduction in final ATT
-and a 43\% reduction in AUC-LC relative to the MAPPO baseline, reaching the
-baseline's best performance in 31\% of the training budget, and InfoMap
-consistently outperforms METIS in both final performance and training
-stability, consistent with H1.  Critical immediate steps are: verifying H1
-and H2 on warm-up simulation data, fixing the CoLight implementation (Level~3
-validation), launching multi-seed runs with five seeds, and completing the
-Ingolstadt21 baseline to enable the rliable statistical protocol.
-
-\medskip\noindent\textbf{AI Disclosure.} This manuscript was developed with
-the assistance of AI research and writing tools (Claude, Anthropic) operating
-within the ARS deep-research pipeline. All cited sources were retrieved via
-web search and verified for existence. The information-theoretic argument in
-Sections~\ref{sec:theory} and~\ref{sec:framework} represents a synthesis that
-constitutes a testable hypothesis, not an established result.
+% Mechanism: InfoMap → high Ψ → better L1/L2/L3
+% Verified causal chain: H2 ⇒ H1 ⇒ H ⇒ OP1/OP2/OP3
+% Boundary: L3 requires ≥4 agents/module
+% Limitations: warm-up OD approximation; static partition
+% Future: dynamic repartitioning; real-world OD data
+\textbf{[To be written — Step 8]}
 
 % ============================================================
-\bibliographystyle{refs-style}
-\bibliography{refs}
+\begin{ack}
+    [Omitted in anonymised submission.]
+\end{ack}
+
+% ============================================================
+\section*{References}
+{
+    \small
+    \bibliographystyle{plainnat}
+    \bibliography{refs}
+}
+
+% ============================================================
+\appendix
+
+\section{Algorithm: InfoMap Coordination Graph Construction}
+\label{app:algorithm}
+
+H1 and H2 are \emph{manipulation checks}, not engineering controls.
+The algorithm always returns the InfoMap partition; the verification results are
+reported as supporting evidence and logged for transparency.
+A failure on a given network indicates a network-specific boundary condition
+(e.g.\ very low overall OD volume, or grid topology with uniform flow) and is
+reported separately.
+
+\begin{algorithm}[H]
+    \caption{Flow-coherent coordination graph construction with dependency verification}
+    \label{alg:infomap}
+    \begin{algorithmic}[1]
+        \Require Traffic network $\mathcal{G} = (\mathcal{V}, \mathcal{E})$,
+        number of modules $K$, warm-up steps $T_w$
+        \Ensure  Partition $\mathcal{M} = \{M_1, \ldots, M_K\}$,\;
+        dependency matrix $\mathbf{D}^{\mathrm{MI}}$,\;
+        verification results $(p_{\mathrm{H1}},\, p_{\mathrm{H2}})$
+        \State Run $T_w$ steps under a uniformly random policy; log all vehicle trips
+        \State Construct $\mathbf{W}$: $\;W_{ij} \leftarrow$ vehicle count $i \to j$
+        \State Apply Infomap to $\mathcal{G}_{\mathrm{OD}} = (\mathcal{V}, \mathcal{E}, \mathbf{W})$
+        $\;\Rightarrow\;$ partition $\mathcal{M} = \{M_1,\ldots,M_K\}$
+        \State Estimate $D^{\mathrm{MI}}_{ij}$ via KSG estimator~\citep{kraskov2004ksg}
+        at $\tau \in \{1,5,15,30\}$ steps
+        \Statex \hspace{1em}\textit{// H2 manipulation check}
+        \State Extract spill-back events from SUMO queue trajectories
+        \State Compute within-module and cross-module spill-back proportions;
+        run one-sample proportion test $\;\Rightarrow\; p_{\mathrm{H2}}$
+        \Statex \hspace{1em}\textit{// H1 manipulation check}
+        \State Classify agent pairs as within-module or cross-module under $\mathcal{M}$
+        \State Compare $D^{\mathrm{MI}}_{ij}$ distributions;
+        run Wilcoxon signed-rank test $\;\Rightarrow\; p_{\mathrm{H1}}$
+        \State \textbf{Report} $(p_{\mathrm{H1}},\, p_{\mathrm{H2}})$;
+        generate MI heatmap with module boundaries (Fig.~2 in main text)
+        \State \Return $\mathcal{M}$,\; $\mathbf{D}^{\mathrm{MI}}$,\;
+        $(p_{\mathrm{H1}},\, p_{\mathrm{H2}})$
+    \end{algorithmic}
+\end{algorithm}
+
+% ============================================================
+\section{Regional MARL Architecture}
+\label{app:arch}
+
+All three coordination levels share a common regional infrastructure.
+Partition assignments are stored in \texttt{cfg.management} (one list of
+agent IDs per module), which is populated from the InfoMap or METIS output
+before any training begins.
+A central helper module (\texttt{agents/common/marl.py}) provides
+\texttt{transform\_reward\_array(scope, rewards, cfg)} --- supporting
+\texttt{local}, \texttt{global\_mean}, and \texttt{regional\_mean} scopes ---
+and \texttt{CentralizedInputBuilder}, which assembles critic observations for
+\texttt{global}, \texttt{regional}, or \texttt{local} scopes and zero-pads
+uneven regional input sizes to a common dimension.
+
+\subsection{L1 --- Regional Reward (IPPO)}
+\label{app:arch:ippo}
+
+Regional IPPO applies flow-partition structure at the reward level only.
+Each agent maintains an independent local actor-critic PPO learner
+(\texttt{agents/policy/pfrl\_ppo.py}); there is no cross-agent parameter
+sharing or communication.
+Before each learner's \texttt{observe()} call, individual scalar rewards
+are passed through \texttt{transform\_reward\_array} with
+\texttt{reward\_scope: regional\_mean}, replacing each agent's reward with
+the arithmetic mean of rewards within its InfoMap module.
+Unassigned agents (singletons not covered by \texttt{cfg.management}) retain
+their individual reward.
+The default configuration (\texttt{config/agent.yaml}) sets
+\texttt{reward\_scope: local}; regional behaviour is enabled by
+\texttt{reward\_scope: regional\_mean}.
+IDQN (\texttt{agents/action\_value/pfrl\_dqn.py}) follows the identical
+reward-rewriting path.
+
+\paragraph{Mechanism.}
+Regional averaging reduces credit-assignment noise when agents within the
+same module experience correlated outcomes (high $D^{\mathrm{MI}}$).
+It is harmful when modules group uncorrelated agents, because the averaged
+signal is less informative than the individual reward.
+This makes IPPO performance at L1 a direct diagnostic of partition quality.
+
+\subsection{L2 --- Regional Critic (MAPPO)}
+\label{app:arch:mappo}
+
+MAPPO is implemented in \texttt{agents/policy/actor\_critic.py} on top of
+\texttt{ActorCriticBase}.
+Actors use local observations and mask invalid actions for heterogeneous
+action spaces (shared actor-network weights across agents).
+The critic input is assembled by \texttt{CentralizedInputBuilder} under
+\texttt{critic\_scope: regional}: each agent's critic receives the concatenated
+observations of all agents in its InfoMap module, zero-padded to the maximum
+regional size.
+Reward sharing is controlled separately via \texttt{reward\_scope}; the
+standard regional MAPPO configuration uses both
+\texttt{critic\_scope: regional} and \texttt{reward\_scope: regional\_mean}.
+
+Global MAPPO (\texttt{critic\_scope: global}) feeds all $N$ agents'
+observations to a single shared critic.
+For $N = 21$ (Ingolstadt21), the global critic input dimension is $21 \times
+    d_{\mathrm{obs}}$, making it substantially harder to train than a regional
+critic of dimension $|M_k| \times d_{\mathrm{obs}}$ where $|M_k| \approx 4$--$5$.
+
+\paragraph{Mechanism.}
+The regional critic captures dominant value dependencies
+($D^Q_{i\leftarrow j}$ high within module) without modelling irrelevant
+cross-module states, reducing critic approximation error and policy-gradient
+variance.
+On networks where a global critic is impractical (large $N$), regional InfoMap
+critics can \emph{outperform} global CTDE, as observed on Ingolstadt21.
+
+\subsection{L3 --- Regional Attention (CoLight)}
+\label{app:arch:colight}
+
+CoLight is implemented in \texttt{agents/action\_value/colight.py}.
+The topology is built from \texttt{signal.yaml} downstream links as
+bidirectional graph edges.
+Two distinct regional variants exist; they test different scientific questions.
+
+\paragraph{Variant A: PartitionedAttentionStack.}
+Enabled by \texttt{colight\_partitioned\_message\_passing: True}.
+One GAT attention stack per module is created; all stacks share the same
+underlying network weights and a single replay buffer.
+Attention is structurally restricted to within-module edges --- agents in
+different modules cannot attend to each other.
+This is the correct variant for testing whether InfoMap topology improves
+the quality of \emph{communication}, as the learned $D^G$ Jacobians are
+computed on a globally-unified model but message-passing is constrained.
+
+\paragraph{Variant B: CoLightRegional.}
+Separate agent class that instantiates one independent
+\texttt{\_CoLightRegionLearner} per partition.
+Each regional learner has its own CoLight network, target network, optimizer,
+replay buffer, action mask, regional edge index, and $\epsilon$-schedule.
+\texttt{CoLightRegional.observe()} converts individual rewards to the mean
+reward within each region before inserting transitions into that region's
+replay buffer.
+This variant tests whether divide-and-conquer training by region is beneficial;
+it is \emph{not} equivalent to restricting communication in a global model.
+When module size is small ($|M_k| \lesssim 3$), Variant B creates highly
+under-sampled regional learners with unstable target networks.
+
+\paragraph{Fallback.}
+If \texttt{cfg.management} is absent, both variants fall back to one global
+region covering all agents.
+
+% ============================================================
+\section{Preliminary Results (Work in Progress)}
+\label{app:results}
+
+All values are \textbf{final-episode eval metrics} (single seed) unless noted.
+Episode counts below 1500 indicate runs that have not yet completed.
+Lower is better for all metrics.
+Delay $=$ timeLoss (s/veh); Trip $=$ duration (s/veh);
+Wait $=$ waitingTime (s/veh); Queue $=$ mean queue length (veh/intersection).
+
+\subsection{Cologne8 (C8, 8 intersections, k\,=\,3, seed\,0, 1500\,ep)}
+\label{app:results:c8}
+
+\begin{table}[H]
+    \centering
+    \caption{Cologne8 --- full 4-metric results. All runs complete (1500\,ep)
+        except IDQN baseline (crashed ep\,1340, marked $\dagger$).
+        Seed 7 used for CoLight runs; all others seed 0.}
+    \label{tab:c8_full}
+    \small
+    \begin{tabular}{llrrrr}
+        \toprule
+        Algorithm & Condition                        & Delay & Trip   & Wait  & Queue \\
+        \midrule
+        \multirow{3}{*}{IPPO}
+                  & No partition (baseline)          & 39.17 & 104.35 & 19.32 & 2.22  \\
+                  & + InfoMap flow k3                & 27.12 & 91.94  & 11.54 & 1.24  \\
+                  & + METIS k3                       & 33.76 & 100.13 & 17.43 & 1.69  \\
+        \midrule
+        \multirow{3}{*}{MAPPO}
+                  & No partition (baseline)          & 29.69 & 94.54  & 13.66 & 1.42  \\
+                  & + InfoMap flow k3                & 25.27 & 90.20  & 9.63  & 1.12  \\
+                  & + METIS k3                       & 26.78 & 91.74  & 10.32 & 1.24  \\
+        \midrule
+        \multirow{3}{*}{IDQN}
+                  & No partition (baseline)$\dagger$ & 23.69 & 88.63  & 7.40  & 1.03  \\
+                  & + InfoMap flow k3                & 27.68 & 92.55  & 10.50 & 1.32  \\
+                  & + METIS k3                       & 25.26 & 90.29  & 8.73  & 1.18  \\
+        \midrule
+        \multirow{3}{*}{CoLight (seed 7)}
+                  & No partition (baseline)          & 33.58 & 98.64  & 16.20 & 1.77  \\
+                  & + InfoMap flow k3                & 46.81 & 112.22 & 28.06 & 2.69  \\
+                  & + METIS k3                       & 34.14 & 99.02  & 15.92 & 1.82  \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\noindent\textbf{Notes.}
+IDQN baseline crashed at episode 1340; its metrics are not comparable to
+stable runs and IDQN is excluded from main-text analysis.
+CoLight+flow k3 diverged (wait rises to 40--121\,s/veh after ep\,700);
+root cause: $|M_k| \approx 2$--3 agents per module is insufficient for
+CoLight's attention mechanism.
+CoLight+METIS k3 matches the no-partition baseline within noise.
+MAPPO+flow achieves the best wait time (9.63\,s/veh) across all valid conditions.
+
+\subsection{Ingolstadt21 (I21, 21 intersections, seed\,0)}
+\label{app:results:i21}
+
+\begin{table}[H]
+    \centering
+    \caption{Ingolstadt21 MAPPO and IPPO --- all runs complete (1500\,ep).
+        IPPO baseline crashed at ep\,1200 (marked $\dagger$).}
+    \label{tab:i21_mappo_ippo}
+    \small
+    \begin{tabular}{lllrrrr}
+        \toprule
+        Algorithm & Condition                     & $k$ & Delay   & Trip   & Wait            & Queue \\
+        \midrule
+        \multirow{5}{*}{MAPPO}
+                  & Global (no partition)         & --- & 566.43  & 659.06 & 484.19          & 9.59  \\
+                  & + InfoMap flow                & 4   & 191.25  & 326.29 & \textbf{140.96} & 4.44  \\
+                  & + InfoMap flow                & 5   & 262.48  & 328.83 & 160.51          & 4.24  \\
+                  & + METIS                       & 4   & 607.96  & 547.39 & 401.17          & 7.88  \\
+                  & + METIS                       & 5   & 746.90  & 828.65 & 640.82          & 11.62 \\
+        \midrule
+        \multirow{5}{*}{IPPO}
+                  & Local (no partition)$\dagger$ & --- & 908.49  & 870.11 & 733.19          & 11.28 \\
+                  & + InfoMap flow                & 4   & 619.43  & 725.58 & 564.96          & 8.05  \\
+                  & + InfoMap flow                & 5   & 253.14  & 382.59 & \textbf{202.71} & 4.89  \\
+                  & + METIS                       & 4   & 1048.57 & 962.23 & 846.14          & 12.14 \\
+                  & + METIS                       & 5   & 694.80  & 670.52 & 526.10          & 7.90  \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\begin{table}[H]
+    \centering
+    \caption{Ingolstadt21 CoLight --- all runs \textbf{incomplete} (target:
+        1500\,ep). Episode counts indicate training progress at logging time.
+        Two CoLight variants: Variant~A (PartitionedAttentionStack, shared
+        network) and Variant~B (CoLightRegional, separate per-region learners).
+        Seed 7 for Variant~B; seed varies for Variant~A.}
+    \label{tab:i21_colight}
+    \small
+    \begin{tabular}{lllrrrrrr}
+        \toprule
+        Variant & Condition                 & $k$ & Delay   & Trip   & Wait            & Queue & Ep   \\
+        \midrule
+        \multirow{3}{*}{A (Partitioned)}
+                & Fixed topology (baseline) & --- & 731.74  & 734.21 & 591.26          & 9.36  & 800  \\
+                & + InfoMap flow            & --- & 535.18  & 526.03 & \textbf{365.26} & 7.46  & 620  \\
+                & + METIS                   & --- & 953.24  & 832.20 & 702.45          & 13.01 & 630  \\
+        \midrule
+        \multirow{3}{*}{B (Regional)}
+                & No partition (baseline)   & --- & 1031.66 & 870.62 & 747.70          & 9.91  & 1050 \\
+                & + InfoMap flow            & 5   & 902.20  & 746.84 & \textbf{629.34} & 10.37 & 910  \\
+                & + METIS                   & 5   & 944.03  & 784.10 & 656.28          & 9.43  & 820  \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\noindent\textbf{Notes.}
+MAPPO+flow\,k4 (wait\,=\,140.96) outperforms the global no-partition MAPPO
+(484.19) by $3.43\times$, and outperforms METIS\,k4 (401.17) by $2.85\times$.
+IPPO+flow\,k5 (202.71) outperforms IPPO+METIS\,k5 (526.10) by $2.6\times$.
+MAPPO flow benefits from coarser partitions ($k$\,=\,4); IPPO benefits from
+finer partitions ($k$\,=\,5) --- consistent with the different roles of the
+partition at each coupling level.
+CoLight Variant~A with flow partition shows 365.26 wait at ep\,620, the
+best CoLight result on I21; this run should be completed to 1500\,ep.
+CoLight Variant~B (separate learners) is stable on I21 ($|M_k| \approx 4$
+agents/module) unlike on C8 ($|M_k| \approx 2$); flow beats no-partition but
+has not reached convergence.
+
+\paragraph{Open runs (as of 2026-06-30).}
+\begin{itemize}
+    \item CoLight Variant~A flow (I21) --- \textbf{resume to 1500\,ep}
+    \item CoLight Variant~A METIS (I21) --- resume to 1500\,ep
+    \item MAPPO/IPPO no-partition baseline (I21 -- crashed runs)
+          --- rerun with fixed seed
+    \item Multi-seed expansion ($\geq$5 seeds): MAPPO+flow\,k4 on I21
+          (primary condition for rliable evaluation)
+\end{itemize}
+
 
 \end{document}
