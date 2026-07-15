@@ -53,7 +53,12 @@
       "Bash(latexmk -pdf -interaction=nonstopmode -output-directory=/workspace/out main.tex)",
       "Bash(pdftoppm -png -r 100 -f 10 -l 16 main.pdf page)",
       "Bash(pdftoppm -png -r 100 -f 8 -l 9 main.pdf pageB)",
-      "Bash(pdftoppm -png -r 100 -f 9 -l 12 main.pdf pageR)"
+      "Bash(pdftoppm -png -r 100 -f 9 -l 12 main.pdf pageR)",
+      "Bash(grep -oE '^@[a-z]+\\\\{[^,]+' /workspace/src/refs.bib)",
+      "Bash(echo \"pass1 exit: $?\")",
+      "Bash(echo \"bibtex exit: $?\")",
+      "Bash(grep -vE '^\\(Figures|format.sty|llncs.cls|main.tex|refs-style.bst|refs.bib\\)$')",
+      "Bash(xargs -r rm -v)"
     ]
   }
 }
