@@ -45,7 +45,15 @@
       "Bash(echo \"exit: $?\")",
       "Bash(grep -n \"mapequation\\\\|gate\\\\|Gate\\\\|H2\\\\$\\\\\\\\\\\\\\\\,\\\\\\\\\\\\\\\\Rightarrow\\\\|mandatory\\\\|no resolution limit\\\\|verified\" main.tex)",
       "Bash(pdfinfo main.pdf)",
-      "Bash(awk -F: '$2 !~ /^[[:space:]]*%/')"
+      "Bash(awk -F: '$2 !~ /^[[:space:]]*%/')",
+      "Bash(find / -iname \"MODE_REGISTRY.md\" -not -path \"*/node_modules/*\")",
+      "Bash(find / -ipath \"*academic-paper/SKILL.md\" -not -path \"*/node_modules/*\")",
+      "Bash(grep -oP '^@\\\\w+\\\\{\\\\K[^,]+' src/refs.bib)",
+      "Bash(latexmk -pdf -interaction=nonstopmode -halt-on-error -output-directory=/workspace/out main.tex)",
+      "Bash(latexmk -pdf -interaction=nonstopmode -output-directory=/workspace/out main.tex)",
+      "Bash(pdftoppm -png -r 100 -f 10 -l 16 main.pdf page)",
+      "Bash(pdftoppm -png -r 100 -f 8 -l 9 main.pdf pageB)",
+      "Bash(pdftoppm -png -r 100 -f 9 -l 12 main.pdf pageR)"
     ]
   }
 }

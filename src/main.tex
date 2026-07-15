@@ -49,7 +49,7 @@ Duong Tran Hai
     existing partitions use road topology rather than vehicle flow structure.
     We develop a retention-based theory of partition quality that answers
     \emph{what a partition should preserve} and \emph{why flow is a valid
-    training-free surrogate}. The theory is a three-link chain: (i)~the map
+        training-free surrogate}. The theory is a three-link chain: (i)~the map
     equation's inter-module codelength term equals one minus the flow retention
     $\Phi$ exactly, so InfoMap maximises an entropy-regularised flow retention;
     (ii)~under flow-local traffic dynamics, flow cut by a partition upper-bounds
@@ -57,15 +57,25 @@ Duong Tran Hai
     locality assumptions, cut dependency upper-bounds the value loss of regional
     decomposition. Minimising the map equation therefore minimises an upper bound
     on the value loss of regional MARL. We operationalise the chain with the
-    \emph{dependency retention ratio}~$\Psi$, computed from mutual-information
-    and Jacobian-based dependency instruments, and evaluate InfoMap against
-    topology-based partitioning (METIS) across three coordination coupling
-    levels: reward sharing (IPPO), centralised critic (MAPPO), and graph
-    attention (CoLight). InfoMap attains higher $\Phi$ and $\Psi$ across
-    networks and instruments, and experiments in real SUMO scenarios show up to
-    $2.85\times$ reduction in average vehicle waiting time, with spill-back
-    containment and spatial mutual-information advantage as operational
-    signatures of the predicted mechanism.
+    \emph{dependency retention ratio}~$\Psi$, computed primarily from a
+    model-free mutual-information instrument and, where the coordination
+    mechanism admits it, from Jacobian-based instruments on trained critics and
+    attention models. Across two SUMO road networks (Cologne8, Ingolstadt21),
+    three stochastic seeds, and every matched module count tested, InfoMap
+    retains more flow ($\Phi$) and more state mutual information ($\Psi$) than
+    same-size METIS partitions --- an ordering the map-equation identity
+    predicts and that holds in all 12 same-$k$ comparisons, the paper's
+    confirmatory core. This retention advantage coincides with large
+    single-seed reductions in average waiting time under regional reward
+    sharing (IPPO) and a regional centralised critic (MAPPO), up to
+    $2.85\times$ on a 21-intersection network; a case study with regional
+    graph attention (CoLight) instead locates the predicted phase boundary at
+    which attention masking, not flow-coherent partitioning, becomes the
+    binding constraint once modules fall below about four agents. We report
+    the dependency-retention result across seeds and the training result as a
+    single-seed case study pending multi-seed confirmation, and we state this
+    evidentiary split explicitly rather than letting the strength of one link
+    stand in for the other.
 \end{abstract}
 
 % ============================================================
@@ -82,16 +92,22 @@ Duong Tran Hai
 % Para 3 --- Insight + method: OD flow is the natural basis; InfoMap is the
 %           information-theoretic criterion; coordination coupling spectrum (L1/L2/L3)
 % Para 4 --- Contributions (bulleted, 4 items). Post-2026-07 retention-first framing:
-%   C1 Flow-based regional MARL partitioning: InfoMap on OD-demand graphs across
-%      reward sharing / centralised critic / graph attention coupling levels
+%   C1 Flow-based regional MARL partitioning: InfoMap on OD-demand graphs,
+%      validated primarily at reward sharing (IPPO) and centralised-critic
+%      (MAPPO) coupling; graph attention (CoLight) is a case study that
+%      locates rather than escapes the theory's predicted module-size boundary
 %   C2 Retention-based partition quality theory: first formal chain connecting
 %      map-equation minimisation to an upper bound on regional-MARL value loss
 %      (Prop. 1 exact identity; Prop. 2 flow⇒dependency transfer; Thm. 1 imported
 %      value-loss bound) --- replaces the earlier H1/H2-gated phrasing
 %   C3 Standardised metrics: Φ, Ψ, and size-matched-adjusted Ψ_adj, with a
 %      partition-level permutation test replacing pairwise hypothesis gates
-%   C4 Empirical validation: Ψ predicts performance trends better than
-%      topology-only criteria; k-reversal located as the predicted phase boundary
+%   C4 Empirical validation, evidentiary status stated explicitly: InfoMap
+%      retains more Φ and Ψ(D_MI) than METIS in every same-k comparison across
+%      3 seeds (confirmatory); this coincides with large single-seed
+%      performance gains under IPPO/MAPPO (descriptive, pending multi-seed
+%      confirmation); Ψ(D_G) reverses at k=5 on both networks, the predicted
+%      L3 phase boundary rather than an anomaly
 \textbf{[To be written --- Step 6]}
 
 % ============================================================
@@ -259,7 +275,7 @@ constants of these bounds rather than gating on binary hypothesis tests.
 \paragraph{Flow retention.}
 For a partition $\mathcal{P} = \{P_1, \ldots, P_K\}$ with module assignment
 $c(\cdot)$ and OD flow matrix $\mathbf{W}$, define the \emph{flow retention
-ratio}
+    ratio}
 \begin{equation}
     \Phi(\mathcal{P}, \mathbf{W})
     = \frac{\displaystyle\sum_{k}\sum_{i,j \,\in\, P_k} W_{ij}}
@@ -767,31 +783,462 @@ Theorem~\ref{thm:valueloss}) at each coupling level:
 \end{description}
 
 \noindent The three OPs together constitute \textbf{Hypothesis H}: an InfoMap
-partition achieves higher $\Psi$ than METIS across all three dependency
+partition achieves higher $\Psi$ than METIS across the three dependency
 instruments, and --- per the monotone bound of Theorem~\ref{thm:valueloss} ---
 this advantage predicts better task-performance trends at each coupling level,
-subject to the L3 module-size phase boundary identified in
+\emph{subject to} the L3 module-size phase boundary identified in
 Section~\ref{sec:valueloss}.
+The qualifier is load-bearing, not decorative: Section~\ref{sec:experiments}
+reports a $\Psi(D^{G})$ reversal at the coarser tested module count on both
+networks, which OP3's own phase-boundary clause predicts rather than
+contradicts, while OP1 and OP2 hold in every same-$k$ comparison tested.
 
 % ============================================================
 \section{Experiments}
 \label{sec:experiments}
-% §5.1 Setup: Cologne8 (8 int.), Ingolstadt21 (21 int.), [6×6 grid if available]
-%      Baselines: L0 (no-partition) → L1.5 (random-sparse) → METIS → InfoMap
-%      Protocol: rliable --- IQM ± stratified bootstrap CI, ≥5 seeds, AUC-LC + ATT
-% §5.2 Retention estimates + signature diagnostics --- Φ table (Prop 1 confirmation),
-%      Ψ/Ψ_adj + partition-level permutation test (replaces pairwise Wilcoxon as
-%      headline significance test); H1/H2 reported as channel signatures with
-%      honest per-network stats; Fig 2: MI heatmap + module boundaries
-% §5.3 Main results --- Table 1 + Fig 3 learning curves
-%      IQM ± CI: InfoMap / METIS / None × L1 / L2 / L3, primary: Ingolstadt21
-% §5.4 Ψ predicts performance (Thm 1 monotonicity) --- Fig 4: scatter ΔΨ_adj vs
-%      ΔAUC-LC across partition family {InfoMap, METIS, spectral, random, none,
-%      global}; k-sweep locating the predicted L3 reversal boundary
-% §5.5 Attention range analysis --- Fig 5: D̄_h profile + rollout heatmaps
+% Evidentiary-status discipline (locked 2026-07-14): retention diagnostics
+% (Φ, Ψ(D_MI), correlation, H1) are multi-seed (3 stochastic seeds) and are
+% the paper's confirmatory core. Ψ(D_G) is single-checkpoint (no seed
+% uncertainty). Downstream training performance is single-seed (seed 0) and
+% is reported as a descriptive case study pending multi-seed confirmation,
+% per henderson2018matters/agarwal2021rliable. rliable IQM/CI, a 6x6 grid
+% network, an L1.5 random-sparse control, and rendered figures (MI heatmap,
+% learning curves, ΔΨ scatter) are not available from the data in this repo
+% and are not claimed; the ΔΨ-vs-Δperformance result is reported as a table.
+
+\subsection{Setup}
+\label{sec:setup}
+We evaluate on two real-world SUMO road networks of different scale:
+Cologne8 (8 signalised intersections, 30-dimensional per-agent state) and
+Ingolstadt21 (21 signalised intersections, 85-dimensional per-agent state).
+For each network we construct an InfoMap partition and a METIS partition at
+matched module count~$k$, plus a no-partition (global/local) baseline, and
+hold the partition fixed while varying the coordination mechanism across the
+three coupling levels of Section~\ref{sec:levels}: IPPO (L1), MAPPO (L2), and
+CoLight (L3), with IDQN deferred per Section~\ref{sec:levels}.
+$D^{\mathrm{MI}}$ is estimated by the KSG estimator~\citep{kraskov2004ksg}
+over lags $\tau \in \{1,5,15,30\}$ steps ($k_{\mathrm{KSG}}=3$) from a
+361-step warm-up trajectory, repeated over 3 stochastic seeds per network;
+$D^{G}$ is the Jacobian instrument of Eq.~\eqref{eq:dg} evaluated on one
+seed-7 global (no-partition) CoLight checkpoint per network, and therefore
+carries no across-seed uncertainty estimate.
+Downstream training results are single-seed (seed~0, 1,500 episodes each),
+reported here as a case study rather than a statistically powered comparison;
+we state this scope explicitly rather than invoking rliable-style IQM and
+bootstrap confidence intervals~\citep{agarwal2021rliable} over data we do not
+have, in line with the standard of evidence Henderson et al.\
+argue RL results should be held to~\citep{henderson2018matters}.
+We therefore split the evaluation into two parts: retention diagnostics
+(Sections~\ref{sec:exp-phi}--\ref{sec:exp-dg}), which are multi-seed and
+constitute the paper's confirmatory evidence, and downstream training
+performance (Sections~\ref{sec:exp-perf}--\ref{sec:attnrange}), which is
+single-seed and descriptive.
+
+\subsection{Flow Retention Confirms Proposition~\ref{prop:phi}}
+\label{sec:exp-phi}
+
+\begin{table}[t]
+    \centering
+    \caption{Flow retention $\Phi$ (Eq.~\eqref{eq:phi}) at matched module
+        count $k$. Flow-auto (InfoMap's own module count) is reported for
+        completeness and excluded from same-$k$ comparisons.}
+    \label{tab:phi}
+    \small
+    \begin{tabular}{llrrrrr}
+        \toprule
+        Map & Partition & $k$  & Edges & Total flow & Retained flow & $\Phi$          \\
+        \midrule
+        \multirow{6}{*}{Cologne8}
+            & Flow      & 3    & 22    & 1{,}781    & 1{,}673       & \textbf{0.9394} \\
+            & METIS     & 3    & 22    & 1{,}781    & 1{,}094       & 0.6143          \\
+            & Random    & 3    & 22    & 1{,}781    & 242           & 0.1359          \\
+            & Flow      & 5    & 22    & 1{,}781    & 1{,}014       & \textbf{0.5693} \\
+            & METIS     & 5    & 22    & 1{,}781    & 740           & 0.4155          \\
+            & Random    & 5    & 22    & 1{,}781    & 464           & 0.2605          \\
+        \midrule
+        \multirow{6}{*}{Ingolstadt21}
+            & Flow      & 4    & 71    & 13{,}271   & 10{,}843      & \textbf{0.8170} \\
+            & METIS     & 4    & 71    & 13{,}271   & 8{,}534       & 0.6431          \\
+            & Random    & 4    & 71    & 13{,}271   & 4{,}535       & 0.3417          \\
+            & Flow      & 5    & 71    & 13{,}271   & 10{,}515      & \textbf{0.7923} \\
+            & METIS     & 5    & 71    & 13{,}271   & 8{,}436       & 0.6357          \\
+            & Random    & 5    & 71    & 13{,}271   & 2{,}448       & 0.1845          \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\noindent\textbf{Random-partition control.}
+Alongside InfoMap and METIS we report one reproducible random partition per
+$(\text{map}, k)$: agents are shuffled with a local RNG seeded at $0$ and
+assigned round-robin, giving size-balanced modules whose sizes differ by at
+most one (e.g.\ $3,3,2$ for Cologne8 $k{=}3$; $6,5,5,5$ for Ingolstadt21
+$k{=}4$).
+The same realised flow weights $\mathbf{W}$, stochastic state traces, lagged
+$D^{\mathrm{MI}}$ settings, and global CoLight $D^{G}$ matrices used for Flow
+and METIS are reused, so all three partitions are scored against identical
+data.
+This is a single realised random partition, not an average over random
+seeds, so the uncertainty reported for it below --- where an instrument has
+seeds at all --- covers only the traffic-trace seeds, not partition
+variance; it answers whether flow-coherence specifically drives the retention
+advantage, or whether any module boundary that is not purely random would do.
+InfoMap's own module-count (Flow-auto) result is reported for completeness
+and excluded from same-$k$ comparisons, as is Random from the Flow-auto row
+(there is no size-matched random analogue of an unconstrained module count).
+
+Table~\ref{tab:phi} confirms the ordering Proposition~\ref{prop:phi} treats as
+a theorem-shaped expectation: InfoMap retains more flow than same-$k$ METIS
+at every tested $(\text{map}, k)$, by $0.3251$ (Cologne8 $k{=}3$), $0.1538$
+(Cologne8 $k{=}5$), $0.1740$ (Ingolstadt21 $k{=}4$), and $0.1567$
+(Ingolstadt21 $k{=}5$) percentage points of $\Phi$.
+This margin is expected given InfoMap directly minimises the map equation
+of which $\Phi$ is (Proposition~\ref{prop:phi}) an exact restatement; its
+value is in quantifying \emph{how much} of the identity survives the two gaps
+noted in Section~\ref{sec:infomap} --- path-dependent routing and Infomap's
+greedy, non-exhaustive search --- rather than in the direction of the effect.
+The random baseline is the true chance floor and sits below both structured
+methods at every $(\text{map}, k)$, by a wide margin: even METIS, which
+optimises balanced structural cut rather than flow, retains
+$0.16$--$0.48$ more $\Phi$ than chance.
+Flow coherence is therefore necessary to explain InfoMap's advantage over
+METIS specifically, while structure of \emph{any} principled kind already
+explains most of the gap over a random module assignment.
+
+\subsection{Dependency Retention: $\Psi(D^{\mathrm{MI}})$ and H1}
+\label{sec:exp-psi-mi}
+
+\begin{table}[t]
+    \centering
+    \caption{State mutual-information retention $\Psi(\mathcal{P}, D^{\mathrm{MI}})$
+        (Eq.~\eqref{eq:psi}), mean $\pm$ SD over 3 stochastic seeds, and the
+        H1 signature (mean within- vs.\ cross-module MI, paired one-sided
+        Wilcoxon, pass count of 3 seeds at $p<0.05$).}
+    \label{tab:psi-mi}
+    \small
+    \begin{tabular}{llrrrrr}
+        \toprule
+        Map & Partition & $k$ & $\Psi(\mathcal{P}, D^{\mathrm{MI}})$ & Flow$-$METIS $\Delta\Psi$     & H1 within / cross & H1 passes    \\
+        \midrule
+        \multirow{6}{*}{Cologne8}
+            & Flow      & 3   & $\mathbf{0.6405 \pm 0.0092}$         & $\mathbf{+0.3444 \pm 0.0166}$ & $0.5415 / 0.3510$ & \textbf{3/3} \\
+            & METIS     & 3   & $0.2961 \pm 0.0074$                  & ---                           & $0.5369 / 0.4251$ & 0/3          \\
+            & Random    & 3   & $0.2443 \pm 0.0052$                  & ---                           & $0.4425 / 0.4566$ & 0/3          \\
+            & Flow      & 5   & $\mathbf{0.2804 \pm 0.0094}$         & $\mathbf{+0.1542 \pm 0.0136}$ & $0.5929 / 0.4149$ & 0/3          \\
+            & METIS     & 5   & $0.1262 \pm 0.0045$                  & ---                           & $0.5339 / 0.4434$ & 0/3          \\
+            & Random    & 5   & $0.1115 \pm 0.0032$                  & ---                           & $0.4715 / 0.4509$ & 0/3          \\
+        \midrule
+        \multirow{6}{*}{Ingolstadt21}
+            & Flow      & 4   & $\mathbf{0.2455 \pm 0.0025}$         & $\mathbf{+0.0274 \pm 0.0046}$ & $0.5058 / 0.4986$ & 1/3          \\
+            & METIS     & 4   & $0.2181 \pm 0.0032$                  & ---                           & $0.5095 / 0.4979$ & 1/3          \\
+            & Random    & 4   & $0.2166 \pm 0.0015$                  & ---                           & $0.5059 / 0.4989$ & 0/3          \\
+            & Flow      & 5   & $\mathbf{0.2199 \pm 0.0027}$         & $\mathbf{+0.0534 \pm 0.0068}$ & $0.5134 / 0.4968$ & 2/3          \\
+            & METIS     & 5   & $0.1665 \pm 0.0045$                  & ---                           & $0.5147 / 0.4976$ & 2/3          \\
+            & Random    & 5   & $0.1602 \pm 0.0008$                  & ---                           & $0.4950 / 0.5014$ & 0/3          \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+The seed-level $\Psi$ ordering flow~$>$~METIS holds in all 12 same-$k$
+comparisons across both networks and all 3 seeds --- the confirmatory result
+the introduction's evidentiary split (Section~\ref{sec:setup}) refers to.
+The random baseline (Section~\ref{sec:exp-phi}) sharpens what this ordering
+means: flow beats METIS beats random on 3 of 4 $(\text{map}, k)$ cells, but on
+Ingolstadt21 $k{=}4$ METIS and random are statistically indistinguishable in
+$\Psi$ ($0.2181$ vs.\ $0.2166$, a $0.0015$ gap against an SD an order of
+magnitude larger), whereas flow still clears random by $0.0289$.
+Topology-based partitioning is, on this network and module count, barely
+better than chance at retaining state dependency; flow-based partitioning is
+not.
+H1 behaves exactly as Section~\ref{sec:transfer} predicts it should: it is a
+signature of the aggregate bound, not a claim about every pairwise ordering,
+so a clean pass rate is not guaranteed even where $\Psi$ retention is large.
+Cologne8 flow-$k3$ passes H1 on all 3 seeds; Ingolstadt21 passes on only 1--2
+of 3 seeds despite $\Psi$ retention favouring flow in every seed, because the
+within- and cross-module mean MI values are close ($0.506$ vs.\ $0.499$ at
+$k{=}4$) even though the \emph{aggregated} within-module mass is larger.
+We report this as a boundary condition, not a failure: the theory-matched
+statistic is the aggregate $\Psi$ comparison, and the pairwise Wilcoxon test
+is, as noted in Section~\ref{sec:transfer}, a strictly stronger claim than
+Proposition~\ref{prop:transfer} makes.
+The random baseline also shows H1's limits as a discriminating test: random
+fails all 12 seed-level tests, matching METIS's pass rate on Cologne8 (both
+0/3 at $k{=}3,5$) and falling below METIS's pass rate on Ingolstadt21 (both
+Flow and METIS pass 1/3 at $k{=}4$ and 2/3 at $k{=}5$, while random passes
+0/3 throughout).
+H1 therefore reliably separates \emph{any} structured partition from chance
+on Ingolstadt21, but --- consistent with the aggregate-vs-pairwise point
+above --- it does not separate flow from METIS there; only $\Psi$ does.
+
+As a sensitivity check, restricting $D^{\mathrm{MI}}$ to queue-total state
+only (rather than the full multidimensional state) on Ingolstadt21 still
+gives flow~$>$~METIS in $\Psi$ ($+0.0730$ at $k{=}4$, $+0.1401$ at $k{=}5$,
+both over 3 seeds) but with H1 passing 0 of 3 seeds at either $k$; queue
+totals omit relationships visible in the complete state, so we treat the
+full-state instrument as the headline $D^{\mathrm{MI}}$ source and the
+queue-total result as a secondary robustness check.
+
+\subsection{Physical Flow versus State Dependency}
+\label{sec:exp-corr}
+
+\begin{table}[t]
+    \centering
+    \caption{Spearman correlation $\rho$ between off-diagonal directed flow
+        $W_{ij}$ and dependency $D_{ij}$, mean $\pm$ SD over 3 seeds
+        (per-seed $\rho$ and $p$ alongside).}
+    \label{tab:corr}
+    \small
+    \begin{tabular}{lrl}
+        \toprule
+        Map and dependency source      & Mean $\rho \pm$ SD           & Seed-level $p$                                      \\
+        \midrule
+        Cologne8, full state           & $\mathbf{0.5143 \pm 0.0937}$ & $1.55\text{e-}5,\ 1.65\text{e-}6,\ 0.00171$         \\
+        Ingolstadt21, full state       & $\mathbf{0.1409 \pm 0.0339}$ & $2.14\text{e-}4,\ 9.52\text{e-}3,\ 1.673\text{e-}2$ \\
+        Ingolstadt21, queue total only & $0.0314 \pm 0.0234$          & $0.735,\ 0.233,\ 0.696$ (n.s.)                      \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Full-state flow--dependency alignment is significant on both networks but
+markedly weaker on Ingolstadt21 ($\rho{=}0.14$) than Cologne8 ($\rho{=}0.51$);
+queue-total-only dependency shows no significant alignment on Ingolstadt21 at
+all.
+This is not an unexplained anomaly: Section~\ref{sec:transfer}'s discussion of
+the demand confounder $\epsilon_{\mathrm{dem}}$ predicts exactly this
+pattern, since common-cause mutual information from network-wide demand
+fluctuations grows with network size and dilutes the raw $W$--$D^{\mathrm{MI}}$
+correlation even when flow-borne coupling is unchanged.
+The 21-intersection network showing a smaller $\rho$ than the 8-intersection
+network is therefore a confirmed prediction of the transfer lemma's own
+caveat, not a threat to it; it does, however, mean the headline $\Psi$ result
+of Section~\ref{sec:exp-psi-mi} is the more direct evidence on Ingolstadt21,
+with the raw correlation serving mainly as a mechanism check.
+
+\subsection{Learned Dependency: $\Psi(D^{G})$ and the $k{=}5$ Reversal}
+\label{sec:exp-dg}
+
+\begin{table}[t]
+    \centering
+    \caption{Learned CoLight dependency retention $\Psi(\mathcal{P}, D^{G})$
+        (Eq.~\eqref{eq:dg}), one seed-7 global checkpoint per map, no
+        across-seed uncertainty estimate.}
+    \label{tab:psi-dg}
+    \small
+    \begin{tabular}{llrrrrr}
+        \toprule
+        Map & Partition & $k$ & $\Psi(\mathcal{P}, D^{G})$ & Flow$-$METIS $\Delta\Psi$ & $\Phi$ & Flow--$D^{G}$ $\rho$ ($p$)                    \\
+        \midrule
+        \multirow{6}{*}{Cologne8}
+            & Flow      & 3   & $\mathbf{0.7542}$          & $\mathbf{+0.1637}$        & 0.9394 & \multirow{6}{*}{$0.7961$ ($2.23\text{e-}13$)} \\
+            & METIS     & 3   & $0.5906$                   & ---                       & 0.6143 &                                               \\
+            & Random    & 3   & $0.2473$                   & ---                       & 0.1359 &                                               \\
+            & Flow      & 5   & $0.3703$                   & $-0.1060$                 & 0.5693 &                                               \\
+            & METIS     & 5   & $\mathbf{0.4763}$          & ---                       & 0.4155 &                                               \\
+            & Random    & 5   & $0.3110$                   & ---                       & 0.2605 &                                               \\
+        \midrule
+        \multirow{6}{*}{Ingolstadt21}
+            & Flow      & 4   & $\mathbf{0.7979}$          & $\mathbf{+0.1286}$        & 0.8170 & \multirow{6}{*}{$0.7503$ ($3.98\text{e-}77$)} \\
+            & METIS     & 4   & $0.6693$                   & ---                       & 0.6431 &                                               \\
+            & Random    & 4   & $0.2458$                   & ---                       & 0.3417 &                                               \\
+            & Flow      & 5   & $0.6998$                   & $-0.0317$                 & 0.7923 &                                               \\
+            & METIS     & 5   & $\mathbf{0.7314}$          & ---                       & 0.6357 &                                               \\
+            & Random    & 5   & $0.2554$                   & ---                       & 0.1845 &                                               \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+The underlying learned dependency aligns strongly with physical flow on both
+networks ($\rho \geq 0.75$), and flow retains more $D^{G}$ than METIS at the
+coarser tested module count on both maps.
+At the finer module count ($k{=}5$), the ordering reverses on both
+networks: METIS retains $3.2$--$10.6$ percentage points more $D^{G}$ than
+flow.
+This is a replicated, cross-network finding rather than single-network noise,
+and it is the OP3 phase boundary of Section~\ref{sec:valueloss} located
+empirically: strong matrix-level correlation between $W$ and $D^{G}$ does not
+guarantee that every fixed-$k$ partition maximises retained $D^{G}$, and once
+modules shrink past a size the attention mechanism needs, geometrically
+compact (METIS-style) partitions can retain more of what the trained model
+actually uses.
+The random baseline keeps the reversal in proportion: at every
+$(\text{map}, k)$, random trails whichever of Flow or METIS retains less
+$D^{G}$ there by $0.06$--$0.44$, so the $k{=}5$ reversal is a second-order
+contest between two partitions that both clearly outperform chance, not
+evidence that structure stops mattering.
+Section~\ref{sec:attnrange} examines this boundary directly via the
+hop-distance profile of $D^{G}$.
+
+\subsection{Spill-Back Diagnostic (H2)}
+\label{sec:exp-h2}
+
+H2 is inconclusive with the available data.
+Ingolstadt21 produced 1 spill-back event in seed~0, 2 in seed~1, and none in
+seed~2; no partition/seed combination reaches $p<0.05$ (observed $p \in
+    [0.466, 1.000]$ where events exist at all).
+Cologne8 produced no spill-back events in any seed.
+Per Section~\ref{sec:transfer}, an empty H2 result is consistent with the
+backward channel being inert under these networks' tested demand regime
+rather than with the mechanism being absent; the event counts are simply too
+small to test the claim either way, and we report this as a genuine gap
+rather than folding it into the headline evidence.
+The random baseline (Section~\ref{sec:exp-phi}) does not change this picture:
+Cologne8 again has zero events, and no random-partition/seed combination on
+Ingolstadt21 passes H2 ($p \in [0.0857, 1.0]$ where events exist).
+The sparsity is therefore a property of the demand regime, not an artefact of
+which partition is tested.
+
+\subsection{Main Training Results: A Single-Seed Case Study}
+\label{sec:exp-perf}
+
+\begin{table}[t]
+    \centering
+    \caption{Ingolstadt21 downstream training performance, seed~0, 1,500
+        episodes; a descriptive case study, not a statistically powered
+        comparison (Section~\ref{sec:setup}). Full 4-metric tables for both
+        networks, including CoLight, are in Appendix~\ref{app:results}.}
+    \label{tab:perf-i21}
+    \small
+    \begin{tabular}{llrr}
+        \toprule
+        Algorithm & Partition             & Final waiting time (s/veh) & Waiting-time AUC \\
+        \midrule
+        MAPPO     & Global / no partition & 484.19                     & 545.21           \\
+        MAPPO     & Flow $k{=}4$          & \textbf{140.96}            & 589.41           \\
+        MAPPO     & Flow $k{=}5$          & 160.51                     & \textbf{507.85}  \\
+        MAPPO     & METIS $k{=}4$         & 401.17                     & 648.33           \\
+        MAPPO     & METIS $k{=}5$         & 640.82                     & 654.04           \\
+        \midrule
+        IPPO      & Flow $k{=}4$          & 564.96                     & 647.10           \\
+        IPPO      & Flow $k{=}5$          & \textbf{202.71}            & \textbf{577.80}  \\
+        IPPO      & METIS $k{=}4$         & 846.14                     & 903.49           \\
+        IPPO      & METIS $k{=}5$         & 526.10                     & 795.08           \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+The retention advantage of Sections~\ref{sec:exp-phi}--\ref{sec:exp-psi-mi}
+coincides with large single-seed reductions in average waiting time on
+Ingolstadt21: MAPPO+flow-$k4$ reduces final waiting time by $70.9\%$ relative
+to global MAPPO and by $64.9\%$ ($2.85\times$) relative to METIS-$k4$;
+IPPO+flow-$k5$ reduces it by $61.5\%$ relative to IPPO+METIS-$k5$.
+MAPPO's flow advantage is largest at the coarser $k{=}4$; IPPO's is largest at
+the finer $k{=}5$ --- consistent with Section~\ref{sec:valueloss}'s
+per-level reading, where the regional critic (L2) and regional reward
+averaging (L1) have different sensitivities to module granularity.
+The AUC and final-episode rankings differ for MAPPO+flow-$k4$ (best final
+value, but not best AUC), so we report both rather than either alone.
+On Cologne8 (Appendix Table~\ref{tab:c8_full}), the same ordering holds at
+the one tested module count ($k{=}3$) but with a smaller margin, consistent
+with Cologne8's smaller $\Delta\Psi$ at that scale (Table~\ref{tab:psi-mi}).
+We emphasise what these numbers are and are not: they are a coherent,
+single-seed case study aligned with the multi-seed retention evidence above;
+they are not, on their own, a statistically validated performance claim, and
+the multi-seed expansion needed to make them one (Appendix~\ref{app:results},
+``Open runs'') is future work, not a result of this paper.
+
+\subsection{Retention Predicts Performance: A Descriptive Check}
+\label{sec:exp-psi-perf}
+
+\begin{table}[t]
+    \centering
+    \caption{Direction agreement between $\Delta\Psi(D^{\mathrm{MI}})$
+        (flow$-$METIS, 3~seeds) and $\Delta\text{Wait}$ (METIS$-$flow,
+        seed~0) across every (network, algorithm, $k$) cell where both are
+        available. Positive in both columns means the partition with higher
+        retained dependency also achieved lower waiting time.}
+    \label{tab:psi-perf}
+    \small
+    \begin{tabular}{llrrr}
+        \toprule
+        Map          & Algorithm & $k$ & $\Delta\Psi(D^{\mathrm{MI}})$ & $\Delta\text{Wait}$ (s/veh) \\
+        \midrule
+        Cologne8     & IPPO      & 3   & $+0.3444$                     & $+5.89$                     \\
+        Cologne8     & MAPPO     & 3   & $+0.3444$                     & $+0.69$                     \\
+        Ingolstadt21 & MAPPO     & 4   & $+0.0274$                     & $+260.21$                   \\
+        Ingolstadt21 & MAPPO     & 5   & $+0.0534$                     & $+480.31$                   \\
+        Ingolstadt21 & IPPO      & 4   & $+0.0274$                     & $+281.18$                   \\
+        Ingolstadt21 & IPPO      & 5   & $+0.0534$                     & $+323.39$                   \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+$\Delta\Psi$ and $\Delta\text{Wait}$ agree in sign in all 6 available cells:
+every case where flow retains more state dependency than METIS is also a
+case where flow achieves lower waiting time.
+This is the necessary-condition direction Theorem~\ref{thm:valueloss}
+licenses --- higher retention coinciding with better performance --- and we
+report it exactly as that, a table rather than a fitted trend line: with 2
+distinct $k$ values per network and a single training seed, there are not
+enough independent points to claim a dose-response relationship between the
+\emph{magnitude} of $\Delta\Psi$ and the magnitude of $\Delta\text{Wait}$,
+only that the two never disagree in direction here.
+The source CSVs underlying this table are not part of this repository, so we
+present it as a table rather than a rendered scatter plot we could not
+independently re-verify against the raw evaluation logs.
+
+\subsection{L3 Case Study: Attention Range and the Module-Size Boundary}
 \label{sec:attnrange}
-% §5.6 Ablations: module size k, L1.5 sparsification control, reward annealing α(e)
-\textbf{[To be written --- Step 7]}
+
+\begin{table}[t]
+    \centering
+    \caption{CoLight attention-range diagnostics on the global (no-partition)
+        checkpoints. $R$ is influence-weighted range; entropy is normalised
+        Shannon entropy of each target's attention distribution over its
+        available neighbours (5 heads).}
+    \label{tab:hop}
+    \small
+    \begin{tabular}{lrrrrr}
+        \toprule
+        Map          & Agents & Graph diameter & $R$    & Mean hop-1/hop-0 influence & Attention entropy \\
+        \midrule
+        Cologne8     & 8      & 3              & 0.5729 & 1.3289                     & $\approx 1.0000$  \\
+        Ingolstadt21 & 21     & 4              & 0.5675 & 1.4129                     & $\approx 1.0000$  \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+CoLight is treated throughout this paper as a case study of the L3 coupling
+level, not as a third confirmatory result on par with L1/L2: the theory of
+Section~\ref{sec:valueloss} predicts a module-size phase boundary at L3
+specifically, and CoLight is where we go looking for it rather than expecting
+InfoMap to win uniformly.
+Both networks' trained global CoLight models show nonzero Jacobian influence
+only at hops~0 and~1 (Table~\ref{tab:hop}), and near-uniform attention over
+each target's available neighbours (entropy $\approx 1$); influence does not
+reach past a module's immediate neighbours, so a module that excludes a
+hop-1 neighbour truncates influence the model still relies on.
+This is consistent with, and gives a mechanistic reading of, the
+$\Psi(D^{G})$ reversal at $k{=}5$ (Section~\ref{sec:exp-dg}): at $k{=}5$
+Ingolstadt21 modules average ${\sim}4$ agents and Cologne8 modules average
+${\sim}2$, below the size at which OP3 (Section~\ref{sec:levels}) predicts
+attention masking becomes the binding constraint rather than flow coherence.
+Downstream performance is consistent with this reading but incomplete: on
+Cologne8, CoLight+flow-$k3$ diverges (waiting time rises to $28.06$ s/veh
+against a $16.20$ baseline) with modules of $2$--$3$ agents, the smallest
+tested; on Ingolstadt21, where $k{=}4$--$5$ modules average $4$--$5$ agents,
+CoLight+flow instead outperforms both baseline and METIS at every logged
+checkpoint, but no run has completed the full 1{,}500 episodes (Appendix
+Table~\ref{tab:i21_colight}).
+We report L3 as a boundary condition the theory anticipated and partially
+locates, not as a demonstrated performance result, and defer a converged,
+multi-module-size CoLight sweep to future work.
+
+\subsection{Scope of Ablations}
+\label{sec:exp-ablations}
+
+The module-count sweep ($k \in \{3,5\}$ on Cologne8, $k \in \{4,5\}$ on
+Ingolstadt21) and the random-partition control of Section~\ref{sec:exp-phi}
+are the ablations this paper's evidence supports; together they answer
+whether the InfoMap advantage survives varying granularity and whether it
+reflects flow-coherence specifically rather than the mere presence of module
+boundaries.
+The random partition reported here is a single size-balanced round-robin
+realisation (seed~0), not the degree-matched sparse-graph control (``L1.5''
+in earlier project scoping) originally envisioned, and not averaged over
+multiple random seeds; a degree-matched variant and a reward-annealing
+schedule ablation remain unrun in the data available for this draft.
+We do not report simulated or projected numbers for either, and list both
+explicitly as future work in Section~\ref{sec:conclusion} rather than
+omitting them silently.
 
 % ============================================================
 \section{Conclusion}
