@@ -597,15 +597,39 @@ arbitrary multi-agent systems.
     common-demand terms $\beta_{ij}$ across the cut.
 \end{proposition}
 
-A proof sketch --- a one-step entrywise bound followed by a
-path-composition/data-processing argument for longer lags --- is given in
-Appendix~\ref{app:proofs}.
+Appendix~\ref{app:proofs:transfer} proves the bound with explicit constants
+in a stylised linear--Gaussian link-queue model in which
+Assumptions~\ref{ass:local}--\ref{ass:stationary} hold literally
+(Proposition~\ref{prop:transfer-linear}); in that model the demand confounder
+can moreover be removed \emph{exactly} by conditioning on the demand process
+(Corollary~\ref{cor:demzero}).
+The general nonlinear case remains a conjecture, with the tools required for
+it identified in the appendix.
 The direction of the bound matters: low cut flow certifies low cut dependency,
 but high $\Psi$ does not certify high performance --- the bound is necessary-,
 not sufficient-, for lossless decomposition.
 The constant $\kappa$ and the confounder $\epsilon_{\mathrm{dem}}$ are
 network- and regime-dependent; the experiments estimate them rather than
 assume them away.
+
+\paragraph{The role of $D^{\mathrm{MI}}$: a one-sided witness.}
+The chain can be read with \emph{influence}, not mutual information, as the
+central object.
+The value-loss results imported in Section~\ref{sec:valueloss} are stated in
+terms of one-step influence coefficients --- exactly the quantity
+Assumption~\ref{ass:coupling} bounds by flow --- so the theory track (flow
+$\Rightarrow$ influence $\Rightarrow$ value loss) never needs MI at all.
+MI enters on the \emph{measurement} track: by data processing, the
+statistical dependency observable across a cut cannot exceed a function of
+the influence crossing it, so large measured cut-MI \emph{certifies} large
+cut influence, whereas small measured cut-MI does not certify small influence
+--- a channel can be strong yet unexercised by the demand distribution in the
+measurement window.
+$\Psi(D^{\mathrm{MI}})$ comparisons therefore license ruling partitions
+\emph{out} (a partition that cuts much MI provably cuts much influence, so
+its value-loss bound is poor) rather than certifying winners --- the same
+necessary-not-sufficient reading as Theorem~\ref{thm:valueloss}, now at the
+level of the instrument itself.
 
 \paragraph{H1 and H2 as operational signatures.}
 Proposition~\ref{prop:transfer}'s two channels yield two testable empirical
@@ -698,7 +722,8 @@ alignment between $\mathbf{W}$ and $D^{\mathrm{MI}}$ weakens on larger
 networks even when the flow-borne coupling is unchanged.
 The theory-driven fix is to estimate $D^{\mathrm{MI}}$ \emph{conditionally}
 on an aggregate demand covariate (e.g.\ total network occupancy at time $t$),
-which removes the common-cause channel by construction.
+which removes the common-cause channel by construction --- exactly so in the
+stylised model (Corollary~\ref{cor:demzero}).
 Model-derived instruments such as $D^{G}$ (Section~\ref{sec:psi}) largely do
 not inherit the confounder: a trained model has no incentive to route
 gradient through agents that carry no decision-relevant information.
@@ -1523,7 +1548,7 @@ omitting it silently.
 % ============================================================
 \appendix
 
-\section{Proof Sketches and Derivation Notes}
+\section{Proofs and Derivation Notes}
 \label{app:proofs}
 
 \subsection{Proposition~\ref{prop:phi}}
@@ -1540,62 +1565,206 @@ $q_{\circlearrowleft} = \sum_{i,j:\, c(i) \neq c(j)} p_i \, p_{ij}
 which is $1 - \Phi(\mathcal{P}, \mathbf{W})$ by Eq.~\eqref{eq:phi}.
 \hfill$\square$
 
-\subsection{Proposition~\ref{prop:transfer} (sketch)}
+\subsection{Proposition~\ref{prop:transfer}: complete proof in a stylised
+    linear model}
 \label{app:proofs:transfer}
 
-\emph{Step 1 (one-step bound).}
-Under Assumption~\ref{ass:local} the transition kernel factorises over the
-road graph, so any one-step statistical dependency between the states of
-intersections $i$ and $j$ is mediated by the coupling coefficients of
-Assumption~\ref{ass:coupling}.
-For lag $\tau = 1$, each entry of the dependency matrix is bounded entrywise,
-$D_{ij} \leq \alpha' \widetilde{W}_{ij} + \beta_{ij}$, where $\alpha'$ absorbs
-$\alpha$ and the scale of the instrument (for $D^{\mathrm{MI}}$, via the
-standard relation between influence coefficients and mutual information under
-bounded state spaces).
-Summing over cut pairs,
-$\sum_{c(i) \neq c(j)} D_{ij}
-    \leq \alpha' \sum_{c(i) \neq c(j)} \widetilde{W}_{ij}
-    + \sum_{c(i) \neq c(j)} \beta_{ij}$.
+The general statement of Proposition~\ref{prop:transfer} under
+Assumptions~\ref{ass:local}--\ref{ass:stationary} is a conjecture; the tools
+required for it are identified in the closing remark.
+Here we prove the bound \emph{exactly}, with explicit constants, in a
+stylised model in which the three assumptions hold literally.
 
-\emph{Step 2 (path composition).}
-For lags $\tau > 1$, dependency between $i$ and $j$ is generated along
-directed paths $i \to \cdots \to j$ in the coupling graph.
-By a data-processing argument, each path contributes at most the product of
-its one-step couplings; every path connecting a cut pair crosses the boundary
-at some step, so its contribution is bounded by a cut-edge flow term
-multiplied by sub-unit within-module coupling factors.
-Summing the resulting geometric series (finite under
-Assumption~\ref{ass:coupling} with bounded total coupling) inflates $\alpha'$
-by a constant but preserves the form of the bound.
+\paragraph{The stylised model.}
+Let $x(t) \in \mathbb{R}^N$ collect per-intersection queue deviations from an
+undersaturated operating point, evolving as the linearisation of a
+link-queue/CTM model~\citep{daganzo1994ctm,jin2012linkqueue} about that
+point:
+\begin{equation}
+    x(t+1) \;=\; A\, x(t) \;+\; b\, \xi(t) \;+\; w(t),
+    \label{eq:var}
+\end{equation}
+under four conditions:
+\begin{itemize}
+    \item[(M1)] \emph{Locality} (Assumption~\ref{ass:local}):
+          $A_{ij} \neq 0$ only if $j \in \mathcal{N}(i) \cup \{i\}$.
+    \item[(M2)] \emph{Flow-bounded coupling} (Assumption~\ref{ass:coupling}):
+          $|A_{ij}| \leq \alpha \widetilde{W}_{ij}$ for $i \neq j$, with the
+          common-demand coupling $\beta_{ij}$ carried by the loading vector
+          $b$ rather than by $A$.
+    \item[(M3)] \emph{Sub-criticality}:
+          $\max\!\left(\|\,|A|\,\|_1, \|\,|A|\,\|_\infty\right) \leq 1 -
+              \delta$ for some $\delta \in (0, 1]$ --- the total coupling any
+          intersection exerts on, and receives from, its neighbours is
+          bounded below one; this is the undersaturated-regime condition.
+    \item[(M4)] \emph{Noise and demand} (Assumption~\ref{ass:stationary} via
+          time-invariance): $w(t) \stackrel{\mathrm{iid}}{\sim}
+              \mathcal{N}(0, \Sigma_w)$ with diagonal $\Sigma_w$,
+          $\sigma_{\min}^2 \leq (\Sigma_w)_{ii} \leq \sigma_{\max}^2$; the
+          scalar demand factor $\xi(t) \stackrel{\mathrm{iid}}{\sim}
+              \mathcal{N}(0, \sigma_\xi^2)$ is independent of $w$.
+\end{itemize}
+The stationary lagged covariance factorises as
+$\Gamma_\tau := \operatorname{Cov}\!\left(x(t{+}\tau), x(t)\right)
+    = A^\tau \Sigma$ with
+$\Sigma = \Sigma_0 + \Sigma_\xi$, where
+$\Sigma_0 = \sum_{k \geq 0} A^k \Sigma_w (A^{\!\top})^k$ is the noise-driven
+part and
+$\Sigma_\xi = \sigma_\xi^2 \sum_{k \geq 0} A^k b\, b^{\!\top} (A^{\!\top})^k$
+the demand-driven part; $\bar{\sigma}^2 := \max_i \Sigma_{ii} < \infty$ by
+(M3).
+The instrument is the per-lag Gaussian MI
+$D^{\mathrm{MI}}_{ij} = I\!\left(x_i(t);\, x_j(t{+}\tau)\right)$ for
+$\tau \geq 1$; the lag-averaged instrument used in the experiments obeys the
+same bound because the bound below is uniform over $\tau \geq 1$.
 
-\emph{Step 3 (normalisation).}
-Dividing by the total dependency mass $\sum_{i,j} D_{ij}$ and by
-$\sum_{i,j} \widetilde{W}_{ij}$ yields Eq.~\eqref{eq:transfer}, with $\kappa$
-collecting the constants of Steps~1--2 and $\epsilon_{\mathrm{dem}}$ the
-normalised common-demand mass across the cut.
+\begin{lemma}[Cut charging]
+    \label{lem:cutcharge}
+    For every partition $\mathcal{P}$ and every $\tau \geq 1$,
+    \begin{equation*}
+        \sum_{c(i) \neq c(j)} \left|\left(A^\tau \Sigma_0\right)_{ji}\right|
+        \;\leq\;
+        \frac{2\, \sigma_{\max}^2\, \alpha}{\delta^3}
+        \sum_{c(u) \neq c(v)} \widetilde{W}_{uv}.
+    \end{equation*}
+\end{lemma}
 
-\emph{Honesty notes.}
-The composition step is where rigour is currently thinnest.
-Strong data-processing inequalities for Bayesian networks --- information
+\begin{proof}
+    Expand
+    $(A^\tau \Sigma_0)_{ji}
+        = \sum_{k \geq 0} \sum_m (A^{\tau+k})_{jm} (\Sigma_w)_{mm}
+        (A^{k})_{im}$
+    and bound entrywise by $|A|$: each term pairs a walk $m \to i$ of length
+    $k$ with a walk $m \to j$ of length $\tau + k$ in the coupling graph.
+    If $c(i) \neq c(j)$, at least one of the two walks crosses the partition:
+    if $c(m) = c(i)$, the walk to $j$ crosses; otherwise the walk to $i$
+    crosses (the degenerate $k = 0$ term forces $m = i$ and falls in the
+    first case, which is why $\tau \geq 1$ suffices).
+    Decompose each crossing walk at its \emph{first} crossing step
+    $(u \to v)$, whose weight obeys $|A_{vu}| \leq \alpha \widetilde{W}_{uv}$
+    by (M2); the prefix and suffix are unconstrained walks.
+    Since all terms are non-negative, the coupled sum over lengths is bounded
+    by the decoupled product of resolvent sums: summing the prefix over its
+    free start node and all lengths gives a row sum of
+    $(I - |A|)^{-1}$, at most $1/\delta$ by (M3); summing the suffix over its
+    free end node gives a column sum, at most $1/\delta$; and summing the
+    non-crossing walk over its free endpoint and all lengths gives another
+    factor $1/\delta$.
+    Collecting the two cases yields the factor $2$, and
+    $(\Sigma_w)_{mm} \leq \sigma_{\max}^2$ completes the bound.
+\end{proof}
+
+\begin{lemma}[Gaussian MI is linear in correlation under a noise floor]
+    \label{lem:gaussmi}
+    Let $\bar{\rho}^2 := 1 - \sigma_{\min}^2 / \bar{\sigma}^2$.
+    Then for all pairs $(i, j)$ and all $\tau \geq 1$, the lagged correlation
+    obeys $|\rho_{ij}(\tau)| \leq \bar{\rho} < 1$ and
+    \begin{equation*}
+        D^{\mathrm{MI}}_{ij}
+        = -\tfrac{1}{2} \ln\!\left(1 - \rho_{ij}^2(\tau)\right)
+        \;\leq\;
+        \frac{\bar{\rho}}{2 (1 - \bar{\rho}^2)}\, |\rho_{ij}(\tau)|
+        \;\leq\;
+        \frac{\bar{\rho}}{2 (1 - \bar{\rho}^2)\, \sigma_{\min}^2}
+        \left|\left(\Gamma_\tau\right)_{ji}\right|.
+    \end{equation*}
+\end{lemma}
+
+\begin{proof}
+    For $\tau \geq 1$, $x_i(t)$ is measurable with respect to the history up
+    to $t + \tau - 1$, so
+    $\operatorname{Var}\!\left(x_j(t{+}\tau) \mid x_i(t)\right)
+        \geq (\Sigma_w)_{jj} \geq \sigma_{\min}^2$,
+    while $\operatorname{Var}\!\left(x_j(t{+}\tau)\right) \leq
+        \bar{\sigma}^2$; hence
+    $1 - \rho_{ij}^2 \geq \sigma_{\min}^2 / \bar{\sigma}^2$, i.e.\
+    $|\rho_{ij}| \leq \bar{\rho}$.
+    The secant bound $-\ln(1 - u) \leq u / (1 - \bar{u})$ for
+    $0 \leq u \leq \bar{u} < 1$, applied with $u = \rho^2$ and
+    $\bar{u} = \bar{\rho}^2$, together with $\rho^2 \leq \bar{\rho}\,|\rho|$,
+    gives the first inequality; the second follows because both standard
+    deviations are at least $\sigma_{\min}$
+    (as $\Sigma \succeq \Sigma_w \succeq \sigma_{\min}^2 I$).
+\end{proof}
+
+\begin{proposition}[Transfer bound, stylised model]
+    \label{prop:transfer-linear}
+    Under (M1)--(M4), for every partition $\mathcal{P}$ and every lag
+    $\tau \geq 1$ (hence for the lag-averaged instrument),
+    \begin{equation*}
+        1 - \Psi(\mathcal{P}, D^{\mathrm{MI}})
+        \;\leq\;
+        \kappa \left(1 - \Phi(\mathcal{P}, \widetilde{\mathbf{W}})\right)
+        + \epsilon_{\mathrm{dem}},
+    \end{equation*}
+    with explicit constants
+    \begin{equation*}
+        \kappa
+        = \frac{\bar{\rho}\, \sigma_{\max}^2\, \alpha}
+        {(1 - \bar{\rho}^2)\, \sigma_{\min}^2\, \delta^3}
+        \cdot
+        \frac{\sum_{u \neq v} \widetilde{W}_{uv}}
+        {\sum_{i \neq j} D^{\mathrm{MI}}_{ij}},
+        \qquad
+        \epsilon_{\mathrm{dem}}
+        = \frac{\bar{\rho}}{2 (1 - \bar{\rho}^2)\, \sigma_{\min}^2}
+        \cdot
+        \frac{\sum_{c(i) \neq c(j)}
+            \left|\left(A^\tau \Sigma_\xi\right)_{ji}\right|}
+        {\sum_{i \neq j} D^{\mathrm{MI}}_{ij}}.
+    \end{equation*}
+\end{proposition}
+
+\begin{proof}
+    Split $\Gamma_\tau = A^\tau \Sigma_0 + A^\tau \Sigma_\xi$, apply
+    Lemma~\ref{lem:gaussmi} to each cut pair, bound the noise-driven cut mass
+    by Lemma~\ref{lem:cutcharge}, leave the demand-driven cut mass as
+    $\epsilon_{\mathrm{dem}}$'s numerator, and divide by the total dependency
+    mass $\sum_{i \neq j} D^{\mathrm{MI}}_{ij}$, using
+    $1 - \Phi = \sum_{c(u) \neq c(v)} \widetilde{W}_{uv} \big/
+        \sum_{u \neq v} \widetilde{W}_{uv}$.
+\end{proof}
+
+\begin{corollary}[Demand conditioning removes the confounder exactly]
+    \label{cor:demzero}
+    Conditioned on the demand path $\{\xi_s\}$, the process~\eqref{eq:var}
+    has the same law with $\sigma_\xi = 0$; hence $\Sigma_\xi = 0$ and the
+    conditional-MI instrument satisfies
+    Proposition~\ref{prop:transfer-linear} with
+    $\epsilon_{\mathrm{dem}} = 0$.
+    Aggregate network occupancy is the operational proxy for $\xi$
+    recommended in Section~\ref{sec:transfer}.
+\end{corollary}
+
+\paragraph{Scope, and what remains open.}
+The model delivers Assumptions~\ref{ass:local}--\ref{ass:stationary}
+literally: (M1) is flow locality, (M2) is flow-bounded coupling with the
+demand channel isolated in $b$, and time-invariance of all parameters is
+regime stationarity.
+Three limits of the result should be stated plainly.
+First, it is a linearisation about an undersaturated operating point: the
+constant degrades as $\delta^{-3}$, so the bound is loosest approaching
+saturation --- exactly where the backward (spill-back) channel activates.
+This is a property the general theory shares (Section~\ref{sec:transfer}),
+now visible in a constant rather than hidden in a sketch.
+Second, the statement is for scalar per-agent states, matching the queue
+instruments; vector-valued states extend via the log-determinant form of
+Gaussian MI at the cost of heavier notation.
+Third, the general nonlinear, non-Gaussian case remains a conjecture: strong
+data-processing inequalities for Bayesian networks --- information
 percolation bounds of the Evans--Schulman
-type~\citep{evans1999percolation,polyanskiy2017sdpi} --- give exactly the
-required form, bounding end-to-end mutual information by a sum over paths of
-products of per-edge contraction coefficients, and are the natural route to a
-fully rigorous statement of Step~2; making the entrywise Step-1 bound precise
-likewise requires the finite-alphabet relation between Dobrushin influence
-coefficients and SDPI constants~\citep{polyanskiy2017sdpi}.
-The geometric-series step additionally requires sub-critical total coupling
-(row sums of the coupling matrix strictly below one), i.e.\ an undersaturated
-regime --- notably the regime in which the backward (spill-back) channel is
-weakest, so the bound is loosest exactly where coordination matters most.
-$\kappa$ is network- and regime-dependent; Assumption~\ref{ass:stationary}
-matters because pooling across regimes mixes coupling structures with
-different constants.
-$\epsilon_{\mathrm{dem}}$ is not small in general and grows with network size;
-when it dominates, the bound is uninformative --- which is detectable, and
-correctable by estimating $\mathbf{D}$ conditionally on an aggregate demand
-covariate (Section~\ref{sec:transfer}).
+type~\citep{evans1999percolation,polyanskiy2017sdpi} --- provide precisely
+the path-sum-of-contraction-products structure that
+Lemma~\ref{lem:cutcharge} instantiates linearly, and are the natural route to
+removing the linearity assumption.
+$\epsilon_{\mathrm{dem}}$ is not small in general and grows with network
+size; when it dominates, the bound is uninformative --- which is detectable,
+and correctable by conditioning (Corollary~\ref{cor:demzero}).
+% TODO(numerics): simulate eq:var on the real Cologne8/Ingolstadt21 graphs
+% with the measured W as coupling template; compute exact Gaussian MI from
+% the stationary covariance; overlay the bound across the 4,935 feasible
+% benchmark partitions to estimate kappa and eps_dem empirically. Planned
+% appendix figure; do not claim until run.
 
 \subsection{Theorem~\ref{thm:valueloss} (derivation notes)}
 \label{app:proofs:valueloss}
