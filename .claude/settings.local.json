@@ -58,7 +58,11 @@
       "Bash(echo \"pass1 exit: $?\")",
       "Bash(echo \"bibtex exit: $?\")",
       "Bash(grep -vE '^\\(Figures|format.sty|llncs.cls|main.tex|refs-style.bst|refs.bib\\)$')",
-      "Bash(xargs -r rm -v)"
+      "Bash(xargs -r rm -v)",
+      "Bash(lualatex -interaction=nonstopmode -halt-on-error proof.tex)",
+      "Bash(bibtex proof *)",
+      "Bash(pdfinfo proof.pdf)",
+      "Bash(echo \"main exit: $?\")"
     ]
   }
 }

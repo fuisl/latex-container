@@ -78,9 +78,11 @@ Duong Tran Hai
     validation-only Pareto selection --- then bounds the claim's scope: no
     single algorithm dominates the constrained front, unconstrained InfoMap
     partitions can violate the operational constraints outright, and
-    action-level conditional mutual information is not statistically
-    resolvable from our traces, so we withhold causal control-dependency
-    claims. We report the dependency-retention result across seeds and the
+    action-level influence is not statistically resolvable from our traces
+    --- observationally or under a preregistered randomized action
+    intervention --- so we withhold causal control-dependency claims and read
+    the training gains as optimisation conditioning by correlated
+    within-module signals rather than as preserved causal coupling. We report the dependency-retention result across seeds and the
     training result as a single-seed case study pending multi-seed
     confirmation, and we state this evidentiary split explicitly rather than
     letting the strength of one link stand in for the other.
@@ -455,11 +457,14 @@ $D^{\mathrm{CMI}}$ conditions away the target's own history and action, so a
 significant edge is evidence of \emph{control} coupling --- the quantity that
 distinguishes traffic similarity from traffic dependency from control
 dependency.
-We define the instrument here but flag its empirical status up front: on the
-traces available to this paper, no $D^{\mathrm{CMI}}$ edge survives FDR
-correction on either network (Section~\ref{sec:exp-benchmark}), so
-$D^{\mathrm{CMI}}$ enters our experiments only as an exploratory ranking
-signal, never as confirmed causal structure.
+We define the instrument here but flag its empirical status up front: no
+$D^{\mathrm{CMI}}$ edge survives FDR correction on either network, either
+observationally (Section~\ref{sec:exp-benchmark}) or under a preregistered
+randomized action intervention that removes the observational identification
+problem outright (Section~\ref{sec:exp-perturb}).
+$D^{\mathrm{CMI}}$ and its interventional counterpart therefore enter our
+experiments only as exploratory ranking signals, never as confirmed causal
+structure.
 
 \paragraph{Hop-distance profile.}
 For either instrument, aggregate dependency by road-graph hop distance $\rho(i,j)$:
@@ -913,10 +918,14 @@ A second data collection supports the community-detection benchmark of
 Section~\ref{sec:exp-benchmark}: 10 stochastic-policy episodes at each of 5
 traffic seeds per network, split chronologically 6/2/2 within each seed into
 construction, validation, and held-out test episodes.
+A third supports the randomized action-perturbation probe of
+Section~\ref{sec:exp-perturb}: 400 mixed-arm and 100 single-agent
+intervention episodes under the frozen global CoLight checkpoints, with the
+same chronological split discipline.
 We therefore split the evaluation into two parts: retention diagnostics
-(Sections~\ref{sec:exp-phi}--\ref{sec:exp-benchmark}), which are multi-seed
+(Sections~\ref{sec:exp-phi}--\ref{sec:exp-perturb}), which are multi-seed
 and constitute the paper's confirmatory evidence where the underlying test is
-resolved (the spill-back and action-CMI diagnostics are reported as
+resolved (the spill-back and action-influence diagnostics are reported as
 unresolved), and downstream training performance
 (Sections~\ref{sec:exp-perf}--\ref{sec:attnrange}), which is single-seed and
 descriptive.
@@ -1179,11 +1188,12 @@ partition/seed combination reaches $p<0.05$, and the random control behaves
 identically --- the sparsity is a property of the tested demand regime (an
 inert backward channel, per Section~\ref{sec:transfer}), not an artefact of
 which partition is tested.
-The action-level CMI instrument of Eq.~\eqref{eq:dcmi} was designed as the
-sharper probe of the same causal question and is likewise unresolved
-(Section~\ref{sec:exp-benchmark}); we therefore make no causal-coupling claim
-for these networks and demand regimes, and treat both diagnostics as open
-rather than folding either into the headline evidence.
+The action-level instruments of Eq.~\eqref{eq:dcmi} were designed as the
+sharper probe of the same causal question and are likewise unresolved,
+observationally (Section~\ref{sec:exp-benchmark}) and under randomization
+(Section~\ref{sec:exp-perturb}); we therefore make no causal-coupling claim
+for these networks and demand regimes, and treat these diagnostics as open
+rather than folding any into the headline evidence.
 % --- Commented out 2026-07-15 (weak/duplicative once CMI null is reported;
 %     detail preserved for internal reference):
 % H2 is inconclusive with the available data.
@@ -1260,6 +1270,9 @@ Proposition~\ref{prop:transfer}--Theorem~\ref{thm:valueloss} chain:
 dependency retention is confirmed at the state level ($D^{\mathrm{MI}}$) and
 at the learned-model level ($D^{G}$), and remains unresolved at the action
 level.
+Section~\ref{sec:exp-perturb} sharpens this finding with a randomized design
+that removes the observational identification problem --- and reaches the
+same null.
 
 \paragraph{Finding 3: no single optimiser dominates.}
 The Cologne8 validation front contains 23 records but only five unique
@@ -1342,11 +1355,112 @@ The durable contribution is the evaluation frame itself --- retention metrics
 with exact-size and connected nulls, validation-only Pareto selection, and
 held-out reporting --- which any future partitioning proposal can be scored
 under.
-The next defensible step is not another optimiser but better identification:
-controlled action-perturbation or stochastic learned-policy traces from the
-existing global checkpoints, collected until $D^{\mathrm{CMI}}$ edges are
-reproducibly FDR-significant, followed by preregistered policy tests of a
-small validation-front subset spanning the retention--balance trade-off.
+The identification half of the natural next step has since been executed:
+Section~\ref{sec:exp-perturb} reports a preregistered randomized
+action-perturbation experiment that removes the confounding problem --- and
+still finds no FDR-significant edge on held-out data.
+Preregistered policy tests of a small validation-front subset spanning the
+retention--balance trade-off remain future work.
+
+\subsection{Randomized Action-Perturbation Probe of Control Dependency}
+\label{sec:exp-perturb}
+
+The observational null of Finding 2 admits two readings: an identification
+failure (policy actions are near-deterministic functions of states, so
+conditioning cannot separate action influence from state influence), or
+genuinely weak control coupling.
+To separate them we ran a preregistered randomized intervention on the frozen
+global CoLight checkpoint of each network, with no retraining.
+
+\paragraph{Design.}
+In the mixed arm, each agent's action is independently replaced with a
+uniformly random valid phase with probability $0.20$ at every decision step;
+the \emph{logged random assignment} $\delta_i^t \in \{0, 1\}$ --- exogenous
+by construction --- is the exposure, not the policy action.
+(The realised action-change rate is $0.131$--$0.135$, since the random draw
+can coincide with the policy's choice; power is set by the changed rate, not
+the assigned one.)
+A single-agent arm, perturbing one agent at a time, checks sensitivity to
+simultaneous interventions.
+We collected 400 mixed-arm and 100 single-agent episodes, split
+chronologically $120/40/40$ and $30/10/10$ per network into
+construction/validation/held-out sets.
+The primary family was fixed before collection: physical-adjacency and
+observed-flow pairs (22 on Cologne8, 71 on Ingolstadt21) at
+travel-time-derived lags, with Benjamini--Hochberg correction confined to
+this family and hop-${\geq}3$ pairs reserved as negative controls.
+Two estimators are reported per directed pair: a regression-adjusted average
+treatment effect of $\delta_i^t$ on $q_j^{t+\tau}$ (adjusting for $q_j^t$;
+$D^{\mathrm{ATE}}$ is its standardised absolute value) and the randomized CMI
+$\hat{I}(\delta_i^t;\, q_j^{t+\tau} \mid q_j^t)$ with Jeffreys smoothing, 500
+within-episode circular shifts, and 1{,}000 episode bootstraps.
+
+\paragraph{Result: identification fixed, null persists.}
+The design checks pass: the intervention measurably randomised behaviour
+(mean held-out action entropy rose from $0.52$--$0.55$ to $0.79$ nats), and
+the hop-${\geq}3$ negative controls show raw false-positive rates of
+$0.00$--$0.05$, at the nominal level.
+Yet on held-out data there are \emph{zero} FDR-significant edges on either
+network under either estimator.
+The single construction-split discovery (one Cologne8 CMI edge, $0.00025$
+nats, $q = 0.044$) does not replicate on held-out data; the single-agent arm
+finds nothing; and mixed-versus-single ATE sign agreement is $0.36$--$0.47$
+--- chance level, the signature of noise-dominated estimates of near-zero
+effects at sub-vehicle scale (arm-to-arm ATE differences average
+$0.09$--$0.15$ queued vehicles).
+One caveat is disclosed rather than argued away: the prospective power
+calculation called for $165$ (Cologne8) and $194$ (Ingolstadt21) construction
+episodes against the $120$ supplied, so only $14/22$ and $41/71$ pairs
+reached the planned $80\%$ power --- null edges outside that subset are
+inconclusive, not evidence of exact independence.
+The powered subsets, however, also produced zero held-out discoveries.
+
+\paragraph{Exploratory partition-level concentration.}
+Cross-evaluating the \emph{continuous} (unthresholded) $D^{\mathrm{ATE}}$ and
+$D^{\mathrm{CMI}}$ weights on the existing validation-front partitions
+against the stored exact-size connected nulls, one Ingolstadt21 front
+partition ($k{=}3$) reaches held-out $\Psi_{\mathrm{adj}} = 0.592$ (nominal
+$p = 0.020$) on $D^{\mathrm{ATE}}$ and $0.918$ ($p = 0.009$) on
+$D^{\mathrm{CMI}}$.
+As post-hoc maxima over the 23 cross-evaluated partitions these are not
+selection-corrected (a global correction leaves them non-significant), both
+significant-edge matrices have zero mass, and we report them as exploratory
+only.
+They do, however, repeat the aggregate-versus-pairwise lesson of H1 at the
+causal level: pooled partition-level statistics may carry power that
+edge-level FDR destroys, so the preregistered test for any future collection
+should be a \emph{single} partition-level hypothesis --- the
+$\Psi_{\mathrm{adj}}$ of one named front partition against the connected null
+--- rather than another edge family.
+
+\paragraph{What the null means for the chain.}
+Three readings, not mutually exclusive, survive.
+\emph{Closed-loop damping:} the perturbation is applied while every other
+intersection runs a trained stabilising policy, so what is measured is
+closed-loop influence --- which competent control attenuates by design; the
+coordination question during \emph{learning} concerns a different, larger
+coupling.
+\emph{Demand regime:} this is the third independent null probe --- after the
+spill-back diagnostic and the observational CMI --- converging on a deeply
+undersaturated regime in which both transmission channels are nearly inert,
+consistent with the transfer bound's own constants locating strong coupling
+near saturation.
+\emph{Residual power}, per the caveat above.
+The consequence for Theorem~\ref{thm:valueloss} is clarifying rather than
+damaging: if the influence mass available to cut is itself near zero in this
+regime, the coupling term of Eq.~\eqref{eq:valueloss} cannot distinguish
+partitions, and the theorem attributes the large partition-dependent training
+differences of Section~\ref{sec:exp-perf} to the $\epsilon_{\mathrm{opt}}$
+term --- \emph{optimisation conditioning}.
+Regional reward averaging needs \emph{correlated} within-module signals, not
+causally coupled ones, and correlation (including its common-demand
+component) is precisely what the confirmed $\Psi(D^{\mathrm{MI}})$ retention
+supplies; the regional critic likewise needs a smaller input, not a causally
+closed one.
+The claim this paper can defend is therefore that flow-coherent partitions
+\emph{condition learning}; whether they additionally preserve causal coupling
+that matters near saturation is an open question this experiment has
+sharpened but not answered.
 
 \subsection{Main Training Results: A Single-Seed Case Study}
 \label{sec:exp-perf}
@@ -1396,6 +1510,12 @@ single-seed case study aligned with the multi-seed retention evidence above;
 they are not, on their own, a statistically validated performance claim, and
 the multi-seed expansion needed to make them one (Appendix~\ref{app:results},
 ``Open runs'') is future work, not a result of this paper.
+Read jointly with the null causal-influence result of
+Section~\ref{sec:exp-perturb}, the mechanism most consistent with these gains
+is optimisation conditioning --- correlated within-module rewards reducing
+credit-assignment variance, and smaller critic inputs reducing approximation
+burden --- rather than the preservation of causal coupling that would
+otherwise be severed.
 
 \subsection{Retention Predicts Performance: A Descriptive Check}
 \label{sec:exp-psi-perf}
@@ -1522,6 +1642,15 @@ omitting it silently.
 %   held-out test), not InfoMap as an algorithm --- no optimiser dominates
 %   under operational constraints, legacy InfoMap partly infeasible, CMI
 %   causal claims withheld (0/60 BH-significant)
+% Perturbation update (2026-07-16): randomized intervention removed the
+%   identification excuse and STILL null on held-out (0 FDR edges, calibrated
+%   negative controls, powered subset included) → causal middle link is
+%   tested-and-null in this regime. Reframing: gains attributed to ε_opt
+%   (optimisation conditioning via correlated within-module signals: state-MI
+%   suffices for L1/L2 mechanisms), not preserved causal coupling. Decisive
+%   next experiments: higher-demand arm (activates both channels near
+%   saturation); ONE preregistered partition-level Ψ_adj hypothesis instead
+%   of edge families; policy tests of front subset.
 % Limitations: one-directional bounds (necessary, not sufficient); κ and ε_dem
 %   network-dependent (conditional-MI fix); memoryless walk vs. routing
 %   (higher-order map equation pointer) + teleportation gap; warm-up OD

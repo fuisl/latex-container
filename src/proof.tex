@@ -1,0 +1,759 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1.1in]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage[numbers]{natbib}
+\usepackage{booktabs}
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue]{hyperref}
+\usepackage{microtype}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{assumption}[theorem]{Assumption}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Var}{\operatorname{Var}}
+\newcommand{\Cov}{\operatorname{Cov}}
+\newcommand{\Wt}{\widetilde{W}}
+\newcommand{\cut}[1]{c(i) \neq c(j)}
+
+\title{The Retention Chain, in Full:\\
+    \large From the Map Equation to Regional Value Loss ---
+    Proof Notes for Discussion}
+\author{}
+\date{July 2026 --- working note, not for distribution}
+
+\begin{document}
+\maketitle
+
+% ============================================================
+\section{Why this note, and what it claims}
+\label{sec:why}
+
+\paragraph{The problem.}
+In multi-agent reinforcement learning for traffic signal control (TSC), the
+coordination graph is a \emph{design choice}: before training, the $N$
+signalised intersections are partitioned into modules, and coordination
+machinery (shared rewards, a regional critic, restricted attention) operates
+within modules only.
+The design question is: \emph{what should a partition preserve, and why?}
+Our answer is a three-link chain of inequalities.
+Writing $\Phi$ for the fraction of vehicle flow a partition retains within
+modules, $\Psi$ for the fraction of inter-agent statistical dependency it
+retains, and $J^\star - J_{\mathcal{P}}$ for the value lost by decomposing
+the MARL problem regionally:
+\begin{center}
+    \small
+    \begin{tabular}{lll}
+        \toprule
+        Link                                                        & Statement & Epistemic status \\
+        \midrule
+        1. map equation $\Leftrightarrow$ flow retention            &
+        $q_{\circlearrowleft} = 1 - \Phi$                           &
+        exact identity (\S\ref{sec:link1})                                                         \\
+        2. cut flow bounds cut dependency                           &
+        $1 - \Psi \leq \kappa (1 - \Phi) + \epsilon_{\mathrm{dem}}$ &
+        theorem in a stylised model (\S\ref{sec:link2})                                            \\
+        3. cut dependency bounds value loss                         &
+        $J^\star - J_{\mathcal{P}} \leq C (1 - \Psi) + \epsilon$    &
+        imported, informal (\S\ref{sec:link3})                                                     \\
+        \bottomrule
+    \end{tabular}
+\end{center}
+Chained, the links say: \emph{a partition that minimises the map equation
+    minimises an upper bound on the value loss of regional decomposition}.
+This is the theoretical backbone of the manuscript; it is why measuring flow
+retention --- which requires no training --- is a principled surrogate for
+coordination quality.
+
+\paragraph{What this note is for.}
+Three things.
+(i) Full derivations: every equation is derived from its starting point, so
+the argument can be checked line by line.
+(ii) Provenance: every imported fact is cited at the point of use.
+(iii) An honest strength assessment (\S\ref{sec:strength}), including the
+exact places where a critical reader should push.
+The note is deliberately self-contained and terse; it is a discussion
+document, not a paper section.
+
+\paragraph{One framing remark before starting.}
+The chain's central physical object is \emph{influence} --- how much one
+intersection's state or action perturbs another's future --- not mutual
+information.
+Link 2 is proved for an MI instrument because MI is what we can estimate
+model-free from data; but MI relates to influence one-sidedly (large observed
+MI certifies large influence; small observed MI certifies nothing, since a
+strong channel can sit unexercised by the demand distribution).
+Keeping this asymmetry in view resolves several apparent puzzles about what
+the empirical results do and do not establish; we return to it in
+\S\ref{sec:link3}.
+
+% ============================================================
+\section{Objects and notation}
+\label{sec:notation}
+
+$\mathcal{V}$ is the set of $N$ signalised intersections.
+$W_{ij} \geq 0$ is the observed vehicle count travelling $i \to j$ over a
+measurement window (from trip logs under a random warm-up policy);
+$\Wt_{ij} = W_{ij} + W_{ji}$ is its symmetrisation.
+A partition $\mathcal{P} = \{P_1, \dots, P_K\}$ assigns each node a module
+label $c(i)$.
+
+\begin{definition}[Retention ratios]
+    For a non-negative matrix $M$ (flow or dependency), the retention ratio of
+    partition $\mathcal{P}$ is
+    \begin{equation}
+        \Phi(\mathcal{P}, M)
+        = \frac{\sum_{k} \sum_{i,j \in P_k} M_{ij}}{\sum_{i,j} M_{ij}},
+        \label{eq:retention}
+    \end{equation}
+    the fraction of total mass whose endpoints share a module.
+    We write $\Phi$ when $M$ is flow and $\Psi$ when $M$ is a dependency matrix
+    $D$; both lie in $[0,1]$, and $1 - \Phi$ (resp.\ $1 - \Psi$) is the
+    \emph{cut} fraction.
+\end{definition}
+
+The dependency instrument used in Link 2 is lagged mutual information between
+per-intersection states,
+$D^{\mathrm{MI}}_{ij} = I\!\left(x_i(t); x_j(t{+}\tau)\right)$, $\tau \geq 1$,
+estimated in practice by the KSG estimator~\citep{kraskov2004ksg}.
+
+% ============================================================
+\section{Link 1: the map equation is a statement about retained flow}
+\label{sec:link1}
+
+\paragraph{Where we start.}
+The map equation~\citep{rosvall2008maps,rosvall2009mapequation} scores a
+partition $\mathcal{M}$ by the description length of a random walk on the
+weighted directed graph:
+\begin{equation}
+    L(\mathcal{M})
+    = q_{\circlearrowleft} H(\mathcal{Q})
+    + \sum_{k=1}^{K} p_k^{\circlearrowleft} H(\mathcal{P}_k),
+    \label{eq:mapeq}
+\end{equation}
+where $q_{\circlearrowleft}$ is the total stationary rate of inter-module
+steps, $H(\mathcal{Q})$ the entropy of the between-module codebook, and the
+second sum prices within-module description.
+Infomap searches for the partition minimising $L$.
+The observation --- elementary once seen, but load-bearing --- is that
+$q_{\circlearrowleft}$ \emph{is} the cut flow fraction, exactly, under the
+walk induced by the empirical flows.
+
+\begin{proposition}[$q_{\circlearrowleft} = 1 - \Phi$]
+    \label{prop:phi}
+    Define the empirical OD walk by visit rates
+    $p_i = \sum_j W_{ij} / S$ with $S = \sum_{a,b} W_{ab}$, and transitions
+    $p_{ij} = W_{ij} / \sum_{j'} W_{ij'}$.
+    Then
+    \begin{equation}
+        q_{\circlearrowleft}
+        = \sum_{i,j:\, c(i) \neq c(j)} p_i\, p_{ij}
+        = 1 - \Phi(\mathcal{P}, W).
+    \end{equation}
+\end{proposition}
+
+\begin{proof}
+    The stationary probability of traversing the directed edge $(i,j)$ in one
+    step is
+    \[
+        p_i\, p_{ij}
+        = \frac{\sum_b W_{ib}}{S} \cdot \frac{W_{ij}}{\sum_b W_{ib}}
+        = \frac{W_{ij}}{S}.
+    \]
+    Summing over ordered pairs with $c(i) \neq c(j)$ gives
+    \[
+        q_{\circlearrowleft}
+        = \frac{1}{S} \sum_{c(i) \neq c(j)} W_{ij},
+    \]
+    which is the complement of Eq.~\eqref{eq:retention}.
+\end{proof}
+
+\begin{corollary}[Infomap maximises entropy-regularised flow retention]
+    At any fixed codebook-entropy profile, $L(\mathcal{M})$ is increasing in
+    $1 - \Phi$; the entropy terms are the regulariser that excludes the
+    degenerate one-module solution ($\Phi = 1$ at full within-module
+    description cost).
+\end{corollary}
+
+\paragraph{Provenance and caveats.}
+The identity is close in spirit to the flow-based reading of community
+detection formalised by Markov
+stability~\citep{delvenne2010stability,lambiotte2014multiscale}: up to a null
+model, retaining flow is retaining the one-step clustered autocovariance of
+the walk.
+Three gaps separate the identity from Infomap-as-software, and all three are
+disclosed in the manuscript: real trips are path-dependent while the walk is
+memoryless (higher-order map equations are the
+refinement~\citep{rosvall2014memory}); directed Infomap smooths visit rates
+with teleportation, so its internal walk differs slightly from the empirical
+OD walk above; and Infomap's search is greedy over an NP-hard
+landscape~\citep{edler2023community}.
+None of these threaten the identity itself; they mean the empirical margin of
+Infomap over alternatives is an object worth measuring rather than a
+foregone conclusion.
+
+% ============================================================
+\section{Link 2: cut flow bounds cut dependency (proved in a stylised model)}
+\label{sec:link2}
+
+\subsection{Why a stylised model, and which one}
+\label{sec:whymodel}
+
+The general claim --- flow cut by a partition upper-bounds the statistical
+dependency it cuts --- requires relating an information-theoretic quantity
+(MI) to a physical one (flow) through the dynamics.
+For general nonlinear stochastic dynamics this is the territory of strong
+data-processing inequalities on Bayesian networks, where end-to-end MI is
+bounded by sums over paths of products of per-edge contraction
+coefficients~\citep{evans1999percolation,polyanskiy2017sdpi}; making the
+per-edge coefficients explicit functions of traffic flow is open.
+We therefore prove the bound in the model where every step is exact: the
+\emph{linearisation of a link-queue / cell-transmission
+    model}~\citep{daganzo1994ctm,jin2012linkqueue} about an undersaturated
+operating point.
+This is the standard stylisation in traffic flow theory, and --- the point of
+choosing it --- the manuscript's three assumptions hold in it \emph{literally}
+rather than approximately.
+
+Let $x(t) \in \R^N$ collect per-intersection queue deviations from the
+operating point, and posit
+\begin{equation}
+    x(t+1) = A\, x(t) + b\, \xi(t) + w(t),
+    \label{eq:var}
+\end{equation}
+with the following conditions and their traffic readings:
+
+\begin{itemize}
+    \item[(M1)] \textbf{Locality.} $A_{ij} \neq 0$ only if
+          $j \in \mathcal{N}(i) \cup \{i\}$.
+          \emph{Reading:} one-step queue evolution depends on neighbouring
+          queues only --- the support structure of CTM/link-queue
+          dynamics~\citep{daganzo1994ctm,jin2012linkqueue}.
+    \item[(M2)] \textbf{Flow-bounded coupling.} $|A_{ij}| \leq \alpha
+              \Wt_{ij}$ for $i \neq j$.
+          \emph{Reading:} the linearised sensitivity of queue $i$ to queue $j$
+          is carried by the two physical channels --- forward (arrivals routed
+          $j \to i$) and backward (blocking / spill-back, which propagates
+          against the flow direction, hence the symmetrisation $\Wt$) --- each
+          proportional to the flow on the link, with $\alpha$ absorbing
+          capacities and saturation rates.
+          Common-demand coupling is carried by $b$, \emph{not} by $A$.
+    \item[(M3)] \textbf{Sub-criticality.}
+          $\max\!\left(\| |A| \|_1, \| |A| \|_\infty\right) \leq 1 - \delta$
+          for some $\delta \in (0,1]$, where $|A|$ is the entrywise absolute
+          value.
+          \emph{Reading:} the total coupling any intersection exerts on its
+          neighbours, and receives from them, is strictly below unity --- the
+          undersaturated regime, in which queues are stable.
+          (Both norms are needed below; requiring both is the honest price of
+          the walk-counting argument.)
+    \item[(M4)] \textbf{Noise and demand.} $w(t) \overset{\text{iid}}{\sim}
+              \mathcal{N}(0, \Sigma_w)$ with $\Sigma_w$ diagonal,
+          $\sigma_{\min}^2 \leq (\Sigma_w)_{ii} \leq \sigma_{\max}^2$;
+          $\xi(t) \overset{\text{iid}}{\sim} \mathcal{N}(0, \sigma_\xi^2)$
+          independent of $w$.
+          \emph{Reading:} idiosyncratic per-intersection fluctuations with a
+          noise floor, plus one scalar network-wide demand factor --- the
+          common cause that will become $\epsilon_{\mathrm{dem}}$.
+\end{itemize}
+
+Time-invariance of $(A, b, \Sigma_w, \sigma_\xi)$ is the model's version of
+regime stationarity.
+Note $\rho(A) \leq \rho(|A|) \leq \| |A| \|_\infty \leq 1 - \delta < 1$, so a
+stationary causal solution exists.
+
+\subsection{Covariance structure: where the matrices come from}
+\label{sec:cov}
+
+\paragraph{Lagged covariance.}
+Iterating Eq.~\eqref{eq:var} $\tau$ steps,
+\begin{equation}
+    x(t + \tau)
+    = A^\tau x(t)
+    + \sum_{k=0}^{\tau - 1} A^{k}\!\left(b\, \xi(t + \tau - 1 - k)
+    + w(t + \tau - 1 - k)\right).
+    \label{eq:iterate}
+\end{equation}
+Every random term in the sum is dated $\geq t$ and is therefore independent
+of $x(t)$ (which, in the stationary causal solution, is a function of
+randomness dated $< t$).
+Hence
+\begin{equation}
+    \Gamma_\tau := \Cov\!\left(x(t{+}\tau),\, x(t)\right) = A^\tau \Sigma,
+    \qquad \Sigma := \Var\!\left(x(t)\right).
+    \label{eq:gamma}
+\end{equation}
+
+\paragraph{Stationary covariance and its two parts.}
+Taking variances in Eq.~\eqref{eq:var} and using independence of
+$x(t), \xi(t), w(t)$:
+$\Sigma = A \Sigma A^{\!\top} + \sigma_\xi^2\, b b^{\!\top} + \Sigma_w$,
+the discrete Lyapunov equation, whose unique solution under
+$\rho(A) < 1$ is the convergent series~\citep[Ch.~5]{horn2013matrix}
+\begin{equation}
+    \Sigma
+    = \underbrace{\sum_{k \geq 0} A^{k} \Sigma_w (A^{\!\top})^{k}}_{=:\,
+        \Sigma_0 \ \text{(noise-driven)}}
+    \;+\;
+    \underbrace{\sigma_\xi^2 \sum_{k \geq 0} A^{k} b\, b^{\!\top}
+            (A^{\!\top})^{k}}_{=:\, \Sigma_\xi \ \text{(demand-driven)}}.
+    \label{eq:lyap}
+\end{equation}
+The split is the model's causal anatomy: $\Sigma_0$ is dependency generated
+by idiosyncratic noise propagating through the network (flow-borne, the
+channel we want to bound by flow), $\Sigma_\xi$ is dependency generated by
+the common demand factor (the confounder, which no flow bound can and should
+control).
+Two facts for later: $\Sigma \succeq \Sigma_w \succeq \sigma_{\min}^2 I$, and
+$\bar{\sigma}^2 := \max_i \Sigma_{ii} < \infty$.
+
+\subsection{Cut charging: every cross-module correlation pays a cut-edge toll}
+\label{sec:cutcharge}
+
+\paragraph{Motivation.}
+The dependency between $x_i(t)$ and $x_j(t{+}\tau)$ in this model is
+generated by noise injected at some intersection $m$ propagating to both $i$
+and $j$.
+(Note this includes, and correctly prices, the ``third-party'' channel $m
+    \notin \{i, j\}$ that informal path arguments miss.)
+If $i$ and $j$ sit in different modules, at least one of the two propagation
+walks must cross the module boundary --- and (M2) prices every crossing step
+by flow.
+That is the entire idea; the lemma is bookkeeping.
+
+\begin{lemma}[Cut charging]
+    \label{lem:cutcharge}
+    For every partition $\mathcal{P}$ and every $\tau \geq 1$,
+    \begin{equation}
+        \sum_{c(i) \neq c(j)}
+        \left|\left(A^\tau \Sigma_0\right)_{ji}\right|
+        \;\leq\;
+        \frac{2\, \sigma_{\max}^2\, \alpha}{\delta^{3}}
+        \sum_{c(u) \neq c(v)} \Wt_{uv}.
+        \label{eq:cutcharge}
+    \end{equation}
+\end{lemma}
+
+\begin{proof}
+    \emph{Step 1: walk expansion.}
+    From Eq.~\eqref{eq:lyap}, using diagonality of $\Sigma_w$,
+    \begin{equation}
+        (A^\tau \Sigma_0)_{ji}
+        = \sum_{k \geq 0} \sum_{m}
+        (A^{\tau + k})_{jm}\, (\Sigma_w)_{mm}\, (A^{k})_{im}.
+        \label{eq:walkpair}
+    \end{equation}
+    Bounding entrywise by $|A|$, each term pairs a walk $m \to i$ of length
+    $k$ with a walk $m \to j$ of length $\tau + k$ in the coupling graph
+    (entry $(p, q)$ of $|A|^{\ell}$ sums the weight products
+    $\prod_e |A_e|$ over all length-$\ell$ walks $q \to p$).
+
+    \emph{Step 2: one walk must cross.}
+    Fix a cut pair, $c(i) \neq c(j)$.
+    If $c(m) = c(i)$, the walk $m \to j$ has endpoints in different modules
+    and hence uses at least one crossing step; its length $\tau + k \geq 1$
+    since $\tau \geq 1$.
+    If $c(m) \neq c(i)$, the walk $m \to i$ crosses; its length $k$ cannot be
+    $0$, because $k = 0$ forces $m = i$ (the $(|A|^0)_{im} = \delta_{im}$
+        term), contradicting $c(m) \neq c(i)$.
+        So in all cases at least one of the two walks crosses.
+
+        \emph{Step 3: first-crossing decomposition.}
+        Decompose any crossing walk at its \emph{first} crossing step
+    $(u \to v)$, $c(u) \neq c(v)$: the walk splits uniquely into a prefix
+        (start node to $u$, arbitrary length $\ell_1 \geq 0$), the crossing edge,
+        and a suffix ($v$ to end node, arbitrary length $\ell_2 \geq 0$).
+        The crossing edge's weight obeys $|A_{vu}| \leq \alpha \Wt_{uv}$ by (M2).
+        Dropping the constraints that the prefix not cross and that
+    $\ell_1 + 1 + \ell_2$ equal the original length only enlarges the sum.
+
+        \emph{Step 4: resolvent sums.}
+        All quantities are non-negative, so coupled sums decouple,
+        \[
+        \textstyle
+        \sum_k a_k\, b_{\tau + k}
+        \;\leq\;
+        \big(\sum_k a_k\big)\big(\sum_\ell b_\ell\big).
+    \]
+    By the Neumann series~\citep[Ch.~5]{horn2013matrix},
+    $\sum_{\ell \geq 0} |A|^{\ell} = (I - |A|)^{-1}$, whose row sums are at
+    most $1/\delta$ (from $\| |A| \|_\infty \leq 1 - \delta$) and whose column
+    sums are at most $1/\delta$ (from $\| |A| \|_1 \leq 1 - \delta$).
+    Now take the case in which the crossing walk is $m \to j$ (the other case
+    is symmetric).
+    Summing the non-crossing walk over its free endpoint $i$ and all lengths
+    $k$ gives a column sum $\leq 1/\delta$, uniformly in $m$.
+    Summing the crossing walk over $m$, $j$, and all lengths gives, via
+    Step 3,
+    \[
+        \sum_{(u,v):\, c(u) \neq c(v)} \alpha \Wt_{uv}
+        \underbrace{\Big(\sum_{m, \ell_1} (|A|^{\ell_1})_{um}\Big)}_{\text{row
+                sum} \, \leq\, 1/\delta}
+        \underbrace{\Big(\sum_{j, \ell_2} (|A|^{\ell_2})_{jv}\Big)}_{\text{column
+                sum} \, \leq\, 1/\delta}.
+    \]
+    Collecting: each case contributes at most
+    $\sigma_{\max}^2\, \alpha\, \delta^{-3} \sum_{\mathrm{cut}} \Wt_{uv}$, and
+    there are two cases.
+\end{proof}
+
+\subsection{From correlation to mutual information}
+\label{sec:mi}
+
+\paragraph{Motivation.}
+Lemma~\ref{lem:cutcharge} bounds \emph{covariances}; the instrument is
+\emph{MI}.
+For jointly Gaussian pairs the two are in bijection,
+$I = -\tfrac12 \ln(1 - \rho^2)$~\citep[Ch.~8]{cover2006elements}, but the
+bijection is nonlinear and blows up as $|\rho| \to 1$.
+The noise floor in (M4) is exactly what caps $|\rho|$ away from $1$ and makes
+MI \emph{linear} in correlation up to a constant.
+
+\begin{lemma}[MI is linear in correlation under a noise floor]
+    \label{lem:gaussmi}
+    Let $\bar{\rho}^2 := 1 - \sigma_{\min}^2 / \bar{\sigma}^2$.
+    For all pairs $(i,j)$ and lags $\tau \geq 1$:
+    $|\rho_{ij}(\tau)| \leq \bar{\rho} < 1$, and
+    \begin{equation}
+        D^{\mathrm{MI}}_{ij}
+        = -\tfrac{1}{2}\ln\!\big(1 - \rho_{ij}^2(\tau)\big)
+        \;\leq\;
+        \frac{\bar{\rho}}{2(1 - \bar{\rho}^2)}\, |\rho_{ij}(\tau)|
+        \;\leq\;
+        \frac{\bar{\rho}}{2(1 - \bar{\rho}^2)\, \sigma_{\min}^2}
+        \big|(\Gamma_\tau)_{ji}\big|.
+        \label{eq:milinear}
+    \end{equation}
+\end{lemma}
+
+\begin{proof}
+    \emph{Correlation cap.}
+    For $\tau \geq 1$, $x_i(t)$ is measurable with respect to the history up
+    to time $t + \tau - 1$.
+    For jointly Gaussian variables, conditioning on more variables cannot
+    increase conditional variance, so
+    \[
+        \Var\!\left(x_j(t{+}\tau) \mid x_i(t)\right)
+        \;\geq\;
+        \Var\!\left(x_j(t{+}\tau) \mid \text{history to } t{+}\tau{-}1,\,
+        \xi(t{+}\tau{-}1)\right)
+        = (\Sigma_w)_{jj} \geq \sigma_{\min}^2,
+    \]
+    the innovation variance, by Eq.~\eqref{eq:var}.
+    Since for a bivariate Gaussian
+    $1 - \rho^2 = \Var(Y \mid X) / \Var(Y)$ and
+    $\Var(x_j) \leq \bar{\sigma}^2$, we get
+    $1 - \rho_{ij}^2 \geq \sigma_{\min}^2 / \bar{\sigma}^2$, i.e.\
+    $|\rho_{ij}| \leq \bar{\rho}$.
+    (This is where $\tau \geq 1$ is used; at $\tau = 0$ the innovation
+    argument fails.)
+
+    \emph{Secant bound.}
+    $u \mapsto -\ln(1 - u)$ is convex and vanishes at $0$, so on
+    $[0, \bar{u}]$ it lies below its chord:
+    $-\ln(1 - u) \leq \frac{u}{\bar{u}}\big(-\ln(1 - \bar{u})\big)
+        \leq \frac{u}{1 - \bar{u}}$,
+    the last step because
+    $-\ln(1 - \bar{u}) = \ln\!\big(1 + \tfrac{\bar{u}}{1 - \bar{u}}\big) \leq
+        \tfrac{\bar{u}}{1 - \bar{u}}$.
+    Apply with $u = \rho^2 \leq \bar{u} = \bar{\rho}^2$ and use
+    $\rho^2 \leq \bar{\rho}\,|\rho|$ to obtain the first inequality of
+    Eq.~\eqref{eq:milinear}.
+    The second follows from
+    $|\rho_{ij}| = |(\Gamma_\tau)_{ji}| / (\mathrm{sd}_i\, \mathrm{sd}_j)$ and
+    $\mathrm{sd}_i, \mathrm{sd}_j \geq \sigma_{\min}$
+    (since $\Sigma \succeq \sigma_{\min}^2 I$).
+\end{proof}
+
+\subsection{The transfer theorem}
+\label{sec:transferthm}
+
+\begin{theorem}[Cut flow bounds cut dependency; stylised model]
+    \label{thm:transfer}
+    Under (M1)--(M4), for every partition $\mathcal{P}$ and every lag
+    $\tau \geq 1$,
+    \begin{equation}
+        1 - \Psi(\mathcal{P}, D^{\mathrm{MI}})
+        \;\leq\;
+        \kappa \left(1 - \Phi(\mathcal{P}, \Wt)\right)
+        + \epsilon_{\mathrm{dem}},
+        \label{eq:transfer}
+    \end{equation}
+    with explicit constants
+    \begin{equation*}
+        \kappa
+        = \frac{\bar{\rho}\, \sigma_{\max}^2\, \alpha}
+        {(1 - \bar{\rho}^2)\, \sigma_{\min}^2\, \delta^{3}}
+        \cdot
+        \frac{\sum_{u \neq v} \Wt_{uv}}{\sum_{i \neq j} D^{\mathrm{MI}}_{ij}},
+        \qquad
+        \epsilon_{\mathrm{dem}}
+        = \frac{\bar{\rho}}{2(1 - \bar{\rho}^2)\, \sigma_{\min}^2}
+        \cdot
+        \frac{\sum_{c(i) \neq c(j)}
+            \big|(A^\tau \Sigma_\xi)_{ji}\big|}{\sum_{i \neq j}
+            D^{\mathrm{MI}}_{ij}}.
+    \end{equation*}
+    The lag-averaged instrument
+    $\bar{D}^{\mathrm{MI}} = \tfrac{1}{|T|}\sum_{\tau \in T} D^{\mathrm{MI}}(\tau)$
+    obeys the same bound with the total mass in the constants replaced by that
+    of $\bar{D}^{\mathrm{MI}}$, since Eq.~\eqref{eq:transfer}'s unnormalised
+    form holds uniformly over $\tau \geq 1$.
+\end{theorem}
+
+\begin{proof}
+    Split $\Gamma_\tau = A^\tau \Sigma_0 + A^\tau \Sigma_\xi$
+    (Eqs.~\eqref{eq:gamma}--\eqref{eq:lyap}).
+    Apply Lemma~\ref{lem:gaussmi} to each cut pair and sum:
+    \[
+        \sum_{c(i) \neq c(j)} D^{\mathrm{MI}}_{ij}
+        \;\leq\;
+        \frac{\bar{\rho}}{2(1 - \bar{\rho}^2)\sigma_{\min}^2}
+        \left(
+        \sum_{c(i) \neq c(j)} \big|(A^\tau \Sigma_0)_{ji}\big|
+        + \sum_{c(i) \neq c(j)} \big|(A^\tau \Sigma_\xi)_{ji}\big|
+        \right).
+    \]
+    Bound the first bracket by Lemma~\ref{lem:cutcharge}; leave the second as
+    the numerator of $\epsilon_{\mathrm{dem}}$.
+    Divide by the total dependency mass $\sum_{i \neq j} D^{\mathrm{MI}}_{ij}$
+    and use
+    $1 - \Phi = \sum_{\mathrm{cut}} \Wt_{uv} / \sum_{u \neq v} \Wt_{uv}$;
+    the factor $2$ from the lemma combines with the $2$ in
+    Lemma~\ref{lem:gaussmi}'s constant to give the stated $\kappa$.
+\end{proof}
+
+\begin{corollary}[Demand conditioning removes the confounder exactly]
+    \label{cor:demzero}
+    Conditioned on the demand path $\{\xi_s\}$, the process~\eqref{eq:var} has
+    the same law with $\sigma_\xi = 0$, so $\Sigma_\xi = 0$ and the
+    conditional-MI instrument satisfies Eq.~\eqref{eq:transfer} with
+    $\epsilon_{\mathrm{dem}} = 0$.
+    Operationally, aggregate network occupancy proxies $\xi$.
+\end{corollary}
+
+\paragraph{Interpretation.}
+The direction of Theorem~\ref{thm:transfer} matters: low cut flow
+\emph{certifies} low cut dependency (up to the demand term), but high
+retention does not certify high task performance --- the bound is a necessary
+condition for lossless decomposition, not a sufficient one.
+The constant's $\delta^{-3}$ makes a second point quantitative: as the
+network approaches saturation ($\delta \to 0$), the bound degrades --- and
+saturation is precisely where the backward (spill-back) channel activates.
+The theory is thus most informative in the undersaturated regime and honest
+about weakening where coordination pressure is greatest.
+
+\subsection{How strong is Link 2?}
+\label{sec:link2strength}
+
+\emph{Rigorous:} everything above, within the model.
+No step is heuristic; the constants are explicit; the confounder is isolated
+structurally (in $b$) rather than assumed small; and
+Corollary~\ref{cor:demzero} converts the manuscript's ``conditional-MI fix''
+from a proposal into a theorem.
+
+\emph{Idealisations a critic should probe} (each is a genuine limitation; we
+state our best defence):
+\begin{enumerate}
+    \item \textbf{Linearity.} Eq.~\eqref{eq:var} is a linearisation; real
+          queue dynamics are piecewise (free-flow vs.\ congested branches of
+          the fundamental diagram).
+          Defence: the linearisation is standard for undersaturated analysis,
+          and the general nonlinear route is identified --- SDPI/information
+          percolation~\citep{evans1999percolation,polyanskiy2017sdpi} gives
+          the same walk-sum structure with per-edge contraction coefficients
+          replacing $|A_e|$; what is missing is only the traffic-physics step
+          bounding those coefficients by flow.
+    \item \textbf{Gaussianity.} Used twice: the MI--correlation bijection and
+          conditional-variance monotonicity.
+          Defence: both have sub-Gaussian analogues at the price of constants;
+          nothing in the walk-counting core uses Gaussianity.
+    \item \textbf{Dual-norm sub-criticality (M3).} Row sums bound influence
+          \emph{exerted}; column sums bound influence \emph{received}.
+          Both below $1 - \delta$ is stronger than mere stability
+          ($\rho(A) < 1$).
+          Defence: physically, an intersection neither exerts nor receives
+          unbounded total coupling in an undersaturated network; but this is
+          the cleanest place to attack the constants.
+    \item \textbf{Scalar states, i.i.d.\ demand, $\tau \geq 1$.} Scalar
+          per-agent states match the queue instruments (vector states extend
+          via the log-determinant Gaussian MI at notational cost); an AR
+          demand factor changes $\Sigma_\xi$ but not the split; $\tau = 0$ is
+          genuinely excluded (the innovation argument fails), and the
+          empirical instrument uses $\tau \in \{1, 5, 15, 30\}$ only.
+    \item \textbf{Tightness.} The bound is a certificate, not an equality;
+          the $\delta^{-3}$ is likely loose (each of the three resolvent sums
+          is bounded crudely).
+          A numerical companion --- simulate Eq.~\eqref{eq:var} on the real
+          Cologne8/Ingolstadt21 graphs with measured $W$, compute exact
+          Gaussian MI from Eq.~\eqref{eq:lyap}, overlay the bound across all
+          feasible benchmark partitions --- would measure the slack directly
+          and is planned but not yet run.
+\end{enumerate}
+
+% ============================================================
+\section{Link 3: cut dependency bounds regional value loss (imported)}
+\label{sec:link3}
+
+\paragraph{Where the machinery comes from.}
+This link is not proved in this note or in the manuscript; it is imported
+from two literatures, and the import is the link's weakness.
+(i) \emph{Networked MARL with decaying influence}: when one-step
+inter-agent influence is local, the sensitivity of agent $i$'s value to agent
+$j$ decays exponentially in graph distance, and policies truncated to local
+neighbourhoods approximate the global optimum with bias controlled by the
+influence discarded~\citep{qu2020average,qu2022scalable}; the classical
+row-sum (Dobrushin-type) condition for this can be weakened to a
+policy-dependent spectral certificate~\citep{chakraborty2026locality}.
+(ii) \emph{Influence-based abstraction}: the value loss of a local model is
+bounded by the error of its representation of the influence the rest of the
+system exerts on it~\citep{congeduti2021iba}.
+A regional decomposition is such a truncation --- each module models
+within-module influence and discards the rest --- so the discarded quantity
+is exactly the cut influence mass, giving the shape
+\begin{equation}
+    J^\star - J_{\mathcal{P}}
+    \;\leq\;
+    C \left(1 - \Psi(\mathcal{P}, D)\right)
+    + \epsilon_{\mathrm{approx}} + \epsilon_{\mathrm{opt}},
+    \label{eq:valueloss}
+\end{equation}
+with $D$ an \emph{influence} matrix and the $\epsilon$'s collecting
+function-approximation and optimisation error the partition does not control.
+
+\paragraph{Two formal gaps, stated precisely.}
+First, the cited neighbourhood-truncation guarantees are proved for specific
+algorithms and settings ($\kappa$-hop truncated policies/critics,
+average-reward or discounted variants); a module is a truncation to a
+\emph{set}, not a $\kappa$-hop ball, so the set-based IBA
+route~\citep{congeduti2021iba} is the closer parent, and writing out
+Eq.~\eqref{eq:valueloss} as a theorem for regional MAPPO under (M1)--(M4) is
+open work.
+(In the stylised linear model with quadratic queue cost this becomes a
+decentralised-LQR question with block-structured information --- plausibly
+tractable, and in our view the highest-value theory extension.)
+Second, Eq.~\eqref{eq:valueloss} wants \emph{influence}; the measurable
+instrument is \emph{MI}, and the two relate one-sidedly: by data processing,
+MI observable across a cut is upper-bounded by (a function of) the influence
+crossing it, so large measured cut-MI certifies large cut influence, while
+small measured cut-MI certifies nothing.
+$\Psi(D^{\mathrm{MI}})$ comparisons therefore \emph{rule partitions out} (a
+partition cutting much MI provably cuts much influence, so its bound
+\eqref{eq:valueloss} is poor) rather than certifying winners.
+This one-sidedness is not a flaw to hide; it is the correct epistemic status
+of every dependency-retention comparison in the manuscript, and stating it
+preempts the sharpest referee question (``what does high $\Psi$ actually
+establish?'': by itself, nothing --- it is the \emph{low}-$\Psi$ partitions
+about which the theory speaks).
+
+\paragraph{Empirical status of the chain's causal content.}
+The state-level instrument ($D^{\mathrm{MI}}$) shows the predicted retention
+orderings across seeds.
+The action-level (causal) content has now been probed twice: observationally
+(conditional MI of actions on future queues; no edge survives FDR in 60
+tests) and --- decisively for identification --- by a preregistered
+\emph{randomised action intervention} on the frozen policies, in which the
+logged random assignment is exogenous by construction.
+The randomised design passed its calibration checks (negative controls at
+nominal false-positive rates; manipulation check on action entropy) and
+\emph{still} produced zero FDR-significant held-out edges on either network,
+with effect estimates at sub-vehicle scale, though only $14/22$ and $41/71$
+preregistered pairs reached prospective $80\%$ power.
+The causal reading of Link 3 is therefore tested-and-null under the current
+demand regime, not merely unresolved.
+Three readings survive: closed-loop damping (perturbations measured under
+trained stabilising policies at all other intersections, which attenuate
+disturbances by design); a deeply undersaturated regime (converging with the
+empty spill-back diagnostic, and consistent with the transfer bound's
+$\delta^{-3}$ locating strong coupling near saturation); and residual power.
+The constructive consequence: if cuttable influence is near zero for every
+partition, Eq.~\eqref{eq:valueloss}'s coupling term cannot distinguish
+partitions, and the observed large partition-dependent training differences
+fall to $\epsilon_{\mathrm{opt}}$ --- \emph{optimisation conditioning} ---
+for which correlated within-module signals (the confirmed state-MI retention,
+common-demand mass included) suffice; causation is not required for the
+variance-reduction mechanisms of reward sharing and regional critics.
+
+% ============================================================
+\section{Epistemic summary, and where to push}
+\label{sec:strength}
+
+\begin{center}
+    \small
+    \begin{tabular}{p{2.6cm} p{3.4cm} p{4.2cm} p{3.6cm}}
+        \toprule
+        Link & Status                                           & Main attack surface
+             & Remedy / response                                                      \\
+        \midrule
+        1 (map eq.\ $=$ flow)
+             & Exact identity                                   &
+        Teleportation; memoryless walk; greedy search
+             & Disclosed; empirical margins quantify the slack                        \\
+        \addlinespace
+        2 (flow $\Rightarrow$ dependency)
+             & Theorem, stylised model                          &
+        Linearity; Gaussianity; dual-norm (M3); $\delta^{-3}$ looseness
+             & SDPI route for general case; numerical companion                       \\
+        \addlinespace
+        3 (dependency $\Rightarrow$ value loss)
+             & Imported, informal                               &
+        Algorithm-specificity; module $\neq$ $\kappa$-hop ball; MI vs.\
+        influence one-sidedness
+             & IBA set-based route; decentralised-LQR version;
+        interventional CMI                                                            \\
+        \bottomrule
+    \end{tabular}
+\end{center}
+
+\paragraph{Checklist for a critical reading} (the six places we would push,
+in descending order of consequence):
+\begin{enumerate}
+    \item Link 3's import: does the set-based IBA bound actually deliver
+          Eq.~\eqref{eq:valueloss} for a regional critic, or only for a
+          regional \emph{model}? (\S\ref{sec:link3})
+    \item (M3)'s column-sum half: is bounded total \emph{received} coupling
+          defensible near merges/diverges in real networks?
+          (\S\ref{sec:whymodel})
+    \item The first-crossing decomposition and the decoupling inequality
+          $\sum_k a_k b_{\tau+k} \leq (\sum a)(\sum b)$: both are correct but
+          crude; is there a tighter charging scheme? (\S\ref{sec:cutcharge})
+    \item The conditional-variance cap and its $\tau \geq 1$ restriction:
+          any instrument at $\tau = 0$ is outside the theorem.
+          (\S\ref{sec:mi})
+    \item $\epsilon_{\mathrm{dem}}$'s growth with network size: the model
+          predicts, and the data confirm, weaker raw flow--MI alignment on
+          the larger network; Corollary~\ref{cor:demzero} is the fix but has
+          not yet been exercised empirically. (\S\ref{sec:transferthm})
+    \item The Gaussian MI formula's role: KSG estimates on real traces are
+          not Gaussian MI; the theorem speaks about the model's MI, and the
+          transfer of the \emph{ordering} prediction to KSG estimates is an
+          empirical, not logical, step. (\S\ref{sec:mi})
+\end{enumerate}
+
+\paragraph{Bottom line.}
+Link 1 is unimpeachable but near-known; its value is the connection it
+anchors.
+Link 2 is now a real theorem in a model whose assumptions are the
+manuscript's assumptions made literal --- the strongest formal component, and
+the right object to present for proof-checking.
+Link 3 is an interpretation with named parents and two named gaps; it should
+be defended as such, never as a proved result.
+The chain's overall claim --- map-equation minimisation minimises an upper
+bound on regional value loss --- is accordingly: exact at step 1, proved in a
+stylised model at step 2, and conditional on imported machinery at step 3.
+
+    % ============================================================
+    {\small
+        \bibliographystyle{plainnat}
+        \bibliography{refs}
+    }
+
+\end{document}
