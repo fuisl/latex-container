@@ -49,9 +49,10 @@ Duong Tran Hai
 \begin{abstract}
     Coordinating traffic-signal agents in multi-agent reinforcement learning
     (MARL) requires partitioning intersections into coordination modules
-    before training, yet existing practice inherits partitions from
-    topology-based tools without a principled account of \emph{what a
-        partition should preserve, and why}.
+    before training, yet existing practice either inherits partitions from
+    topology-based tools or learns them end-to-end for control return --- in
+    both cases without a principled account of \emph{what a partition should
+        preserve, and why}.
     We supply that account as a retention-based theory of partition quality,
     a three-link chain: (i)~the map equation's inter-module rate equals one
     minus the flow retention $\Phi$ \emph{exactly}, so InfoMap maximises an
@@ -103,7 +104,11 @@ Duong Tran Hai
 \label{sec:intro}
 % Para 1 --- Problem: TSC at scale; coordination graph design as the open question
 % Para 2 --- Gap (two layers, plus the meta-gap that motivates closing them):
-%   Structural: existing partitions (METIS, Laplacian, feudal) use topology, not OD flow
+%   Structural: existing partitions (Laplacian spectral, star-topology regions, manually
+%     assumed feudal regions) use topology, not OD flow. NB (2026-07-17): do NOT attribute
+%     METIS to the feudal/region cites --- verified false, see CITATION_CHECK_2026-07-17.md.
+%     ma2022feudal DOES learn a flow-based partition (GNN+MCTS) --- it is the closest prior
+%     work; the gap is the absence of an explicit partition-quality criterion, not of flow.
 %   Theoretical: dynamic graph attention learns structure implicitly but provides no
 %                principled account of which dependencies are preserved or severed
 %   Meta-gap: no prior work supplies a principled rationale --- connecting graph theory,
@@ -144,8 +149,9 @@ queue spill-back at its neighbours, so signals must be controlled jointly ---
 yet the joint action space grows exponentially with the number of
 intersections.
 Practical multi-agent reinforcement learning (MARL) systems for TSC therefore
-decompose the network into modules and coordinate \emph{within} them, whether
-by shared rewards, centralised critics, communication, or
+decompose the network into coordination modules --- whether explicit regions
+or implicit neighbourhoods --- and coordinate \emph{within} them, by shared
+rewards, centralised critics, communication, or
 hierarchy~\citep{ma2020fma2c,wei2019colight,xu2021hilight,zhu2026halo}.
 Every such system thus contains a \emph{coordination graph} that is fixed
 before training: a decision about which agents share coordination machinery.
@@ -155,10 +161,13 @@ design has received far less attention than the learning algorithms that run
 on top of it.
 
 When the coordination graph is designed at all, it is typically inherited
-from general-purpose partitioners applied to road \emph{topology}: balanced
-edge cut (METIS) in feudal MARL~\citep{ma2020fma2c,ma2022feudal}, spectral
+from general-purpose partitioners applied to road \emph{topology}: spectral
 partitioning of the road graph~\citep{laplacian2009ieee}, or clustering on
 geometric and congestion features~\citep{communitydetection2021plosone,liu2023gplight}.
+Feudal MARL assumes a region decomposition it does not
+derive~\citep{ma2020fma2c}; its successor learns one from traffic flow
+end-to-end~\citep{ma2022feudal}, but optimises the partition for control
+return without stating what a good partition should retain.
 Flow-aware partitioning of urban networks does exist in the transport
 literature --- origin--destination (OD) trace
 partitioning~\citep{odflow2019partition} and MFD-based
@@ -370,12 +379,17 @@ does not guarantee the global codelength optimum~\citep{edler2023community}.
 \paragraph{Network partitioning for traffic control.}
 Partitioning is already standard machinery in large-scale TSC, but the
 criterion is almost always structural or geometric: spectral partitioning of
-the road graph~\citep{laplacian2009ieee}, balanced edge cut via METIS
-inherited by feudal MARL~\citep{ma2020fma2c,ma2022feudal} and region-based
-hierarchies~\citep{regionlight2024,xu2021hilight}, congestion-feature
+the road graph~\citep{laplacian2009ieee}, a manually assumed region
+decomposition in feudal MARL~\citep{ma2020fma2c}, adjacency-constrained
+star-topology regions~\citep{regionlight2024}, congestion-feature
 clustering~\citep{communitydetection2021plosone}, and dynamic grouping by
 learned similarity~\citep{liu2023gplight}.
-Where flow information does enter, it does so for transport-planning ends:
+The closest departure is~\citet{ma2022feudal}, which learns a flow-based
+region decomposition end-to-end for a feudal learner via a graph neural
+network and Monte-Carlo tree search; the partition is optimised directly for
+control return, so it yields no criterion for partition quality that could be
+stated, compared, or audited independently of the learner that produced it.
+Elsewhere, flow information enters only for transport-planning ends:
 OD-trace partitioning for zoning~\citep{odflow2019partition} and MFD-based
 partitioning for perimeter control~\citep{mfdpartition2020} identify
 flow-coherent regions, but neither connects the partition to the coordination
@@ -383,10 +397,12 @@ cost incurred by learning agents --- the partition is an end product, not a
 coordination-graph design with a downstream learner whose value loss it
 controls.
 Our gap claim is therefore deliberately narrow: not that flow-based
-partitioning is new to traffic science, but that no prior work provides a
-\emph{rationale} --- of any formal kind --- for which criterion a
-coordination-graph designer should optimise, or an instrument for auditing
-what a chosen partition severs.
+partitioning is new to traffic science, nor that it has never been coupled to
+a learner, but that no prior work provides an \emph{explicit
+partition-quality criterion} --- one statable and checkable before training,
+independently of any learner --- for what a coordination-graph designer
+should optimise, or an instrument for auditing what a chosen partition
+severs.
 
 \paragraph{Coordination topology in MARL.}
 A complementary literature learns or fixes the interaction structure inside

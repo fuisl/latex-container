@@ -62,7 +62,12 @@
       "Bash(lualatex -interaction=nonstopmode -halt-on-error proof.tex)",
       "Bash(bibtex proof *)",
       "Bash(pdfinfo proof.pdf)",
-      "Bash(echo \"main exit: $?\")"
+      "Bash(echo \"main exit: $?\")",
+      "Bash(grep -oE '^@[a-zA-Z]+\\\\{[^,]+' refs.bib)",
+      "Bash(grep -rniE \"check.{0,15}author|author.{0,15}check\" src/ REVISION_TODO.md REVISE.md)",
+      "Bash(awk '/^@/{if\\(k && !hasid\\) print k; k=$0; hasid=0} /doi *=|url *=|isbn *=/{hasid=1} END{if\\(k && !hasid\\) print k}' refs.bib)",
+      "WebFetch(domain:scholar.xjtlu.edu.cn)",
+      "Bash(echo \"=== BIBTEX EXIT: $? ===\")"
     ]
   }
 }
