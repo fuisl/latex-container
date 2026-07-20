@@ -82,7 +82,8 @@
       "Bash(echo \"p5:$?\")",
       "Bash(pdfinfo /workspace/out/main.pdf)",
       "Bash(rm -f /tmp/final*.log /tmp/finalbib*.log)",
-      "Bash(git -C /workspace status --porcelain)"
+      "Bash(git -C /workspace status --porcelain)",
+      "Bash(kpsewhich *)"
     ]
   }
 }
