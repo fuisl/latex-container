@@ -1,10 +1,7 @@
-\documentclass{article}
-
-\usepackage[preprint]{format}
+\documentclass[journal]{IEEEtran}
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage{hyperref}
 \usepackage{url}
 \usepackage{booktabs}
 \usepackage{amsmath}
@@ -18,6 +15,8 @@
 \usepackage{algorithm}
 \usepackage{algpseudocode}
 \usepackage{amsthm}
+\usepackage{natbib}
+\usepackage{hyperref}
 
 \newtheorem{proposition}{Proposition}
 \newtheorem{theorem}{Theorem}
@@ -82,7 +81,7 @@ Duong Tran Hai
     % Superseded draft abstract (2026-07-15, ~430 words) kept for reference;
     % removed per review EIC-W3 (headline single-seed "2.85x" demoted) and
     % EIC-W1 (length). Restore nothing from here without checking against
-    % the PENDING-RERUN blocks in Section 5.8.
+    % the current Section 5.8 numbers.
     % ------------------------------------------------------------------
     % Coordinating traffic signal agents in multi-agent reinforcement learning
     % (MARL) requires partitioning intersections into coordination groups, yet
@@ -94,7 +93,7 @@ Duong Tran Hai
     % single-seed reductions in average waiting time under regional reward
     % sharing (IPPO) and a regional centralised critic (MAPPO), up to
     % 2.85x on a 21-intersection network [REMOVED: single-seed best-cell
-    % figure vs. a baseline family under rerun; PENDING-RERUN, see Sec. 5.8]
+    % figure; the current ratios live in Sec. 5.8 and Appendix Table c8_full]
     % [...remainder of superseded draft omitted; full text in git history
     % (commit df3fa98 lineage) if needed...]
 \end{abstract}
@@ -399,7 +398,7 @@ controls.
 Our gap claim is therefore deliberately narrow: not that flow-based
 partitioning is new to traffic science, nor that it has never been coupled to
 a learner, but that no prior work provides an \emph{explicit
-partition-quality criterion} --- one statable and checkable before training,
+    partition-quality criterion} --- one statable and checkable before training,
 independently of any learner --- for what a coordination-graph designer
 should optimise, or an instrument for auditing what a chosen partition
 severs.
@@ -533,13 +532,14 @@ the fraction of observed vehicle movements that stay within module boundaries.
     edge measure is $p_i\, p_{ij} = W_{ij} / \sum_{a,b} W_{ab}$.
     Then the aggregate inter-module transition rate in Eq.~\eqref{eq:mapeq}
     satisfies
-    \begin{equation}
+    \begin{align}
         q_{\circlearrowleft}
-        \;=\; \sum_{k} \sum_{i \in P_k}\sum_{j \notin P_k} p_i\, p_{ij}
+         & \;=\; \sum_{k} \sum_{i \in P_k}\sum_{j \notin P_k} p_i\, p_{ij}
         \;=\; \frac{\sum_{i,j:\, c(i) \neq c(j)} W_{ij}}{\sum_{i,j} W_{ij}}
-        \;=\; 1 - \Phi(\mathcal{P}, \mathbf{W}).
+        \notag                                                             \\
+         & \;=\; 1 - \Phi(\mathcal{P}, \mathbf{W}).
         \label{eq:qphi}
-    \end{equation}
+    \end{align}
 \end{proposition}
 
 \begin{proof}
@@ -646,11 +646,11 @@ We instantiate Eq.~\eqref{eq:djac} at two levels:
 \begin{align}
     D^{Q}_{i\leftarrow j}
      & = D_{i\leftarrow j}(V^{\mathrm{global}})
-     &                                                         & \text{(global MAPPO critic, L2)}
-    \label{eq:dq}                                                                                          \\
+     &                                                         & \text{\footnotesize(global MAPPO critic, L2)}
+    \label{eq:dq}                                                                                                       \\
     D^{G}_{i\leftarrow j}
      & = D_{i\leftarrow j}(\mathbf{h}^{(L),\mathrm{global}}_i)
-     &                                                         & \text{(global CoLight GAT embedding, L3)}
+     &                                                         & \text{\footnotesize(global CoLight GAT embedding, L3)}
     \label{eq:dg}
 \end{align}
 Whereas \citet{lrd2025} use Jacobian profiles to ask whether a GNN suffers
@@ -742,17 +742,30 @@ $\Psi_{\mathrm{adj}}$ measures the excess dependency retained beyond
 size-matched chance, in the spirit of chance-adjusted clustering-comparison
 scores, and makes partitions with different module-size profiles comparable.
 Because operational partitions are further constrained to spatially connected
-modules, we also use a \emph{connected} null: random partitions with the same
-module-size sequence \emph{and} physically connected modules, drawn by seeded
-random growth on the road graph.
+modules, we also use a \emph{connected} null: the uniform distribution over
+partitions with the same module-size sequence \emph{and} physically connected
+modules on the road graph.
+Both nulls are evaluated by exhaustive enumeration of their canonical support
+wherever that support is tractable, and by uniform Monte-Carlo sampling only
+where it is not, so the reference distribution is the exact one rather than
+an estimate of it whenever enumeration is feasible.
 Spatial connectivity alone retains dependency above unrestricted chance, so
 the connected null is the conservative reference, and it is the one the
 benchmark of Section~\ref{sec:exp-benchmark} adopts for
 $\Psi_{\mathrm{adj}}$.
 The same null supplies the partition-level significance test we use in place
-of pairwise hypothesis tests: holding $\mathbf{D}$ fixed, sample size-matched
-random partitions and report the percentile of the candidate partition's
-within-module mass $\sum_{c(i)=c(j)} D_{ij}$ under this null.
+of pairwise hypothesis tests: holding $\mathbf{D}$ fixed, we place the
+candidate partition's within-module mass $\sum_{c(i)=c(j)} D_{ij}$ in the
+null distribution of that mass and report its upper-tail probability --- exact
+when the support is enumerated.
+One consequence is worth stating in advance, because it governs how the
+Cologne8 results in Section~\ref{sec:exp-benchmark} may be read: when a
+size signature admits only a handful of connected partitions, the smallest
+attainable $p$-value is bounded well away from zero, and the test cannot
+reach conventional significance however concentrated the dependency mass is.
+Exact enumeration makes that floor visible rather than hiding it behind a
+sampling error, and where it binds we report $\Psi_{\mathrm{adj}}$
+descriptively and decline to read significance at all.
 This yields one well-powered statistic per (network, $K$, seed) instead of
 hundreds of noisy pairwise estimates --- the test the theory of
 Section~\ref{sec:transfer} actually licenses.
@@ -866,12 +879,12 @@ which channel is inactive there, rather than invalidating the partition.
 \noindent\textbf{H1 (Spatial MI Advantage --- forward-channel signature).}
 Within-module agent pairs share higher mutual information about future traffic
 states than cross-module pairs:
-\begin{equation}
+\begin{align}
     \mathbb{E}_{i,j\in M_k}\!\left[I(X_i(t);\, X_j(t{+}\tau))\right]
-    >
-    \mathbb{E}_{i\in M_k,\, l\notin M_k}\!\left[I(X_i(t);\, X_l(t{+}\tau))\right]
+     & > \notag                                                                      \\
+     & \mathbb{E}_{i\in M_k,\, l\notin M_k}\!\left[I(X_i(t);\, X_l(t{+}\tau))\right]
     \label{eq:h1}
-\end{equation}
+\end{align}
 averaged over propagation lags $\tau \in \{1, 5, 15, 30\}$ steps, with MI
 estimated by the KSG estimator~\citep{kraskov2004ksg} and visualised as a
 $|\mathcal{V}|\times|\mathcal{V}|$ heatmap with module boundaries overlaid.
@@ -888,14 +901,14 @@ Section~\ref{sec:psi}.
 \noindent\textbf{H2 (Spill-back Containment --- backward-channel signature).}
 Spill-back congestion is more likely to remain within InfoMap modules than to
 cross module boundaries:
-\begin{equation}
+\begin{align}
     \Pr\!\left(\text{spill-back}_{i\to j}
     \;\middle|\; i,j \in M_k\right)
-    >
-    \Pr\!\left(\text{spill-back}_{i\to l}
+     & > \notag                              \\
+     & \Pr\!\left(\text{spill-back}_{i\to l}
     \;\middle|\; i \in M_k,\; l \notin M_k\right),
     \label{eq:h2}
-\end{equation}
+\end{align}
 assessed via a proportion test on SUMO queue trajectory data.
 \citet{dependencydyn2025} establish that inter-agent coordination is necessary
 \emph{if and only if} spill-back connects two agents' queues.
@@ -1059,7 +1072,7 @@ architecture-agnostic. IDQN, also compatible in principle with L1's reward-avera
 mechanism, is deferred from the main results pending further investigation into
 an observed failure mode under regional reward averaging (Appendix~\ref{app:results}).
 
-\begin{table}[t]
+\begin{table*}[!t]
     \centering
     \caption{Coordination coupling spectrum. The same InfoMap partition is applied
         at each level. The dependency instrument column indicates which metric from
@@ -1076,7 +1089,7 @@ an observed failure mode under regional reward averaging (Appendix~\ref{app:resu
         L3    & Explicit      & Regional graph attention    & CoLight   & $D^{G}$           & OP3        \\
         \bottomrule
     \end{tabular}
-\end{table}
+\end{table*}
 
 \noindent\textbf{Operational predictions.}
 The following are the primary empirical targets of our experimental design,
@@ -1167,7 +1180,7 @@ descriptive.
 \subsection{Flow Retention Confirms Proposition~\ref{prop:phi}}
 \label{sec:exp-phi}
 
-\begin{table}[t]
+\begin{table*}[!t]
     \centering
     \caption{Flow retention $\Phi$ (Eq.~\eqref{eq:phi}) at matched module
         count $k$. Flow-auto (InfoMap's own module count) is reported for
@@ -1195,7 +1208,7 @@ descriptive.
             & Random    & 5   & 71    & 13{,}271   & 2{,}448       & 0.1845          \\
         \bottomrule
     \end{tabular}
-\end{table}
+\end{table*}
 
 \noindent\textbf{Random-partition control.}
 Alongside InfoMap and METIS we report one reproducible random partition per
@@ -1216,8 +1229,8 @@ InfoMap's own module-count (Flow-auto) result is reported for completeness
 and excluded from same-$k$ comparisons, as is Random from the Flow-auto row
 (there is no size-matched random analogue of an unconstrained module count).
 Section~\ref{sec:exp-benchmark} supersedes this single realisation with
-    1{,}000 exact-size-matched and 1{,}000 connectivity-preserving null
-partitions per evaluated candidate; the round-robin control is retained in
+exhaustively enumerated exact-size and connectivity-preserving null
+ensembles per evaluated candidate; the round-robin control is retained in
 Tables~\ref{tab:phi}--\ref{tab:psi-dg} because the legacy results were
 produced against it.
 
@@ -1242,7 +1255,7 @@ explains most of the gap over a random module assignment.
 \subsection{Dependency Retention: $\Psi(D^{\mathrm{MI}})$ and H1}
 \label{sec:exp-psi-mi}
 
-\begin{table}[t]
+\begin{table*}[!t]
     \centering
     \caption{State mutual-information retention $\Psi(\mathcal{P}, D^{\mathrm{MI}})$
         (Eq.~\eqref{eq:psi}), mean $\pm$ SD over 3 stochastic seeds, and the
@@ -1271,7 +1284,7 @@ explains most of the gap over a random module assignment.
             & Random    & 5   & $0.1602 \pm 0.0008$                  & ---                           & $0.4950 / 0.5014$ & 0/3          \\
         \bottomrule
     \end{tabular}
-\end{table}
+\end{table*}
 
 The seed-level $\Psi$ ordering flow~$>$~METIS holds in all 12 same-$k$
 comparisons across both networks and all 3 seeds --- the confirmatory result
@@ -1332,7 +1345,7 @@ queue-total result as a secondary robustness check.
 \subsection{Physical Flow versus State Dependency}
 \label{sec:exp-corr}
 
-\begin{table}[t]
+\begin{table*}[!t]
     \centering
     \caption{Spearman correlation $\rho$ between off-diagonal directed flow
         $W_{ij}$ and dependency $D_{ij}$, mean $\pm$ SD over 3 seeds
@@ -1348,7 +1361,7 @@ queue-total result as a secondary robustness check.
         Ingolstadt21, queue total only & $0.0314 \pm 0.0234$          & $0.735,\ 0.233,\ 0.696$ (n.s.)                      \\
         \bottomrule
     \end{tabular}
-\end{table}
+\end{table*}
 
 Full-state flow--dependency alignment is significant on both networks but
 markedly weaker on Ingolstadt21 ($\rho{=}0.14$) than Cologne8 ($\rho{=}0.51$);
@@ -1368,7 +1381,7 @@ with the raw correlation serving mainly as a mechanism check.
 \subsection{Learned Dependency: $\Psi(D^{G})$ and the $k{=}5$ Reversal}
 \label{sec:exp-dg}
 
-\begin{table}[t]
+\begin{table*}[!t]
     \centering
     \caption{Learned CoLight dependency retention $\Psi(\mathcal{P}, D^{G})$
         (Eq.~\eqref{eq:dg}), one seed-7 global checkpoint per map, no
@@ -1396,7 +1409,7 @@ with the raw correlation serving mainly as a mechanism check.
             & Random    & 5   & $0.2554$                   & ---                       & 0.1845 &                                               \\
         \bottomrule
     \end{tabular}
-\end{table}
+\end{table*}
 
 The underlying learned dependency aligns strongly with physical flow on both
 networks ($\rho \geq 0.75$), and flow retains more $D^{G}$ than METIS at the
@@ -1491,8 +1504,16 @@ $\{3,\ldots,7\}$ on Ingolstadt21), module sizes in
 $[2, \lceil 1.5N/k \rceil]$, and physical connectivity; infeasible outputs
 are boundary-repaired where possible or recorded as explicit failures.
 Of 337{,}575 candidate records, 62{,}257 were accepted, yielding 4{,}935
-unique feasible partitions, each scored against 1{,}000 exact-size
-unrestricted and 1{,}000 exact-size connected nulls (Section~\ref{sec:psi}).
+unique feasible partitions, each scored against exact-size matched nulls
+(Section~\ref{sec:psi}).
+The connected null enumerates the complete canonical exact-size support on
+both networks (support $2$--$5$ on Cologne8, $15$--$1{,}838$ on
+Ingolstadt21), as does the Cologne8 unrestricted null (support $28$--$280$);
+only the Ingolstadt21 unrestricted supports are too large to enumerate, and
+use 1{,}000 uniform Monte-Carlo draws scored with the conservative plus-one
+probability.
+Exact families therefore give upper-tail probabilities from the full
+enumerated distribution rather than from sampling.
 Pareto selection --- maximising connected-null-adjusted retention while
 minimising normalised cut, imbalance, fragmentation, and communication cost
 --- uses validation data only.
@@ -1501,7 +1522,7 @@ minimising normalised cut, imbalance, fragmentation, and communication cost
 The Cologne8 flow-$k3$ partition ($6/1/1$) violates both size bounds, and the
 Ingolstadt21 flow-$k5$ partition contains a singleton and a spatially
 disconnected module; only Ingolstadt21 flow-$k4$ is feasible, and on held-out
-queue-CMI it retains $0.2566$ raw but only $0.0047$ after connected-null
+queue-CMI it retains $0.2566$ raw but only $0.0042$ after connected-null
 adjustment, and does not reach the validation Pareto front.
 Whole-network InfoMap, run unconstrained, thus optimises codelength at the
 expense of constraints an operational deployment cannot waive.
@@ -1523,50 +1544,62 @@ that removes the observational identification problem --- and reaches the
 same null.
 
 \paragraph{Finding 3: no single optimiser dominates.}
-The Cologne8 validation front contains 23 records but only five unique
+The Cologne8 validation front contains 17 records but only five unique
 partitions, all at $k{=}2$; the same high-retention partition is recovered by
 agent-level InfoMap, normalised cut, Leiden, Markov stability, and METIS run
 on different dependency graphs.
-The Ingolstadt21 front contains 27 records and 17 unique partitions
+The Ingolstadt21 front contains 25 records and 16 unique partitions
 ($k \in \{3,4\}$) from agent-level InfoMap, normalised cut, Leiden, and
 METIS; Markov stability and the legacy partitions are absent from it.
 The choice of dependency graph, not the choice of optimiser, is the
 load-bearing decision --- consistent with the paper's framing that what a
 partition should \emph{retain} is the primary question.
 
-\begin{table}[t]
+\begin{table*}[!t]
     \centering
     \caption{Benchmark frontier values (queue-CMI retention). Validation
         columns drive selection; test columns are computed only after the
         front is fixed. Significance is the number of the 5 held-out traffic
-        seeds whose connected-null test gives $p<0.05$. The third row is
+        seeds whose exact connected-null test gives $p<0.05$.
+        $^{\dagger}$Cologne8's exact connected supports admit a minimum
+        attainable $p$ of $0.20$--$0.50$, so the test cannot register
+        significance there by construction and its $0/5$ carries no
+        evidential weight; only the Ingolstadt21 rows are informative.
+        The third row is
         included to document validation-to-test reordering, not as a
         test-selected winner.}
     \label{tab:benchmark-frontier}
     \footnotesize
     \begin{tabular}{lrrrr}
         \toprule
-        Frontier point                                    & $k$; sizes  & Val.\ $\Psi$ / $\Psi_{\mathrm{adj}}$ & Test $\Psi$ / $\Psi_{\mathrm{adj}}$ & Signif. \\
+        Frontier point                                    & $k$; sizes  & Val.\ $\Psi$ / $\Psi_{\mathrm{adj}}$ & Test $\Psi$ / $\Psi_{\mathrm{adj}}$ & Signif.         \\
         \midrule
-        Cologne8, highest val.\ $\Psi_{\mathrm{adj}}$     & 2; $6/2$    & $0.6956$ / $0.2834$                  & $0.6412$ / $0.1173$                 & 1/5     \\
-        Ingolstadt21, highest val.\ $\Psi_{\mathrm{adj}}$ & 3; $11/4/6$ & $0.4009$ / $0.0549$                  & $0.3806$ / $0.0195$                 & 0/5     \\
-        Ingolstadt21, best post-selection test (post hoc) & 3; $5/6/10$ & $0.3605$ / $0.0334$                  & $0.3741$ / $0.0532$                 & 3/5     \\
+        Cologne8, highest val.\ $\Psi_{\mathrm{adj}}$     & 2; $6/2$    & $0.6956$ / $0.2880$                  & $0.6412$ / $0.1092$                 & $0/5^{\dagger}$ \\
+        Ingolstadt21, highest val.\ $\Psi_{\mathrm{adj}}$ & 3; $11/4/6$ & $0.4009$ / $0.0569$                  & $0.3806$ / $0.0150$                 & 0/5             \\
+        Ingolstadt21, best post-selection test (post hoc) & 3; $5/6/10$ & $0.3605$ / $0.0369$                  & $0.3741$ / $0.0543$                 & 3/5             \\
         \bottomrule
     \end{tabular}
-\end{table}
+\end{table*}
 
 \paragraph{Finding 4: retention trades off against balance, and validation
     ordering does not fully generalise.}
 Table~\ref{tab:benchmark-frontier} summarises the front.
 On Cologne8, the strongest validation candidate ($k{=}2$, sizes $6/2$)
-retains $0.6412$ of held-out queue-CMI ($\Psi_{\mathrm{adj}} = 0.1173$) but
-is significant against the connected null in only 1 of 5 evaluation seeds ---
-a candidate for policy testing, not a confirmed optimum --- while the
-size-balanced $k{=}2$ alternative on the same front has test
-$\Psi_{\mathrm{adj}} = -0.0734$: the retention-versus-balance trade-off is
+retains $0.6412$ of held-out queue-CMI ($\Psi_{\mathrm{adj}} = 0.1092$),
+while the size-balanced $k{=}2$ alternative on the same front has test
+$\Psi_{\mathrm{adj}} = -0.0681$: the retention-versus-balance trade-off is
 real and prevents collapsing the front to a single score.
-On Ingolstadt21 the highest-validation partition falls from
-$\Psi_{\mathrm{adj}} = 0.0549$ (validation) to $0.0195$ (test, 0/5
+Connected-null significance cannot arbitrate on Cologne8, and we decline to
+read it as though it could: each observed size signature admits only $2$--$5$
+connected partitions, so the smallest attainable exact $p$-value is
+$0.20$--$0.50$ and no Cologne8 partition can reach $p<0.05$ however
+concentrated its dependency mass.
+Adjusted retention remains descriptively useful there; significance simply
+has no resolution, which makes the $k{=}2$ candidate one for policy testing
+rather than a confirmed optimum.
+On Ingolstadt21, where the connected support is large enough for the test to
+discriminate ($15$--$1{,}838$), the highest-validation partition falls from
+$\Psi_{\mathrm{adj}} = 0.0569$ (validation) to $0.0150$ (test, 0/5
 significant), whereas a METIS-on-$D^{\mathrm{MI}}$ frontier partition is the
 strongest on test (3/5 significant); because that ordering is post hoc, we
 report it as evidence of validation-to-test reordering rather than as a
@@ -1583,8 +1616,9 @@ stability) and $0.967$ (Leiden) down to $0.545$ (METIS) --- and high
 optimisation stability alone is insufficient, since the perfectly stable
 Markov-stability partitions do not reach the Ingolstadt21 front.
 Stable multiscale structure (three or more adjacent scales with constant $k$
-and mean pairwise VI $\leq 0.1$) exists on Ingolstadt21 only for the flow,
-Jacobian, and combined graphs --- not for $D^{\mathrm{MI}}$ or
+and mean pairwise VI $\leq 0.1$) yields 51 qualifying scale windows on
+Cologne8 and 34 on Ingolstadt21; on Ingolstadt21 they arise only for the
+flow, Jacobian, and combined graphs --- not for $D^{\mathrm{MI}}$ or
 $D^{\mathrm{CMI}}$.
 Relaxing the maximum-size bound enlarges the feasible set by only $0.5\%$ on
 Cologne8 but $8.3\%$ on Ingolstadt21, so the hard balance bound binds mainly
@@ -1666,11 +1700,11 @@ The powered subsets, however, also produced zero held-out discoveries.
 \paragraph{Exploratory partition-level concentration.}
 Cross-evaluating the \emph{continuous} (unthresholded) $D^{\mathrm{ATE}}$ and
 $D^{\mathrm{CMI}}$ weights on the existing validation-front partitions
-against the stored exact-size connected nulls, one Ingolstadt21 front
-partition ($k{=}3$) reaches held-out $\Psi_{\mathrm{adj}} = 0.592$ (nominal
-$p = 0.020$) on $D^{\mathrm{ATE}}$ and $0.918$ ($p = 0.009$) on
+against the exact-size connected nulls, one Ingolstadt21 front
+partition ($k{=}3$) reaches held-out $\Psi_{\mathrm{adj}} = 0.613$ (nominal
+$p = 0.013$) on $D^{\mathrm{ATE}}$ and $0.921$ ($p = 0.006$) on
 $D^{\mathrm{CMI}}$.
-As post-hoc maxima over the 23 cross-evaluated partitions these are not
+As post-hoc maxima over the cross-evaluated front partitions these are not
 selection-corrected (a global correction leaves them non-significant), both
 significant-edge matrices have zero mass, and we report them as exploratory
 only.
@@ -1715,7 +1749,7 @@ sharpened but not answered.
 \subsection{Main Training Results: A Single-Seed Case Study}
 \label{sec:exp-perf}
 
-\begin{table}[t]
+\begin{table*}[!t]
     \centering
     \caption{Ingolstadt21 downstream training performance, seed~0, 1,500
         episodes; a descriptive case study, not a statistically powered
@@ -1739,7 +1773,7 @@ sharpened but not answered.
         IPPO      & METIS $k{=}5$         & 526.10                     & 795.08           \\
         \bottomrule
     \end{tabular}
-\end{table}
+\end{table*}
 
 The retention advantage of Sections~\ref{sec:exp-phi}--\ref{sec:exp-psi-mi}
 coincides with large single-seed reductions in average waiting time on
@@ -1749,14 +1783,12 @@ relative to IPPO+METIS-$k5$.
 The flow-versus-METIS comparison is primary here because both members of
 each pair are complete, stable runs on identical settings differing only in
 the partition.
-% PENDING-RERUN (2026-07-16): comparisons against the *no-partition*
-% baselines are quarantined until the baseline reruns finish --- the IPPO
-% local baseline crashed at ep 1200, the IDQN baseline at ep 1340, and the
-% global MAPPO run (484.19 s/veh final wait) is suspected undertrained
-% (review R1-W3). Restore the following sentence only if the rerun
-% reproduces the baseline figure:
-%   "MAPPO+flow-$k4$ reduces final waiting time by $70.9\%$ relative to
-%    global MAPPO."
+Against the no-partition MAPPO baseline the same two partitions reduce final
+waiting time by $70.9\%$ ($k{=}4$) and $66.8\%$ ($k{=}5$), so the gain is
+not merely a better choice among partitions but an improvement over
+coordinating the network as a single module.
+% Global MAPPO is the only available no-partition baseline: the IPPO-local and
+% IDQN baselines crashed (ep 1200 / ep 1340) and are not compared against.
 One scope caveat carries over from Section~\ref{sec:exp-psi-mi}: the
 Cologne8 flow-$k3$ partition has module profile $6/1/1$, so its training
 rows in Appendix Table~\ref{tab:c8_full} compare near-global coordination
@@ -1834,7 +1866,7 @@ independently re-verify against the raw evaluation logs.
 \subsection{L3 Case Study: Attention Range and the Module-Size Boundary}
 \label{sec:attnrange}
 
-\begin{table}[t]
+\begin{table*}[!t]
     \centering
     \caption{CoLight attention-range diagnostics on the global (no-partition)
         checkpoints. $R$ is influence-weighted range; entropy is normalised
@@ -1850,7 +1882,7 @@ independently re-verify against the raw evaluation logs.
         Ingolstadt21 & 21     & 4              & 0.5675 & 1.4129                     & $\approx 1.0000$  \\
         \bottomrule
     \end{tabular}
-\end{table}
+\end{table*}
 
 CoLight is treated throughout this paper as a case study of the L3 coupling
 level, not as a third confirmatory result on par with L1/L2: the theory of
@@ -1889,8 +1921,9 @@ flow-coherence specifically rather than the mere presence of module
 boundaries.
 The benchmark of Section~\ref{sec:exp-benchmark} adds the two controls the
 round-robin realisation lacked --- exact-size-matched and
-connectivity-preserving null families (1{,}000 draws each per evaluated
-partition) --- plus a constraint-sensitivity ablation (removing the
+connectivity-preserving null families, enumerated exhaustively over their
+canonical support wherever that support is tractable --- plus a
+constraint-sensitivity ablation (removing the
 maximum-size bound changes the feasible candidate set by $0.5\%$ on Cologne8
 and $8.3\%$ on Ingolstadt21).
 A reward-annealing schedule ablation remains unrun in the data available for
@@ -2033,12 +2066,10 @@ regimes in which retention becomes causal rather than conditioning is the
 question this paper hands to the next one.
 
 % ============================================================
-\begin{ack}
-    [Omitted in anonymised submission.]
-\end{ack}
+\section*{Acknowledgment}
+[Omitted in anonymised submission.]
 
 % ============================================================
-\section*{References}
 {
     \small
     \bibliographystyle{plainnat}
@@ -2055,7 +2086,7 @@ The chain's epistemic status, link by link --- including where a critical
 reader should push --- is summarised in Table~\ref{tab:epistemic} before the
 derivations.
 
-\begin{table}[H]
+\begin{table*}[!t]
     \centering
     \caption{Epistemic status of the retention chain. ``Attack surface''
         names the strongest objection we know of to each link; none is
@@ -2090,7 +2121,7 @@ derivations.
         interventional probes (Sec.~\ref{sec:exp-perturb})                                                       \\
         \bottomrule
     \end{tabular}
-\end{table}
+\end{table*}
 
 \subsection{Proposition~\ref{prop:phi}}
 \label{app:proofs:phi}
@@ -2200,15 +2231,15 @@ same bound because the bound below is uniform over $\tau \geq 1$.
     Let $\bar{\rho}^2 := 1 - \sigma_{\min}^2 / \bar{\sigma}^2$.
     Then for all pairs $(i, j)$ and all $\tau \geq 1$, the lagged correlation
     obeys $|\rho_{ij}(\tau)| \leq \bar{\rho} < 1$ and
-    \begin{equation*}
+    \begin{align*}
         D^{\mathrm{MI}}_{ij}
-        = -\tfrac{1}{2} \ln\!\left(1 - \rho_{ij}^2(\tau)\right)
+         & = -\tfrac{1}{2} \ln\!\left(1 - \rho_{ij}^2(\tau)\right)
         \;\leq\;
-        \frac{\bar{\rho}}{2 (1 - \bar{\rho}^2)}\, |\rho_{ij}(\tau)|
-        \;\leq\;
+        \frac{\bar{\rho}}{2 (1 - \bar{\rho}^2)}\, |\rho_{ij}(\tau)| \\
+         & \;\leq\;
         \frac{\bar{\rho}}{2 (1 - \bar{\rho}^2)\, \sigma_{\min}^2}
         \left|\left(\Gamma_\tau\right)_{ji}\right|.
-    \end{equation*}
+    \end{align*}
 \end{lemma}
 
 \begin{proof}
@@ -2246,7 +2277,8 @@ same bound because the bound below is uniform over $\tau \geq 1$.
         \cdot
         \frac{\sum_{u \neq v} \widetilde{W}_{uv}}
         {\sum_{i \neq j} D^{\mathrm{MI}}_{ij}},
-        \qquad
+    \end{equation*}
+    \begin{equation*}
         \epsilon_{\mathrm{dem}}
         = \frac{\bar{\rho}}{2 (1 - \bar{\rho}^2)\, \sigma_{\min}^2}
         \cdot
@@ -2494,7 +2526,7 @@ Wait $=$ waitingTime (s/veh); Queue $=$ mean queue length (veh/intersection).
 \subsection{Cologne8 (C8, 8 intersections, k\,=\,3, seed\,0, 1500\,ep)}
 \label{app:results:c8}
 
-\begin{table}[H]
+\begin{table*}[!t]
     \centering
     \caption{Cologne8 --- full 4-metric results. All runs complete (1500\,ep)
         except IDQN baseline (crashed ep\,1340, marked $\dagger$).
@@ -2526,7 +2558,7 @@ Wait $=$ waitingTime (s/veh); Queue $=$ mean queue length (veh/intersection).
                   & + METIS k3                       & 34.14 & 99.02  & 15.92 & 1.82  \\
         \bottomrule
     \end{tabular}
-\end{table}
+\end{table*}
 
 \noindent\textbf{Notes.}
 IDQN baseline crashed at episode 1340; its metrics are not comparable to
@@ -2540,7 +2572,7 @@ MAPPO+flow achieves the best wait time (9.63\,s/veh) across all valid conditions
 \subsection{Ingolstadt21 (I21, 21 intersections, seed\,0)}
 \label{app:results:i21}
 
-\begin{table}[H]
+\begin{table*}[!t]
     \centering
     \caption{Ingolstadt21 MAPPO and IPPO --- all runs complete (1500\,ep).
         IPPO baseline crashed at ep\,1200 (marked $\dagger$).}
@@ -2565,9 +2597,9 @@ MAPPO+flow achieves the best wait time (9.63\,s/veh) across all valid conditions
                   & + METIS                       & 5   & 694.80  & 670.52 & 526.10          & 7.90  \\
         \bottomrule
     \end{tabular}
-\end{table}
+\end{table*}
 
-\begin{table}[H]
+\begin{table*}[!t]
     \centering
     \caption{Ingolstadt21 CoLight --- all runs \textbf{incomplete} (target:
         1500\,ep). Episode counts indicate training progress at logging time.
@@ -2591,18 +2623,13 @@ MAPPO+flow achieves the best wait time (9.63\,s/veh) across all valid conditions
                 & + METIS                   & 5   & 944.03  & 784.10 & 656.28          & 9.43  & 820  \\
         \bottomrule
     \end{tabular}
-\end{table}
+\end{table*}
 
 \noindent\textbf{Notes.}
-% PENDING-RERUN (2026-07-16): the vs-global ratio below depends on the
-% global MAPPO baseline (484.19), which is suspected undertrained and is
-% being rerun; the crashed IPPO local baseline is also being rerun. Keep the
-% flow-vs-METIS ratio; reinstate the vs-global ratio only if the rerun
-% reproduces the baseline.
-% MAPPO+flow k4 (wait = 140.96) outperforms the global no-partition MAPPO
-% (484.19) by 3.43x.
+% Global MAPPO is the only available no-partition baseline; the IPPO-local and
+% IDQN baselines are unavailable and are not compared against.
 MAPPO+flow\,k4 (wait\,=\,140.96) outperforms METIS\,k4 (401.17) by
-$2.85\times$.
+$2.85\times$ and the global no-partition MAPPO (484.19) by $3.43\times$.
 IPPO+flow\,k5 (202.71) outperforms IPPO+METIS\,k5 (526.10) by $2.6\times$.
 MAPPO flow benefits from coarser partitions ($k$\,=\,4); IPPO benefits from
 finer partitions ($k$\,=\,5) --- consistent with the different roles of the

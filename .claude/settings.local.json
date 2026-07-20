@@ -67,7 +67,22 @@
       "Bash(grep -rniE \"check.{0,15}author|author.{0,15}check\" src/ REVISION_TODO.md REVISE.md)",
       "Bash(awk '/^@/{if\\(k && !hasid\\) print k; k=$0; hasid=0} /doi *=|url *=|isbn *=/{hasid=1} END{if\\(k && !hasid\\) print k}' refs.bib)",
       "WebFetch(domain:scholar.xjtlu.edu.cn)",
-      "Bash(echo \"=== BIBTEX EXIT: $? ===\")"
+      "Bash(echo \"=== BIBTEX EXIT: $? ===\")",
+      "Bash(lualatex -interaction=nonstopmode -halt-on-error -output-directory=/workspace/out main.tex)",
+      "Bash(BIBINPUTS=.:/workspace/src: BSTINPUTS=.:/workspace/src: bibtex main)",
+      "Bash(pdftotext -layout main.pdf -)",
+      "Bash(pdftoppm -png -r 150 -f 16 -l 16 main.pdf page16)",
+      "Bash(pdftoppm -png -r 150 -f 19 -l 20 main.pdf page19)",
+      "Bash(grep *)",
+      "Bash(awk NR==541 || NR==654 || NR==886 || NR==910 || NR==2242 || NR==2287 {print NR\": \"$0} *)",
+      "Bash(:)",
+      "Bash(pdftoppm *)",
+      "Bash(echo \"bib:$?\")",
+      "Bash(echo \"p4:$?\")",
+      "Bash(echo \"p5:$?\")",
+      "Bash(pdfinfo /workspace/out/main.pdf)",
+      "Bash(rm -f /tmp/final*.log /tmp/finalbib*.log)",
+      "Bash(git -C /workspace status --porcelain)"
     ]
   }
 }
