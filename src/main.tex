@@ -22,6 +22,7 @@
 \newtheorem{theorem}{Theorem}
 \newtheorem{corollary}{Corollary}[proposition]
 \newtheorem{lemma}{Lemma}
+\newtheorem{remark}{Remark}
 \theoremstyle{definition}
 \newtheorem{assumption}{Assumption}
 \renewcommand{\theassumption}{A\arabic{assumption}}
@@ -47,36 +48,29 @@ Duong Tran Hai
 % ============================================================
 \begin{abstract}
     Coordinating traffic-signal agents in multi-agent reinforcement learning
-    (MARL) requires partitioning intersections into coordination modules
-    before training, yet existing practice either inherits partitions from
-    topology-based tools or learns them end-to-end for control return --- in
-    both cases without a principled account of \emph{what a partition should
-        preserve, and why}.
-    We supply that account as a retention-based theory of partition quality,
-    a three-link chain: (i)~the map equation's inter-module rate equals one
-    minus the flow retention $\Phi$ \emph{exactly}, so InfoMap maximises an
-    entropy-regularised flow retention; (ii)~under flow-local traffic
-    dynamics, the flow a partition cuts upper-bounds the inter-agent
-    dependency it cuts --- proved with explicit constants in a stylised
-    link-queue model; and (iii)~under networked-MARL locality conditions, cut
-    dependency upper-bounds the value loss of regional decomposition.
-    We operationalise the theory with the dependency retention ratio $\Psi$,
-    size-matched and connectivity-preserving null models, and a constrained,
-    held-out community-detection benchmark.
-    The confirmatory core: across two SUMO networks, three seeds, and every
-    matched module count, flow-based partitions retain more flow and more
-    state mutual information than METIS partitions --- 12 of 12 comparisons,
-    the ordering the theory predicts.
-    A preregistered randomized intervention then finds no resolvable
-    action-level coupling in the tested demand regime; we therefore attribute
-    the accompanying single-seed training gains under regional reward sharing
-    and regional critics to \emph{optimisation conditioning} by correlated
-    within-module signals, and state this evidentiary split explicitly.
-    The benchmark bounds the claim's scope --- no single partitioning
-    algorithm dominates under operational feasibility constraints --- so the
-    durable contribution is the criterion and its evaluation frame:
-    \emph{what a partition retains, not which optimiser produces it, is the
-        load-bearing design choice}.
+    requires partitioning intersections into coordination modules before
+    training, yet existing practice either inherits partitions from
+    road-topology tools or learns them end-to-end for control return,
+    without a principled account of what a partition should preserve and
+    why.
+    This paper develops a training-free, retention-based theory connecting
+    the vehicle flow a partition retains to a bound on the value loss of
+    regional multi-agent reinforcement learning, and operationalizes it with
+    a dependency retention metric, size- and connectivity-matched null
+    models, and a constrained, held-out community-detection benchmark.
+    Across two simulated road networks, three seeds, and every matched
+    module count, flow-based partitions retain more flow and more state
+    dependency than METIS partitions, confirming the theory's predicted
+    ordering in every comparison.
+    A preregistered randomized intervention then finds no resolvable causal
+    coupling between regions in the tested traffic regime, so the
+    accompanying single-seed training gains are attributed instead to
+    improved optimization conditioning from correlated within-module
+    signals, and this evidentiary split is stated explicitly.
+    A benchmark spanning several partitioning algorithms further shows that
+    no single algorithm dominates under operational feasibility constraints,
+    so the durable contribution is the retention criterion and its
+    evaluation framework, not any specific partitioning algorithm.
     % ------------------------------------------------------------------
     % Superseded draft abstract (2026-07-15, ~430 words) kept for reference;
     % removed per review EIC-W3 (headline single-seed "2.85x" demoted) and
@@ -194,15 +188,21 @@ The OD flow graph is therefore the natural substrate for partitioning, and
 the map equation~\citep{rosvall2008maps} gives it an exact
 information-theoretic objective.
 Our theoretical contribution is a three-link \emph{retention chain}: the map
-equation's inter-module rate equals one minus the flow retention $\Phi$
-exactly (Proposition~\ref{prop:phi}); under flow-local dynamics, cut flow
-upper-bounds cut inter-agent dependency, proved with explicit constants in a
-stylised link-queue model (Proposition~\ref{prop:transfer});
-and cut dependency upper-bounds the value loss of regional decomposition
-under networked-MARL locality conditions (Theorem~\ref{thm:valueloss}).
-Minimising the map equation therefore minimises an upper bound on the value
-loss of regional MARL --- making flow retention a principled,
-\emph{training-free} surrogate for coordination quality.
+equation's inter-module rate equals one minus a stationary-walk retention
+exactly, which coincides with the empirical OD-flow retention $\Phi$ under
+flow balance and otherwise differs by a measurable walk-mismatch term
+(Proposition~\ref{prop:phi}); under the stated stylised flow-local coupling
+model, symmetrised corridor-flow exposure upper-bounds the model's cut
+dependency up to explicit regime and demand-confounding terms, proved with
+explicit constants in a stylised link-queue model
+(Proposition~\ref{prop:transfer}); and cut dependency upper-bounds the value
+loss of regional decomposition under networked-MARL locality conditions
+(Theorem~\ref{thm:valueloss}).
+Under stationary-walk alignment, flow-local coupling, and networked-MARL
+locality conditions, reducing the map-equation escape term therefore
+tightens the flow-mediated component of the regional value-loss bound ---
+making flow retention a principled, \emph{training-free} surrogate for
+coordination quality.
 We measure the chain with a dependency retention ratio $\Psi$ instantiated by
 three instruments (model-free mutual information, critic Jacobians, attention
 Jacobians), across a coordination coupling spectrum that holds the partition
@@ -504,13 +504,37 @@ $\mathcal{M} = \{M_1, \ldots, M_K\}$ by minimising the map equation of
 Eq.~\eqref{eq:mapeq}.
 Our theoretical account of \emph{why} this is the right objective is a
 three-link chain, developed in this and the following two subsections:
-the map equation is an exact statement about the flow a partition retains
-(Proposition~\ref{prop:phi}); under flow-local traffic dynamics, retained flow
-bounds retained inter-agent dependency (Proposition~\ref{prop:transfer});
+the map equation's inter-module rate is an exact identity in terms of the
+walk's true stationary measure, coinciding with the empirical flow a
+partition retains up to a measurable discrepancy
+(Proposition~\ref{prop:phi}); under flow-local traffic dynamics, retained
+flow bounds retained inter-agent dependency (Proposition~\ref{prop:transfer});
 and retained dependency bounds the value loss of regional MARL
 (Theorem~\ref{thm:valueloss}).
 The empirical program of Section~\ref{sec:experiments} then estimates the
 constants of these bounds rather than gating on binary hypothesis tests.
+
+\paragraph{Scope of the retention chain.}
+Before stating the chain, we fix what each link does and does not claim,
+since later sections state these limits individually and we want none of
+them discovered only in the appendix.
+The chain concerns the \emph{structural} error introduced by severing
+inter-agent influence at a module boundary; it does not claim that flow
+retention alone is sufficient for improved learned control.
+The theoretical track is flow $\Rightarrow$ influence $\Rightarrow$ regional
+value-loss bound and, as detailed in Section~\ref{sec:transfer}, does not
+require mutual information at any step: mutual information and model
+Jacobians enter only as empirical instruments for auditing retained
+dependency (Section~\ref{sec:psi}).
+Theorem~\ref{thm:valueloss}'s bound controls only the coupling term of
+regional decomposition; partition-dependent optimisation conditioning is
+named as a separate, unbounded term throughout, not absorbed into it.
+Finally, the stylised transfer model of
+Appendix~\ref{app:proofs:transfer} is an undersaturated linearisation: its
+guarantee is weakest approaching saturation, and it does not by itself
+establish a directed spill-back mechanism, which remains traffic-theoretic
+motivation and an empirical diagnostic (H2, Section~\ref{sec:transfer})
+rather than a proved consequence of the bound.
 
 \paragraph{Flow retention.}
 For a partition $\mathcal{P} = \{P_1, \ldots, P_K\}$ with module assignment
@@ -522,54 +546,101 @@ $c(\cdot)$ and OD flow matrix $\mathbf{W}$, define the \emph{flow retention
     {\displaystyle\sum_{i,j} W_{ij}},
     \label{eq:phi}
 \end{equation}
-the fraction of observed vehicle movements that stay within module boundaries.
+the fraction of observed vehicle movements that stay within module
+boundaries; this is the operational quantity measured throughout the paper.
+The proposition below identifies exactly what $\Phi$ is, and is not, equal
+to.
 
-\begin{proposition}[Flow retention is the map equation's inter-module rate]
+\begin{proposition}[Stationary-walk retention equals the map equation's inter-module rate]
     \label{prop:phi}
-    Let the random walk in Eq.~\eqref{eq:mapeq} be the empirical OD walk:
-    visit rates $p_i = \sum_j W_{ij} / \sum_{a,b} W_{ab}$ and transition
-    probabilities $p_{ij} = W_{ij} / \sum_{j'} W_{ij'}$, so that the stationary
-    edge measure is $p_i\, p_{ij} = W_{ij} / \sum_{a,b} W_{ab}$.
+    Let $(\pi, P)$ denote the stationary distribution and transition kernel
+    of whichever random walk the map equation of Eq.~\eqref{eq:mapeq} is
+    actually evaluated on --- in general a teleportation-regularised walk on
+    the directed OD graph --- so that $\pi_i P_{ij}$ is its stationary edge
+    measure. Define the \emph{stationary-walk retention}
+    \begin{equation}
+        \Phi_{\pi}(\mathcal{P}) = \sum_{k}\sum_{i,j \,\in\, P_k} \pi_i P_{ij}.
+        \label{eq:phipi}
+    \end{equation}
     Then the aggregate inter-module transition rate in Eq.~\eqref{eq:mapeq}
-    satisfies
-    \begin{align}
+    satisfies, exactly and without further assumption,
+    \begin{equation}
         q_{\circlearrowleft}
-         & \;=\; \sum_{k} \sum_{i \in P_k}\sum_{j \notin P_k} p_i\, p_{ij}
-        \;=\; \frac{\sum_{i,j:\, c(i) \neq c(j)} W_{ij}}{\sum_{i,j} W_{ij}}
-        \notag                                                             \\
-         & \;=\; 1 - \Phi(\mathcal{P}, \mathbf{W}).
+        \;=\; \sum_{k} \sum_{i \in P_k}\sum_{j \notin P_k} \pi_i P_{ij}
+        \;=\; 1 - \Phi_{\pi}(\mathcal{P}).
         \label{eq:qphi}
-    \end{align}
+    \end{equation}
 \end{proposition}
 
 \begin{proof}
-    Substitute the empirical edge measure into the definition of
-    $q_{\circlearrowleft}$ as the total stationary probability of inter-module
-    steps~\citep[cf.][]{edler2023community} and sum over all ordered pairs with
-    $c(i) \neq c(j)$; the last equality is the complement of
-    Eq.~\eqref{eq:phi}.
+    $q_{\circlearrowleft}$ is, by definition, the total stationary
+    probability mass assigned to inter-module
+    steps~\citep[cf.][]{edler2023community}; summing the stationary edge
+    measure $\pi_i P_{ij}$ over all ordered pairs with $c(i) \neq c(j)$ gives
+    $q_{\circlearrowleft}$ directly, and its complement over pairs with
+    $c(i) = c(j)$ is $\Phi_\pi(\mathcal{P})$ by Eq.~\eqref{eq:phipi}.
 \end{proof}
 
-$\Phi$ is therefore not a heuristic proxy loosely associated with the map
-equation: it \emph{is} the map equation's between-module rate, exactly, under
-the walk model induced by the observed OD flows.
+\begin{remark}[Stationary-walk retention versus empirical flow retention]
+    \label{rem:walkmismatch}
+    Writing $p_i = \sum_j W_{ij} / \sum_{a,b} W_{ab}$ and
+    $p_{ij} = W_{ij} / \sum_{j'} W_{ij'}$ for the empirical out-strength
+    visit rate and transition probabilities, algebra gives
+    $p_i\, p_{ij} = W_{ij} / \sum_{a,b} W_{ab}$ identically, hence
+    $\Phi(\mathcal{P}, \mathbf{W}) = \sum_{k}\sum_{i,j \in P_k} p_i\, p_{ij}$:
+    $\Phi$ is exactly the within-module mass of the \emph{empirical} edge
+    measure $(p, p)$.
+    Proposition~\ref{prop:phi} is stated for the walk's \emph{true}
+    stationary measure $(\pi, P)$, and $(\pi, P) = (p, p)$ only when the
+    empirical walk is already self-stationary --- i.e.\ OD flow is
+    node-balanced, $\sum_j W_{ij} = \sum_j W_{ji}$ for every $i$ --- and
+    Infomap uses the unmodified transition probabilities $p_{ij}$ rather than
+    a teleportation-regularised variant.
+    Neither holds exactly for real OD data; the closing paragraph of this
+    subsection quantifies the gap.
+    Define the \emph{walk-mismatch}
+    $\epsilon_{\mathrm{walk}}(\mathcal{P}) =
+        |\Phi_\pi(\mathcal{P}) - \Phi(\mathcal{P}, \mathbf{W})|$; then, by the
+    triangle inequality,
+    \begin{equation}
+        1 - \Phi(\mathcal{P}, \mathbf{W})
+        \;\leq\;
+        1 - \Phi_\pi(\mathcal{P}) + \epsilon_{\mathrm{walk}}(\mathcal{P})
+        \;=\; q_{\circlearrowleft} + \epsilon_{\mathrm{walk}}(\mathcal{P}).
+        \label{eq:walkmismatch}
+    \end{equation}
+    $\Phi$ is therefore not a heuristic proxy loosely associated with the map
+    equation: it equals the map equation's between-module rate exactly
+    whenever the flow-balance condition above holds, and otherwise tracks it
+    up to the measurable, empirically boundable term
+    $\epsilon_{\mathrm{walk}}$.
+    Eq.~\eqref{eq:walkmismatch}, not Eq.~\eqref{eq:qphi} alone, is the
+    identity the rest of the paper's use of $\Phi$ relies on.
+\end{remark}
 
-\begin{corollary}[InfoMap maximises entropy-regularised flow retention]
+\begin{corollary}[InfoMap favours entropy-regularised stationary-walk retention]
     \label{cor:regularised}
     Writing Eq.~\eqref{eq:mapeq} as
-    $L(\mathcal{M}) = (1 - \Phi)\, H(\mathcal{Q})
+    $L(\mathcal{M}) = (1 - \Phi_\pi)\, H(\mathcal{Q})
         + \sum_{k} p_k^{\circlearrowleft} H(\mathcal{P}_k)$,
     the map equation is, at any fixed module-usage profile (fixed codebook
-    entropies and within-module rates), monotone increasing in $1 - \Phi$.
-    Minimising $L(\mathcal{M})$ thus maximises an \emph{entropy-regularised}
-    flow retention: the codebook-entropy terms are the regulariser that rules
-    out the degenerate all-in-one-module solution, which attains $\Phi = 1$
-    but pays the full within-module description cost.
+    entropies and within-module rates), monotone increasing in
+    $1 - \Phi_\pi$.
+    Minimising $L(\mathcal{M})$ thus favours --- without uniquely optimising
+    --- an \emph{entropy-regularised} stationary-walk retention: the
+    codebook-entropy terms are the regulariser that rules out the degenerate
+    all-in-one-module solution, which attains $\Phi_\pi = 1$ but pays the
+    full within-module description cost.
+    $\Phi_\pi$ is not directly observable without solving for the walk's true
+    stationary distribution, so we track the empirical $\Phi$ as its
+    operational proxy throughout the paper (Remark~\ref{rem:walkmismatch}).
 \end{corollary}
 
 \paragraph{Information-theoretic reading.}
-By Proposition~\ref{prop:phi}, $1 - \Phi$ is the per-step probability that the
-coarse-grained state --- the walker's module label $m(t)$ --- changes.
+By Proposition~\ref{prop:phi}, $1 - \Phi_\pi$ is the per-step probability
+that the coarse-grained state --- the walker's module label $m(t)$ ---
+changes; $\Phi$ tracks this operationally up to $\epsilon_{\mathrm{walk}}$
+(Remark~\ref{rem:walkmismatch}).
 A low inter-module rate means the module-label sequence is highly compressible,
 i.e.\ the coarse-grained dynamics are maximally predictable.
 Up to the null-model term, this is the one-step clustered autocovariance that
@@ -583,20 +654,24 @@ cross-module walk rate is minimising cross-module coordination overhead while
 maximising within-module coordination coherence.
 
 \paragraph{What the empirical $\Phi$ comparison adds.}
-Proposition~\ref{prop:phi} makes
+Corollary~\ref{cor:regularised} makes
 $\Phi(\mathcal{P}_{\mathrm{InfoMap}}) \geq \Phi(\mathcal{P}_{\mathrm{METIS}})$
-at matched module count a theorem-shaped expectation rather than an empirical
-surprise.
+at matched module count an expected --- though not theorem-guaranteed ---
+ordering rather than an empirical surprise: the guarantee is stated for
+$\Phi_\pi$, and $\Phi$ is its operational approximation
+(Remark~\ref{rem:walkmismatch}).
 Measuring it on real OD data (Section~\ref{sec:experiments}) remains
-informative for two reasons.
+informative for three reasons.
 First, real trips are path-dependent, so the memoryless-walk model behind
 Eq.~\eqref{eq:mapeq} approximates actual routing; the higher-order map
 equation is the standard refinement~\citep{rosvall2014memory}.
 Second, Infomap's greedy stochastic search does not guarantee the global
 codelength optimum~\citep{edler2023community}.
-Third, directed Infomap regularises the walk with teleportation, so the visit
-rates it actually optimises differ slightly from the empirical OD rates under
-which Proposition~\ref{prop:phi} is exact.
+Third, OD flow is not node-balanced and directed Infomap further regularises
+the walk with teleportation, so the true stationary measure $(\pi, P)$ the
+map equation is evaluated on differs from the empirical $(p, p)$ measure
+that defines $\Phi$ --- exactly the walk-mismatch $\epsilon_{\mathrm{walk}}$
+of Remark~\ref{rem:walkmismatch}, not a separate, unnamed approximation.
 The observed margins quantify how much of the identity survives these gaps.
 
 \subsection{Spatial Dependency Instruments and $\Psi$}
@@ -791,19 +866,30 @@ arbitrary multi-agent systems.
 
 \begin{assumption}[Flow-bounded coupling]
     \label{ass:coupling}
-    One-step inter-intersection coupling is bounded proportionally to the flow
-    exchanged: there exists a constant $\alpha$ (a function of link capacities
-    and saturation rates) such that the Dobrushin-style influence coefficient
-    obeys
-    $C_{j \leftarrow i} \leq \alpha \, (W_{ij} + W_{ji}) + \beta_{ij}$,
-    where $\beta_{ij}$ collects coupling through common exogenous demand.
-    The two flow terms are the two physical transmission channels of traffic:
-    the \emph{forward (arrival) channel} --- downstream queue state depends on
-    upstream state only through the vehicles actually routed between them ---
-    and the \emph{backward (blocking) channel} --- finite link capacity
-    throttles upstream senders in proportion to their sending flow when
-    downstream space runs out~\citep{daganzo1994ctm,jin2012linkqueue}, i.e.\
-    spill-back propagates on the reverse flow graph.
+    One-step inter-intersection coupling is bounded proportionally to a
+    \emph{symmetrised corridor-flow exposure}: there exists a constant
+    $\alpha$ (a function of link capacities and saturation rates) such that
+    the Dobrushin-style influence coefficient obeys
+    $C_{j \leftarrow i} \leq \alpha \, \widetilde{W}_{ij} + \beta_{ij}$,
+    where $\widetilde{W}_{ij} = W_{ij} + W_{ji}$ and $\beta_{ij}$ collects
+    coupling through common exogenous demand.
+    $\widetilde{W}_{ij}$ is a corridor-level exposure envelope, not a
+    mechanistic decomposition into directional channels: reverse-direction
+    traffic $W_{ji}$ is not itself downstream-induced blocking, so this
+    assumption --- and Proposition~\ref{prop:transfer}, which it feeds ---
+    bounds corridor-level coupling rather than proving a directed spill-back
+    mechanism.
+    The traffic-theoretic motivation for treating $\widetilde{W}$, rather
+    than $W$ alone, as the relevant exposure is nonetheless directional:
+    arrival flow couples downstream queues to upstream state (the
+    \emph{forward channel}), and finite link capacity throttles upstream
+    senders when downstream space runs out (the \emph{backward, spill-back
+        channel})~\citep{daganzo1994ctm,jin2012linkqueue}.
+    We report this motivation because it explains why the symmetrised
+    quantity, not $W$ alone, is the right exposure to bound coupling by ---
+    but we do not use it to claim that the bound below \emph{proves} a
+    spill-back mechanism; spill-back is tested directly as an empirical
+    diagnostic (H2, below), not assumed as part of this proof.
 \end{assumption}
 
 \begin{assumption}[Regime stationarity]
@@ -812,12 +898,13 @@ arbitrary multi-agent systems.
     $\mathbf{W}$ and $\mathbf{D}$ are estimated within a single traffic regime.
 \end{assumption}
 
-\begin{proposition}[Cut flow upper-bounds cut dependency]
+\begin{proposition}[Symmetrised corridor-flow exposure bounds cut dependency]
     \label{prop:transfer}
-    Under Assumptions~\ref{ass:local}--\ref{ass:stationary}, the dependency
-    mass cut by a partition is bounded by the flow it cuts: there exist
-    $\kappa > 0$ and a demand-confounder term
-    $\epsilon_{\mathrm{dem}} \geq 0$ such that
+    Under the stated stylised flow-local coupling model
+    (Assumptions~\ref{ass:local}--\ref{ass:stationary}), symmetrised
+    corridor-flow exposure upper-bounds the model's cut dependency, up to
+    explicit regime and demand-confounding terms: there exist $\kappa > 0$
+    and a demand-confounder term $\epsilon_{\mathrm{dem}} \geq 0$ such that
     \begin{equation}
         1 - \Psi(\mathcal{P}, \mathbf{D})
         \;\leq\;
@@ -866,12 +953,17 @@ necessary-not-sufficient reading as Theorem~\ref{thm:valueloss}, now at the
 level of the instrument itself.
 
 \paragraph{H1 and H2 as operational signatures.}
-Proposition~\ref{prop:transfer}'s two channels yield two testable empirical
-signatures, which earlier iterations of this work treated as a mandatory
-pre-training gate.
-The theory clarifies their correct epistemic status: they are
-\emph{corollaries in expectation} of the transfer bound --- diagnostics that
-the mechanism is active --- not axioms the method depends on.
+The two-channel traffic-theoretic motivation behind
+Assumption~\ref{ass:coupling} --- arrival flow (forward) and spill-back
+(backward) --- yields two testable empirical signatures, which earlier
+iterations of this work treated as a mandatory pre-training gate.
+The theory clarifies their correct epistemic status: H1 audits the
+aggregate dependency mass that Proposition~\ref{prop:transfer} actually
+bounds, while H2 tests the spill-back motivation for treating
+$\widetilde{W}$, rather than $W$ alone, as the relevant exposure --- a
+diagnostic that the mechanism \emph{motivating} the assumption is active,
+not an axiom the proved bound depends on, and not itself a mechanistic
+spill-back proof.
 We report both as supporting evidence; failure on a given network localises
 which channel is inactive there, rather than invalidating the partition.
 
@@ -1012,9 +1104,11 @@ the cut dependency mass.
     effect on the optimisation problem itself, through credit-assignment
     variance under regional reward averaging, critic input dimension, and
     replay coherence.
-    Chaining Eqs.~\eqref{eq:qphi}, \eqref{eq:transfer}, and
-    \eqref{eq:valueloss}: \emph{minimising the map equation minimises an upper
-        bound on the value loss of regional decomposition in MARL}.
+    Chaining Eqs.~\eqref{eq:walkmismatch}, \eqref{eq:transfer}, and
+    \eqref{eq:valueloss}: \emph{under stationary-walk alignment, flow-local
+        coupling, and networked-MARL locality conditions, reducing the
+        map-equation escape term tightens the flow-mediated component of the
+        regional value-loss bound}.
 \end{theorem}
 
 Derivation notes are given in Appendix~\ref{app:proofs}; the theorem imports
@@ -1970,13 +2064,18 @@ omitting it silently.
 This paper asked what a partition of a traffic network should preserve, and
 answered with a retention chain whose epistemic status we can state link by
 link.
-The map equation's inter-module rate \emph{is} the cut flow --- an exact
-identity (Proposition~\ref{prop:phi}), making InfoMap a maximiser of
-entropy-regularised flow retention.
-Under flow-local dynamics, cut flow upper-bounds cut dependency --- a theorem
-with explicit constants in a stylised link-queue model whose assumptions are
-the paper's assumptions made literal
-(Proposition~\ref{prop:transfer}, Appendix~\ref{app:proofs:transfer}).
+The map equation's inter-module rate \emph{is} the stationary-walk
+retention --- an exact identity (Proposition~\ref{prop:phi}), coinciding
+with the empirical flow retention $\Phi$ under flow balance and otherwise
+differing by a measurable walk-mismatch term
+(Remark~\ref{rem:walkmismatch}), making InfoMap a favourer, not a
+guaranteed maximiser, of entropy-regularised flow retention.
+Under flow-local dynamics, symmetrised corridor-flow exposure upper-bounds
+cut dependency --- a theorem with explicit constants in a stylised
+link-queue model whose assumptions are the paper's assumptions made literal
+(Proposition~\ref{prop:transfer}, Appendix~\ref{app:proofs:transfer}); the
+symmetrised exposure is a corridor-level envelope, not a proof that reverse
+traffic literally constitutes spill-back.
 Cut dependency upper-bounds regional value loss --- imported machinery,
 defended as such and never as a proved result
 (Theorem~\ref{thm:valueloss}).
@@ -2097,19 +2196,23 @@ derivations.
         \toprule
         Link & Status                                                  & Main attack surface & Remedy / response \\
         \midrule
-        1: map eq.\ $=$ flow retention (Prop.~\ref{prop:phi})
-             & Exact identity
-             & Teleportation; memoryless walk; greedy search
-             & Disclosed (Sec.~\ref{sec:infomap}); empirical margins
-        quantify the slack                                                                                       \\
+        1: map eq.\ $=$ stationary-walk retention (Prop.~\ref{prop:phi})
+             & Exact identity for $\Phi_\pi$; $\Phi$ approximates it
+             & Flow balance (needed for $\Phi = \Phi_\pi$); teleportation;
+        memoryless walk; greedy search
+             & Disclosed (Sec.~\ref{sec:infomap}); $\epsilon_{\mathrm{walk}}$
+        named (Remark~\ref{rem:walkmismatch}); empirical margins quantify
+        the slack                                                                                                \\
         \addlinespace
-        2: cut flow $\Rightarrow$ cut dependency
+        2: corridor-flow exposure $\Rightarrow$ cut dependency
         (Prop.~\ref{prop:transfer})
              & Theorem, stylised model
         (App.~\ref{app:proofs:transfer})
-             & Linearity; Gaussianity; dual-norm (M3); $\delta^{-3}$
-        looseness
-             & SDPI route for the general case; numerical companion
+             & Symmetrised $\widetilde{W}$ is a corridor envelope, not a
+        directed spill-back proof; linearity; Gaussianity; dual-norm (M3);
+        $\delta^{-3}$ looseness
+             & Disclosed (Assumption~\ref{ass:coupling}); H2 as diagnostic,
+        not proof; SDPI route for the general case; numerical companion
         (planned)                                                                                                \\
         \addlinespace
         3: cut dependency $\Rightarrow$ value loss
@@ -2126,15 +2229,38 @@ derivations.
 \subsection{Proposition~\ref{prop:phi}}
 \label{app:proofs:phi}
 
+The aggregate inter-module rate is, by definition, the total stationary
+probability of steps whose endpoints lie in different modules under the
+walk's true stationary edge measure $\pi_i P_{ij}$:
+$q_{\circlearrowleft} = \sum_{i,j:\, c(i) \neq c(j)} \pi_i \, P_{ij}
+    = 1 - \sum_{k}\sum_{i,j \in P_k} \pi_i P_{ij}
+    = 1 - \Phi_\pi(\mathcal{P})$
+by Eq.~\eqref{eq:phipi}. This holds for any valid stationary measure
+$(\pi, P)$ and uses no property of the OD data.
+\hfill$\square$
+
+\subsection{Remark~\ref{rem:walkmismatch}}
+\label{app:proofs:walkmismatch}
+
 With the empirical OD walk, the stationary probability of traversing the
-directed edge $(i, j)$ in one step is
+directed edge $(i, j)$ in one step under the \emph{empirical} measure
+$(p, p)$ is
 $p_i \, p_{ij} = \frac{\sum_b W_{ib}}{\sum_{a,b} W_{ab}} \cdot
-    \frac{W_{ij}}{\sum_{b} W_{ib}} = \frac{W_{ij}}{\sum_{a,b} W_{ab}}$.
-The aggregate inter-module rate is the total stationary probability of steps
-whose endpoints lie in different modules,
-$q_{\circlearrowleft} = \sum_{i,j:\, c(i) \neq c(j)} p_i \, p_{ij}
-    = \big(\sum_{i,j:\, c(i) \neq c(j)} W_{ij}\big) / \sum_{a,b} W_{ab}$,
-which is $1 - \Phi(\mathcal{P}, \mathbf{W})$ by Eq.~\eqref{eq:phi}.
+    \frac{W_{ij}}{\sum_{b} W_{ib}} = \frac{W_{ij}}{\sum_{a,b} W_{ab}}$,
+so $\sum_{k}\sum_{i,j \in P_k} p_i p_{ij}
+    = \big(\sum_{i,j \in P_k \text{ for some } k} W_{ij}\big) /
+    \sum_{a,b} W_{ab} = \Phi(\mathcal{P}, \mathbf{W})$ by Eq.~\eqref{eq:phi}:
+the empirical measure's within-module mass is exactly $\Phi$.
+$(\pi, P) = (p, p)$ as measures iff $\pi = p$, i.e.\ the out-strength
+fraction is already the walk's stationary distribution under transition
+kernel $p$; this holds iff $p$ satisfies its own balance equation
+$p_i = \sum_m p_m p_{mi}$ for every $i$, which reduces (substituting the
+definitions of $p, p_{mi}$) to node-wise flow balance,
+$\sum_j W_{ij} = \sum_j W_{ji}$, and requires Infomap to use $p_{ij}$
+unmodified rather than a teleportation-regularised kernel.
+Eq.~\eqref{eq:walkmismatch} then follows from
+$|(1 - \Phi_\pi) - (1 - \Phi)| = |\Phi - \Phi_\pi| = \epsilon_{\mathrm{walk}}$
+and the triangle inequality.
 \hfill$\square$
 
 \subsection{Proposition~\ref{prop:transfer}: complete proof in a stylised

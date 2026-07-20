@@ -83,7 +83,11 @@
       "Bash(pdfinfo /workspace/out/main.pdf)",
       "Bash(rm -f /tmp/final*.log /tmp/finalbib*.log)",
       "Bash(git -C /workspace status --porcelain)",
-      "Bash(kpsewhich *)"
+      "Bash(kpsewhich *)",
+      "Bash(rm -rf /tmp/claude-0/-workspace/7bb03855-26e5-43f5-826d-c0b8325a9f02/scratchpad/buildtest)",
+      "Bash(mkdir -p /tmp/claude-0/-workspace/7bb03855-26e5-43f5-826d-c0b8325a9f02/scratchpad/buildtest)",
+      "Bash(cp src/*.tex src/*.bib src/*.cls src/*.bst src/*.sty /tmp/claude-0/-workspace/7bb03855-26e5-43f5-826d-c0b8325a9f02/scratchpad/buildtest/)",
+      "Bash(pdflatex -interaction=nonstopmode main.tex)"
     ]
   }
 }
