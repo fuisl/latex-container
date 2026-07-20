@@ -40,7 +40,7 @@
 \paragraph{The problem.}
 In multi-agent reinforcement learning for traffic signal control (TSC), the
 coordination graph is a \emph{design choice}: before training, the $N$
-signalised intersections are partitioned into modules, and coordination
+signalized intersections are partitioned into modules, and coordination
 machinery (shared rewards, a regional critic, restricted attention) operates
 within modules only.
 The design question is: \emph{what should a partition preserve, and why?}
@@ -60,15 +60,15 @@ the MARL problem regionally:
         exact identity (\S\ref{sec:link1})                                                         \\
         2. cut flow bounds cut dependency                           &
         $1 - \Psi \leq \kappa (1 - \Phi) + \epsilon_{\mathrm{dem}}$ &
-        theorem in a stylised model (\S\ref{sec:link2})                                            \\
+        theorem in a stylized model (\S\ref{sec:link2})                                            \\
         3. cut dependency bounds value loss                         &
         $J^\star - J_{\mathcal{P}} \leq C (1 - \Psi) + \epsilon$    &
         imported, informal (\S\ref{sec:link3})                                                     \\
         \bottomrule
     \end{tabular}
 \end{center}
-Chained, the links say: \emph{a partition that minimises the map equation
-    minimises an upper bound on the value loss of regional decomposition}.
+Chained, the links say: \emph{a partition that minimizes the map equation
+    minimizes an upper bound on the value loss of regional decomposition}.
 This is the theoretical backbone of the manuscript; it is why measuring flow
 retention --- which requires no training --- is a principled surrogate for
 coordination quality.
@@ -99,10 +99,10 @@ the empirical results do and do not establish; we return to it in
 \section{Objects and notation}
 \label{sec:notation}
 
-$\mathcal{V}$ is the set of $N$ signalised intersections.
-$W_{ij} \geq 0$ is the observed vehicle count travelling $i \to j$ over a
+$\mathcal{V}$ is the set of $N$ signalized intersections.
+$W_{ij} \geq 0$ is the observed vehicle count traveling $i \to j$ over a
 measurement window (from trip logs under a random warm-up policy);
-$\Wt_{ij} = W_{ij} + W_{ji}$ is its symmetrisation.
+$\Wt_{ij} = W_{ij} + W_{ji}$ is its symmetrization.
 A partition $\mathcal{P} = \{P_1, \dots, P_K\}$ assigns each node a module
 label $c(i)$.
 
@@ -142,7 +142,7 @@ weighted directed graph:
 where $q_{\circlearrowleft}$ is the total stationary rate of inter-module
 steps, $H(\mathcal{Q})$ the entropy of the between-module codebook, and the
 second sum prices within-module description.
-Infomap searches for the partition minimising $L$.
+Infomap searches for the partition minimizing $L$.
 The observation --- elementary once seen, but load-bearing --- is that
 $q_{\circlearrowleft}$ \emph{is} the cut flow fraction, exactly, under the
 walk induced by the empirical flows.
@@ -185,7 +185,7 @@ walk induced by the empirical flows.
 
 \paragraph{Provenance and caveats.}
 The identity is close in spirit to the flow-based reading of community
-detection formalised by Markov
+detection formalized by Markov
 stability~\citep{delvenne2010stability,lambiotte2014multiscale}: up to a null
 model, retaining flow is retaining the one-step clustered autocovariance of
 the walk.
@@ -201,10 +201,10 @@ Infomap over alternatives is an object worth measuring rather than a
 foregone conclusion.
 
 % ============================================================
-\section{Link 2: cut flow bounds cut dependency (proved in a stylised model)}
+\section{Link 2: cut flow bounds cut dependency (proved in a stylized model)}
 \label{sec:link2}
 
-\subsection{Why a stylised model, and which one}
+\subsection{Why a stylized model, and which one}
 \label{sec:whymodel}
 
 The general claim --- flow cut by a partition upper-bounds the statistical
@@ -216,7 +216,7 @@ bounded by sums over paths of products of per-edge contraction
 coefficients~\citep{evans1999percolation,polyanskiy2017sdpi}; making the
 per-edge coefficients explicit functions of traffic flow is open.
 We therefore prove the bound in the model where every step is exact: the
-\emph{linearisation of a link-queue / cell-transmission
+\emph{linearization of a link-queue / cell-transmission
     model}~\citep{daganzo1994ctm,jin2012linkqueue} about an undersaturated
 operating point.
 This is the standard stylisation in traffic flow theory, and --- the point of
@@ -234,7 +234,7 @@ with the following conditions and their traffic readings:
 \begin{itemize}
     \item[(M1)] \textbf{Locality.} $A_{ij} \neq 0$ only if
           $j \in \mathcal{N}(i) \cup \{i\}$.
-          \emph{Reading:} one-step queue evolution depends on neighbouring
+          \emph{Reading:} one-step queue evolution depends on neighboring
           queues only --- the support structure of CTM/link-queue
           dynamics~\citep{daganzo1994ctm,jin2012linkqueue}.
     \item[(M2)] \textbf{Flow-bounded coupling.} $|A_{ij}| \leq \alpha
@@ -242,7 +242,7 @@ with the following conditions and their traffic readings:
           \emph{Reading:} the linearised sensitivity of queue $i$ to queue $j$
           is carried by the two physical channels --- forward (arrivals routed
           $j \to i$) and backward (blocking / spill-back, which propagates
-          against the flow direction, hence the symmetrisation $\Wt$) --- each
+          against the flow direction, hence the symmetrization $\Wt$) --- each
           proportional to the flow on the link, with $\alpha$ absorbing
           capacities and saturation rates.
           Common-demand coupling is carried by $b$, \emph{not} by $A$.
@@ -251,7 +251,7 @@ with the following conditions and their traffic readings:
           for some $\delta \in (0,1]$, where $|A|$ is the entrywise absolute
           value.
           \emph{Reading:} the total coupling any intersection exerts on its
-          neighbours, and receives from them, is strictly below unity --- the
+          neighbors, and receives from them, is strictly below unity --- the
           undersaturated regime, in which queues are stable.
           (Both norms are needed below; requiring both is the honest price of
           the walk-counting argument.)
@@ -476,7 +476,7 @@ MI \emph{linear} in correlation up to a constant.
 \subsection{The transfer theorem}
 \label{sec:transferthm}
 
-\begin{theorem}[Cut flow bounds cut dependency; stylised model]
+\begin{theorem}[Cut flow bounds cut dependency; stylized model]
     \label{thm:transfer}
     Under (M1)--(M4), for every partition $\mathcal{P}$ and every lag
     $\tau \geq 1$,
@@ -505,7 +505,7 @@ MI \emph{linear} in correlation up to a constant.
     The lag-averaged instrument
     $\bar{D}^{\mathrm{MI}} = \tfrac{1}{|T|}\sum_{\tau \in T} D^{\mathrm{MI}}(\tau)$
     obeys the same bound with the total mass in the constants replaced by that
-    of $\bar{D}^{\mathrm{MI}}$, since Eq.~\eqref{eq:transfer}'s unnormalised
+    of $\bar{D}^{\mathrm{MI}}$, since Eq.~\eqref{eq:transfer}'s unnormalized
     form holds uniformly over $\tau \geq 1$.
 \end{theorem}
 
@@ -561,12 +561,12 @@ Corollary~\ref{cor:demzero} converts the manuscript's ``conditional-MI fix''
 from a proposal into a theorem.
 
 \emph{Idealisations a critic should probe} (each is a genuine limitation; we
-state our best defence):
+state our best defense):
 \begin{enumerate}
-    \item \textbf{Linearity.} Eq.~\eqref{eq:var} is a linearisation; real
+    \item \textbf{Linearity.} Eq.~\eqref{eq:var} is a linearization; real
           queue dynamics are piecewise (free-flow vs.\ congested branches of
           the fundamental diagram).
-          Defence: the linearisation is standard for undersaturated analysis,
+          Defense: the linearization is standard for undersaturated analysis,
           and the general nonlinear route is identified --- SDPI/information
           percolation~\citep{evans1999percolation,polyanskiy2017sdpi} gives
           the same walk-sum structure with per-edge contraction coefficients
@@ -574,13 +574,13 @@ state our best defence):
           bounding those coefficients by flow.
     \item \textbf{Gaussianity.} Used twice: the MI--correlation bijection and
           conditional-variance monotonicity.
-          Defence: both have sub-Gaussian analogues at the price of constants;
+          Defense: both have sub-Gaussian analogues at the price of constants;
           nothing in the walk-counting core uses Gaussianity.
     \item \textbf{Dual-norm sub-criticality (M3).} Row sums bound influence
           \emph{exerted}; column sums bound influence \emph{received}.
           Both below $1 - \delta$ is stronger than mere stability
           ($\rho(A) < 1$).
-          Defence: physically, an intersection neither exerts nor receives
+          Defense: physically, an intersection neither exerts nor receives
           unbounded total coupling in an undersaturated network; but this is
           the cleanest place to attack the constants.
     \item \textbf{Scalar states, i.i.d.\ demand, $\tau \geq 1$.} Scalar
@@ -609,7 +609,7 @@ from two literatures, and the import is the link's weakness.
 (i) \emph{Networked MARL with decaying influence}: when one-step
 inter-agent influence is local, the sensitivity of agent $i$'s value to agent
 $j$ decays exponentially in graph distance, and policies truncated to local
-neighbourhoods approximate the global optimum with bias controlled by the
+neighborhoods approximate the global optimum with bias controlled by the
 influence discarded~\citep{qu2020average,qu2022scalable}; the classical
 row-sum (Dobrushin-type) condition for this can be weakened to a
 policy-dependent spectral certificate~\citep{chakraborty2026locality}.
@@ -627,18 +627,18 @@ is exactly the cut influence mass, giving the shape
     \label{eq:valueloss}
 \end{equation}
 with $D$ an \emph{influence} matrix and the $\epsilon$'s collecting
-function-approximation and optimisation error the partition does not control.
+function-approximation and optimization error the partition does not control.
 
 \paragraph{Two formal gaps, stated precisely.}
-First, the cited neighbourhood-truncation guarantees are proved for specific
+First, the cited neighborhood-truncation guarantees are proved for specific
 algorithms and settings ($\kappa$-hop truncated policies/critics,
 average-reward or discounted variants); a module is a truncation to a
 \emph{set}, not a $\kappa$-hop ball, so the set-based IBA
 route~\citep{congeduti2021iba} is the closer parent, and writing out
 Eq.~\eqref{eq:valueloss} as a theorem for regional MAPPO under (M1)--(M4) is
 open work.
-(In the stylised linear model with quadratic queue cost this becomes a
-decentralised-LQR question with block-structured information --- plausibly
+(In the stylized linear model with quadratic queue cost this becomes a
+decentralized-LQR question with block-structured information --- plausibly
 tractable, and in our view the highest-value theory extension.)
 Second, Eq.~\eqref{eq:valueloss} wants \emph{influence}; the measurable
 instrument is \emph{MI}, and the two relate one-sidedly: by data processing,
@@ -660,9 +660,9 @@ orderings across seeds.
 The action-level (causal) content has now been probed twice: observationally
 (conditional MI of actions on future queues; no edge survives FDR in 60
 tests) and --- decisively for identification --- by a preregistered
-\emph{randomised action intervention} on the frozen policies, in which the
+\emph{randomized action intervention} on the frozen policies, in which the
 logged random assignment is exogenous by construction.
-The randomised design passed its calibration checks (negative controls at
+The randomized design passed its calibration checks (negative controls at
 nominal false-positive rates; manipulation check on action entropy) and
 \emph{still} produced zero FDR-significant held-out edges on either network,
 with effect estimates at sub-vehicle scale, though only $14/22$ and $41/71$
@@ -677,7 +677,7 @@ $\delta^{-3}$ locating strong coupling near saturation); and residual power.
 The constructive consequence: if cuttable influence is near zero for every
 partition, Eq.~\eqref{eq:valueloss}'s coupling term cannot distinguish
 partitions, and the observed large partition-dependent training differences
-fall to $\epsilon_{\mathrm{opt}}$ --- \emph{optimisation conditioning} ---
+fall to $\epsilon_{\mathrm{opt}}$ --- \emph{optimization conditioning} ---
 for which correlated within-module signals (the confirmed state-MI retention,
 common-demand mass included) suffice; causation is not required for the
 variance-reduction mechanisms of reward sharing and regional critics.
@@ -699,7 +699,7 @@ variance-reduction mechanisms of reward sharing and regional critics.
              & Disclosed; empirical margins quantify the slack                        \\
         \addlinespace
         2 (flow $\Rightarrow$ dependency)
-             & Theorem, stylised model                          &
+             & Theorem, stylized model                          &
         Linearity; Gaussianity; dual-norm (M3); $\delta^{-3}$ looseness
              & SDPI route for general case; numerical companion                       \\
         \addlinespace
@@ -707,7 +707,7 @@ variance-reduction mechanisms of reward sharing and regional critics.
              & Imported, informal                               &
         Algorithm-specificity; module $\neq$ $\kappa$-hop ball; MI vs.\
         influence one-sidedness
-             & IBA set-based route; decentralised-LQR version;
+             & IBA set-based route; decentralized-LQR version;
         interventional CMI                                                            \\
         \bottomrule
     \end{tabular}
@@ -746,9 +746,9 @@ manuscript's assumptions made literal --- the strongest formal component, and
 the right object to present for proof-checking.
 Link 3 is an interpretation with named parents and two named gaps; it should
 be defended as such, never as a proved result.
-The chain's overall claim --- map-equation minimisation minimises an upper
+The chain's overall claim --- map-equation minimization minimizes an upper
 bound on regional value loss --- is accordingly: exact at step 1, proved in a
-stylised model at step 2, and conditional on imported machinery at step 3.
+stylized model at step 2, and conditional on imported machinery at step 3.
 
     % ============================================================
     {\small
