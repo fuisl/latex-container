@@ -46,21 +46,22 @@ Duong Tran Hai
     without a principled account of what a partition should preserve and
     why.
     This paper develops a training-free, retention-based theory connecting
-    the vehicle flow a partition retains to a bound on the value loss of
-    regional multi-agent reinforcement learning, and operationalizes it with
-    a dependency retention metric, size- and connectivity-matched null
-    models, and a constrained, held-out community-detection benchmark.
+    stationary-walk escape and empirical flow retention to the flow-mediated
+    component of regional multi-agent reinforcement learning value loss, and
+    operationalizes it with a dependency retention metric, size- and
+    connectivity-matched null models, and a constrained, held-out
+    community-detection benchmark.
     Across two simulated road networks and every matched module count,
     flow-based partitions retain 15 to 33 percentage points more flow and 3
     to 34 percentage points more state dependency than the standard
     graph-partitioning baseline METIS, and both structured partitions clear
-    a randomly assigned baseline by a wider margin still, confirming the
-    theory's predicted ordering in every comparison.
+    a randomly assigned baseline by a wider margin still, matching the
+    predicted retention ordering in every comparison.
     A preregistered randomized intervention then finds no resolvable causal
     coupling between regions in the tested traffic regime, so the
-    accompanying single-seed training gains are attributed instead to
-    improved optimization conditioning from correlated within-module
-    signals, and this evidentiary split is stated explicitly.
+    accompanying single-seed training gains are treated as consistent with
+    improved optimization conditioning from correlated within-module signals,
+    and this evidentiary split is stated explicitly.
     A benchmark spanning several partitioning algorithms further shows how to
     apply the same retention criterion under operational feasibility
     constraints, with InfoMap serving as the natural flow-retaining
@@ -116,12 +117,13 @@ unjustified.
 
 This paper supplies that account by changing the question from \emph{which
     partitioner} to \emph{what a partition should preserve}.
-Coordination pressure in traffic networks is carried by vehicle flow, so the
-origin--destination (OD) flow graph is the natural partitioning substrate,
-and the map equation~\citep{rosvall2008maps} gives it an exact
-information-theoretic objective.
-We develop a three-link \emph{retention chain} connecting map-equation
-minimization to a bound on the value loss of regional MARL
+Coordination pressure in traffic networks is carried by vehicle flow, so an
+OD-induced signal-transition flow graph is the natural partitioning
+substrate, and the map equation~\citep{rosvall2008maps} gives a useful
+information-theoretic candidate objective.
+We develop a three-link \emph{retention chain} connecting stationary-walk
+escape and empirical flow retention to the flow-mediated component of
+regional MARL value loss
 (Section~\ref{sec:method}), making flow retention a principled,
 \emph{training-free} surrogate for coordination quality, and measure it with
 a dependency retention ratio instantiated by three complementary instruments
@@ -133,19 +135,21 @@ explicitly:
 \begin{itemize}
     \item \textbf{A retention-based theory of partition quality}
           (Sections~\ref{sec:method}--\ref{sec:psi}): the first formal chain
-          connecting map-equation minimization to an upper bound on
-          regional-MARL value loss, with an explicit criterion for how much
-          flow and dependency a partition retains, statable and auditable
-          independently of any learner, together with the standardized
-          metrics and null models needed to measure it.
+          connecting stationary-walk escape and empirical flow retention to
+          the flow-mediated component of regional-MARL value loss, with an
+          explicit criterion for how much flow and influence a partition
+          retains, statable and auditable independently of any learner,
+          together with the standardized metrics and null models needed to
+          measure it.
     \item \textbf{Confirmatory evidence and an evaluation frame, not an
               algorithm} (Sections~\ref{sec:exp-phi}--\ref{sec:exp-benchmark}):
           flow-based partitions retain more flow and more state dependency
           than METIS across every matched module count, two networks, and
           three seeds; a preregistered randomized intervention finds no
           resolvable causal coupling in the tested regime, so the
-          accompanying single-seed training gains are attributed to
-          \emph{optimization conditioning} rather than severed coupling; and
+          accompanying single-seed training gains are reported as consistent
+          with \emph{optimization conditioning} rather than severed coupling;
+          and
           a constrained, held-out community-detection benchmark shows how to
           apply the retention criterion under deployment constraints, with
           InfoMap serving as the natural flow-retaining instantiation.
@@ -208,7 +212,8 @@ exponential-decay value-locality and influence-based-abstraction bounds in
 networked MARL~\citep{qu2020average,qu2022scalable,congeduti2021iba}, and
 cell-transmission/link-queue traffic
 dynamics~\citep{daganzo1994ctm,jin2012linkqueue}, none of which alone links
-map-equation minimization to regional-MARL value loss.
+stationary-walk escape, flow-mediated influence, and regional-MARL value
+loss.
 
 \paragraph{Community-detection baselines.}
 Our benchmark (Section~\ref{sec:exp-benchmark}) draws its candidates from the
@@ -252,8 +257,8 @@ while retaining the vehicle flow that carries those dependencies.
 
 This framing separates three objects that are often blurred.
 The \emph{road graph} says which intersections are physically adjacent.
-The \emph{OD flow graph} says which intersections exchange vehicles under a
-demand regime.
+The \emph{OD-induced signal-transition flow graph} says which consecutive
+signalized intersections exchange vehicles under a demand regime.
 The \emph{coordination graph} says which agents share rewards, critic inputs,
 or messages during learning.
 Topology is useful, but it is not the same as coordination pressure: two
@@ -261,9 +266,9 @@ adjacent intersections with low traffic exchange may need little explicit
 coordination, while a high-volume corridor can carry dependency even when
 the relevant decision pressure is not captured by an unweighted adjacency
 cut.
-The role of the partition is to turn the OD flow graph into a coordination
-graph whose modules are small enough for MARL and coherent enough that
-important dependencies remain inside modules.
+The role of the partition is to turn this route-flow graph into a
+coordination graph whose modules are small enough for MARL and coherent
+enough that important dependencies remain inside modules.
 
 The same distinction also explains why a partition can help even when
 causal inter-agent action effects are unresolved in a particular test regime.
@@ -275,15 +280,16 @@ approximation burden even when the closed-loop controller damps the direct
 action-to-queue channel.
 The framework below therefore keeps two terms separate: the coupling term
 that the retention theory bounds, and the optimization-conditioning term
-that the experiments identify by elimination.
+that the experiments treat as a leading working interpretation.
 
 \subsection{Flow Retention and InfoMap}
 \label{sec:infomap}
 \label{sec:theory}
 
-Let $\mathcal{G}_{\mathrm{OD}}=(\mathcal{V},\mathcal{E},\mathbf{W})$ be the
-directed OD flow graph, where $W_{ij}$ is the number of vehicles traveling
-from intersection $i$ to $j$ during a representative warm-up window.
+Let $\mathcal{G}_{\mathrm{flow}}=(\mathcal{V},\mathcal{E},\mathbf{W})$ be
+the OD-induced signal-transition flow graph, where $W_{ij}$ is the number of
+vehicles traveling from signal $i$ to the next signal $j$ along realized
+routes during a representative warm-up window.
 We construct $\mathbf{W}$ from simulation trip logs by recording the
 sequence of signalized intersections visited by each completed trip and
 incrementing the corresponding directed OD edge counts.
@@ -373,10 +379,11 @@ In simulation, the route weights come from completed SUMO trips; in a field
 deployment, they can come from historical assignment or a calibrated route
 choice model.
 The road graph is used to project routes and enforce connected modules, but
-the partitioning substrate is the OD-induced movement matrix $\mathbf{W}$.
+the partitioning substrate is the OD-induced signal-transition matrix
+$\mathbf{W}$.
 
 \begin{algorithm}[t]
-    \caption{OD-demand flow-partition construction}
+    \caption{OD-induced route-flow partition construction}
     \label{alg:od-demand}
     \begin{algorithmic}[1]
         \Require OD demand $\{(o,d,q_{od})\}$, routes, signals $\mathcal{V}$, feasible counts $\mathcal{K}$
@@ -402,8 +409,8 @@ When completed trips are available, each trip simply contributes one unit of
 demand to its realized route, so $\alpha_r q_{od}=1$ for that record.
 When only an aggregate OD table is available, $q_{od}$ is split over one or
 more assigned routes.
-In both cases, the output is the same object: a directed OD-flow graph whose
-within-module mass is scored by Eq.~\eqref{eq:phi}.
+In both cases, the output is the same object: a directed route-flow graph
+whose within-module mass is scored by Eq.~\eqref{eq:phi}.
 
 \subsection{Dependency Retention}
 \label{sec:psi}
@@ -419,9 +426,24 @@ For any non-negative dependency matrix $\mathbf{D}$, define
     \label{eq:psi}
 \end{equation}
 the fraction of measured dependency retained within modules.
+For the theoretical chain, the dependency object is an influence matrix, not
+an empirical MI matrix.
+Let $\Gamma_{ij}:=C_{j\leftarrow i}$ be the one-step influence of source
+$i$ on target $j$, and define
+\begin{equation}
+    \Psi_{\Gamma}(\mathcal{P})
+    =
+    \frac{\sum_k\sum_{i,j\in P_k} \Gamma_{ij}}
+    {\sum_{i,j}\Gamma_{ij}} .
+    \label{eq:psigamma}
+\end{equation}
+The empirical scores $\Psi(\mathcal{P},\mathbf{D})$ below audit this
+influence-retention story with measurable matrices; they are not the object
+that enters the value-loss bound.
 We use three instruments.
-$D^{\mathrm{MI}}$ is lagged KSG mutual information between full agent states
-over $\tau\in\{1,5,15,30\}$ and is the model-free instrument for regional
+$D^{\mathrm{MI}}$ is lagged KSG mutual information between per-agent
+traffic-state slices, not the full network state vector, over
+$\tau\in\{1,5,15,30\}$ and is the model-free instrument for regional
 reward sharing.
 It is the right L1 instrument because independent actors have no cross-agent
 input path: a Jacobian across agents would be structurally zero even if their
@@ -475,7 +497,7 @@ The retention chain has three links.
 Its scope is structural: it concerns the error introduced by severing
 inter-agent influence, not a guarantee that flow retention alone improves
 learned control.
-The theoretical track is flow to influence to regional value-loss bound and
+The theoretical track is flow to $\Gamma$ to regional value-loss bound and
 does not require mutual information.
 MI and model Jacobians enter as empirical instruments for auditing retained
 dependency.
@@ -488,16 +510,16 @@ by itself prove nonlinear spill-back.
 First, Proposition~\ref{prop:phi} links InfoMap's escape term to
 stationary-walk retention, with empirical OD retention connected through
 $\epsilon_{\mathrm{walk}}$.
-Second, in flow-local traffic dynamics, the dependency crossing a partition
+Second, in flow-local traffic dynamics, the influence crossing a partition
 is bounded by the corridor-flow exposure it cuts:
-\begin{proposition}[Corridor exposure bounds stylized cut dependency]
+\begin{proposition}[Corridor exposure bounds stylized cut influence]
     \label{prop:transfer}
     Under stylized flow-local dynamics, one-step coupling satisfying
     $C_{j\leftarrow i}\leq\alpha\widetilde{W}_{ij}+\beta_{ij}$, and a
     stationary demand regime, there exist constants $\kappa>0$ and
     $\epsilon_{\mathrm{dem}}\geq0$ such that
     \begin{equation}
-        1-\Psi(\mathcal{P},\mathbf{D})
+        1-\Psi_{\Gamma}(\mathcal{P})
         \leq
         \kappa\!\left(1-\Phi_W(\mathcal{P};\widetilde{\mathbf{W}})\right)
         +\epsilon_{\mathrm{dem}},
@@ -516,11 +538,11 @@ Common rush-hour demand can still correlate far-apart queues, which is why
 $\epsilon_{\mathrm{dem}}$ remains explicit.
 Third, networked-MARL value-locality and influence-based-abstraction
 results~\citep{qu2020average,qu2022scalable,congeduti2021iba} imply that a
-regional learner loses value in proportion to the dependency it cuts:
+regional learner loses value in proportion to the influence it cuts:
 \begin{equation}
     J^\star-J_{\mathcal{P}}
     \leq
-    C(1-\Psi(\mathcal{P},\mathbf{D}))
+    C(1-\Psi_{\Gamma}(\mathcal{P}))
     +\epsilon_{\mathrm{approx}}
     +\epsilon_{\mathrm{opt}}^0
     +\epsilon_{\mathrm{cond}}(\mathcal{P}).
@@ -531,8 +553,9 @@ $\epsilon_{\mathrm{approx}}$ is function-approximation error,
 $\epsilon_{\mathrm{opt}}^0$ is the partition-independent training floor, and
 $\epsilon_{\mathrm{cond}}(\mathcal{P})$ is the partition-dependent
 conditioning term.
-The bound is one-directional: retention is necessary for lossless regional
-decomposition, not sufficient for good training.
+The bound is one-directional: high influence retention is a sufficient
+structural certificate for tightening the coupling-loss term, while low
+retention only weakens that guarantee and does not prove poor performance.
 Under stationary-walk alignment, flow-local coupling, and networked-MARL
 locality, reducing the map-equation escape term tightens the flow-mediated
 component of Eq.~\eqref{eq:valueloss}; it does not bound the optimization
@@ -545,12 +568,12 @@ better regional MARL behavior when the learner can use it.
 Equations~\eqref{eq:qphi}--\eqref{eq:valueloss} give the chain:
 OD flow defines the coordination pressure; InfoMap reduces stationary-walk
 escape and is audited by empirical OD retention; retained corridor-flow
-exposure bounds retained dependency in the stylized model; retained
-dependency reduces the coupling term regional MARL cuts away.
+exposure bounds retained influence in the stylized model; retained influence
+reduces the coupling term regional MARL cuts away.
 When the causal coupling term is not resolved in the tested demand regime,
-the same retained state dependency still explains improved
-optimization conditioning through correlated rewards and smaller critic
-inputs.
+the same retained state dependency is consistent with an
+optimization-conditioning mechanism through correlated rewards and smaller
+critic inputs.
 
 \subsection{Coordination Coupling Spectrum}
 \label{sec:levels}
@@ -601,9 +624,10 @@ module-size boundary rather than always favor flow.
 \end{algorithm}
 
 Algorithm~\ref{alg:workflow} is the intended use of the framework.
-InfoMap is the first candidate because its objective matches retained flow,
-but the final choice is made by the same retention score under the same
-operational constraints that the controller must satisfy.
+InfoMap is the first candidate because its objective includes the
+stationary-walk escape term aligned with retained flow, but the final choice
+is made by the same retention score under the same operational constraints
+that the controller must satisfy.
 This keeps the scientific claim and the engineering procedure aligned:
 the paper proves and measures a criterion, then uses candidate partitioners
 as ways to instantiate that criterion.
@@ -616,8 +640,8 @@ as ways to instantiate that criterion.
 \label{sec:setup}
 
 We evaluate on two SUMO networks: Cologne8, with 8 signalized intersections
-and 30-dimensional per-agent state, and Ingolstadt21, with 21 signalized
-intersections and 85-dimensional per-agent state.
+and a 30-dimensional total network state, and Ingolstadt21, with 21
+signalized intersections and an 85-dimensional total network state.
 For each network we compare InfoMap flow partitions, METIS topology
 partitions, and a reproducible size-balanced random partition at matched
 module count: $k\in\{3,5\}$ on Cologne8 and $k\in\{4,5\}$ on Ingolstadt21.
@@ -630,8 +654,11 @@ for RL evaluation~\citep{henderson2018matters,agarwal2021rliable}.
 The benchmark uses 10 stochastic-policy episodes at each of 5 traffic seeds
 per network, split chronologically into construction, validation, and
 held-out test traces.
-The state-MI matrices are estimated from 361-step warm-up trajectories with
-KSG $k=3$ and lags 1, 5, 15, and 30.
+The state-MI matrices are estimated from per-agent state slices of 361-step
+warm-up trajectories with KSG $k=3$ and lags 1, 5, 15, and 30.
+Because KSG on autocorrelated traffic traces is noisy, the evidence uses
+partition-level retained mass and seed-wise ordering rather than isolated
+pairwise MI magnitudes.
 The learned-dependency matrices use the same partition-independent rule on
 both networks: take a global CoLight checkpoint, differentiate valid target
 outputs with respect to every source agent's input features, and aggregate
@@ -691,13 +718,14 @@ more mass or achieves lower waiting time than the named baseline.
     \end{tabular}
 \end{table}
 
-Table~\ref{tab:phi} confirms the first link of the story.
+Table~\ref{tab:phi} verifies that the generated candidate realizes the
+intended flow-retention criterion.
 The InfoMap flow partition retains more observed OD flow than METIS at every
 matched module count, with gains from 15.4 to 32.5 percentage points.
 The random control sits far below both structured methods.
 This does not need a complicated interpretation: InfoMap favors partitions
 with low stationary-walk escape, and the measured margins show that this
-candidate also retains empirical OD movement in the actual traces.
+candidate also retains empirical route movement in the actual traces.
 METIS remains above random, so topology captures some flow structure.
 The extra Flow-over-METIS margin is the contribution of using OD movement
 itself as the partitioning substrate.
@@ -731,15 +759,16 @@ The Ingolstadt21 $k=4$ margin is small, but it is still meaningful because
 METIS and random are nearly tied on that cell while Flow clears both.
 The within/cross diagnostic is useful but stricter than the theory: it tests
 whether average within-module pairs exceed average cross-module pairs, while
-Proposition~\ref{prop:transfer} concerns total retained mass.
+Proposition~\ref{prop:transfer} concerns total retained influence mass.
 Accordingly, Cologne8 $k=3$ passes cleanly, while Ingolstadt21 shows
 consistent aggregate retention despite close within/cross means.
 The full-state flow--MI Spearman correlation is significant on both networks,
 but lower on Ingolstadt21 ($\rho=0.141$) than Cologne8 ($\rho=0.514$),
 consistent with larger common-demand confounding on the larger network.
 Queue-total-only MI on Ingolstadt21 does not align significantly with flow,
-so the full multidimensional state is the headline dependency source and the
-queue-only version is treated as a sensitivity check.
+so the full multidimensional per-agent state slice is the headline
+dependency source and the queue-only version is treated as a sensitivity
+check.
 
 \subsection{Result 3: Learned Dependency and Module Size}
 \label{sec:exp-dg}
@@ -862,16 +891,17 @@ null is not caused by a miscalibrated estimator.
 Together with the empty spill-back diagnostic and observational CMI null,
 this says that direct causal action coupling is not resolved in the tested
 demand regime.
-The result is useful because it tells us where to place the training gains:
-not in preserved causal coupling across module boundaries, but in
+The result is useful because it clarifies where the training gains should be
+interpreted: not as evidence of preserved causal coupling across module
+boundaries, but as consistent with
 $\epsilon_{\mathrm{cond}}(\mathcal{P})$, the optimization-conditioning term
 of Eq.~\eqref{eq:valueloss}.
 This negative result also protects the story from overclaiming.
 If the paper asserted that the training gains came from preserved causal
 spill-back coupling, the perturbation result would contradict it.
 Instead, the theory has a named place for partition-dependent learning
-geometry, and the confirmed state-dependency retention is exactly the signal
-needed for that explanation.
+geometry, and the confirmed state-dependency retention is the signal that
+makes this conditioning interpretation plausible.
 
 \subsection{Result 5: Training Case Study}
 \label{sec:exp-perf}
@@ -908,15 +938,16 @@ waiting-time differences are available, the sign agrees: the partition with
 higher retained state dependency also has lower waiting time.
 Because these are single-seed runs, they are evidence of a coherent case
 study rather than a statistically validated performance claim.
-Read with Result~4, the most supported mechanism is that flow-coherent
+Read with Result~4, the leading working explanation is that flow-coherent
 modules group correlated signals that make regional rewards and regional
 critics easier to optimize.
 
 Cologne8 gives the same L1/L2 direction, but with an important size caveat.
 For IPPO, Flow lowers waiting time by 33.8\% relative to METIS; for MAPPO,
 the reduction is 6.7\%.
-The Flow $k=3$ module profile is $6/1/1$, so this comparison is less balanced
-than Ingolstadt21 and is not used as the clean headline case.
+The Flow $k=3$ module profile is $6/1/1$, so this legacy diagnostic
+comparison is less balanced than Ingolstadt21 and is not recommended as a
+deployment partition.
 CoLight shows the opposite pattern, with Flow worse than both METIS and the
 baseline.
 That row is useful precisely because it agrees with the $D^G$ boundary:
@@ -932,7 +963,7 @@ main L1/L2 conclusion.
 The evidence supports the intended A--B--C chain rather than a loose
 collection of metrics.
 OD flow identifies where coordination pressure is concentrated; InfoMap
-happens to minimize the stationary-walk escape term that complements
+happens to penalize the stationary-walk escape term that complements
 $\Phi_\pi$; empirical $\Phi_W$ then audits whether the same candidate retains
 observed OD movement.
 The resulting partitions retain more state-MI dependency than topology-only
@@ -950,16 +981,16 @@ action-to-queue edge family, and randomized perturbation finds no held-out
 FDR-significant coupling after the action assignment is made exogenous.
 The paper therefore does not claim that the reported training gains come
 from preserved causal spill-back coupling.
-The supported explanation is the conditioning term in
-Eq.~\eqref{eq:valueloss}: flow-coherent regions group correlated reward and
-state signals, which can reduce reward noise and make regional critics
-smaller and better matched to the dominant dependencies.
+We treat the conditioning term in Eq.~\eqref{eq:valueloss} as the leading
+working explanation: flow-coherent regions group correlated reward and state
+signals, which can reduce reward noise and make regional critics smaller and
+better matched to the dominant dependencies.
 The CoLight diagnostic supplies the boundary condition.
 When attention is restricted to modules that are too small for one-hop
 influence, compact topological neighborhoods can dominate flow corridors.
 
 For deployment, the message is concrete.
-Estimate OD flow from representative trips, generate feasible candidate
+Estimate route flow from representative trips, generate feasible candidate
 partitions, score them by $\Phi$, $\Psi$, and connected-null
 $\Psi_{\mathrm{adj}}$ on validation traces, and train only the small
 validation front.
@@ -982,18 +1013,17 @@ signal control is not which partitioner to prefer in the abstract, but what
 the partition should retain.
 The answer is vehicle-flow retention.
 InfoMap is useful here because its map-equation objective favors
-low stationary-walk escape, which is aligned with the retained-flow structure
-that the hypothesis asks for when the walk and empirical OD measures are
-close; the
-experiments show that this alignment is strong in practice: flow partitions
-retain 15.4--32.5 percentage points more OD flow and 2.7--34.4 percentage
-points more state dependency than same-$k$ METIS partitions across every
-tested network, module count, and state-MI seed.
+low stationary-walk escape, which makes it a natural candidate generator for
+the retained-flow structure that the hypothesis asks to audit.
+The experiments show that the generated flow partitions retain
+15.4--32.5 percentage points more empirical route flow and 2.7--34.4
+percentage points more state dependency than same-$k$ METIS partitions
+across every tested network, module count, and state-MI seed.
 
 The causal diagnostics make the claim sharper.
 In these demand regimes, spill-back events are too sparse and randomized
 action perturbations reveal no held-out action-level coupling.
-The observed training gains are therefore best explained by optimization
+The observed training gains are therefore consistent with optimization
 conditioning: flow-coherent regions group correlated signals, reduce noisy
 regional reward averaging, and make regional critics smaller and better
 matched to the dominant dependencies.
@@ -1002,10 +1032,11 @@ too small for one-hop attention dependencies, compact neighborhood retention
 can dominate flow retention.
 
 The practical procedure is correspondingly direct.
-Build an OD flow graph from trips, generate candidate partitions under the
-deployment's module-count, size, and connectivity constraints, score them by
-$\Phi$, $\Psi$, and connected-null $\Psi_{\mathrm{adj}}$ on validation data,
-then policy-test a small validation-front subset.
+Build an OD-induced route-flow graph from trips, generate candidate
+partitions under the deployment's module-count, size, and connectivity
+constraints, score them by $\Phi$, $\Psi$, and connected-null
+$\Psi_{\mathrm{adj}}$ on validation data, then policy-test a small
+validation-front subset.
 The criterion is the durable contribution.
 The next experiments are a multi-seed training expansion and a higher-demand
 regime where the causal coupling term has room to appear.
@@ -1018,7 +1049,7 @@ regime where the causal coupling term has room to appear.
 
 The proof stack supports three claims and no stronger one.
 The flow link is exact for the stationary walk used by InfoMap.
-The dependency link is a stylized corridor-exposure bound.
+The influence link is a stylized corridor-exposure bound.
 The value link is imported from networked-MARL locality and controls the
 structural loss from cutting influence.
 MI, CMI, and Jacobians are empirical instruments for auditing the links; they
@@ -1049,32 +1080,46 @@ $1-\Phi_W\leq1-\Phi_\pi+\epsilon_{\mathrm{walk}}$.
 This is why InfoMap is used as a flow-retaining candidate generator, while
 the paper still audits $\Phi_W$ directly on observed trips.
 
-\noindent\textbf{Dependency link.}
-The transfer statement is a stylized linear-Gaussian link-queue argument
-around an undersaturated operating point.
-Write $C_{j\leftarrow i}$ for the one-step influence of source $i$ on target
-$j$ and assume
-$C_{j\leftarrow i}\leq\alpha\widetilde{W}_{ij}+\beta_{ij}$, where
+\begin{table}[t]
+    \centering
+    \caption{Walk-mismatch audit placeholder. Values must be filled from
+        retained-flow and stationary-walk recomputation before submission.}
+    \label{tab:walk-mismatch}
+    \footnotesize
+    \begin{tabular}{lccc}
+        \toprule
+        Partition set & $\Phi_W$ & $\Phi_\pi$ & $\epsilon_{\mathrm{walk}}$ \\
+        \midrule
+        C8 Flow/METIS, all $k$  & pending & pending & pending \\
+        I21 Flow/METIS, all $k$ & pending & pending & pending \\
+        Max/median summary      & pending & pending & pending \\
+        Rank agreement          & pending & pending & pending \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\noindent\textbf{Influence link.}
+The transfer statement is first a direct influence-retention bound.
+Write $\Gamma_{ij}:=C_{j\leftarrow i}$ and assume
+$\Gamma_{ij}\leq\alpha\widetilde{W}_{ij}+\beta_{ij}$, where
 $\widetilde{W}_{ij}=W_{ij}+W_{ji}$ is bidirectional corridor-flow exposure.
-A local linearization has
-$x_{t+1}=A x_t+B a_t+\eta_t$, with $A_{ji}=0$ away from feasible traffic
-corridors and $|A_{ji}|$ bounded by $C_{j\leftarrow i}$.
-For stable $A$, the covariance expansion
-$\Sigma=\sum_{\ell\geq0}A^\ell\Sigma_\eta(A^\ell)^\top$ charges any
-cross-module dependency path to at least one cut corridor.
-Geometric decay bounds the uncut portions of those paths by a stability
-constant, while bounded variances give a local Gaussian MI envelope.
-Thus
+Summing this pointwise bound over cut pairs gives
 \begin{equation}
-    \sum_{c(i)\neq c(j)}D_{ij}
+    \sum_{c(i)\neq c(j)}\Gamma_{ij}
     \leq
     \bar{\kappa}\sum_{c(i)\neq c(j)}\widetilde{W}_{ij}
     +\bar{\epsilon}_{\mathrm{dem}},
-    \label{eq:app-cutdep}
+    \label{eq:app-cutinfl}
 \end{equation}
-where the residual collects common-demand covariance and model mismatch.
-Dividing by total dependency mass gives Eq.~\eqref{eq:transfer}, with the
+where the residual collects the summed $\beta_{ij}$ slack, common-demand
+terms, and model mismatch.
+Dividing by total influence mass gives Eq.~\eqref{eq:transfer}, with the
 constants absorbed into $\kappa$ and $\epsilon_{\mathrm{dem}}$.
+A stylized linear-Gaussian link-queue model provides an optional bridge from
+this influence object to MI audits: in
+$x_{t+1}=A x_t+B a_t+\eta_t$, stable covariance propagation charges any
+cross-module covariance path to at least one cut corridor, and bounded
+variances give a local Gaussian MI envelope.
 Reverse OD flow is not treated as literal downstream blocking in this proof;
 directed spill-back would require a separate blocked-sending state or storage
 term.
@@ -1084,7 +1129,7 @@ surrogate, not a full nonlinear spill-back theorem.
 \noindent\textbf{Value link.}
 Equation~\eqref{eq:valueloss} imports value-locality and
 influence-abstraction results for networked MARL and interprets
-$1-\Psi$ as the dependency mass discarded by regionalization.
+$1-\Psi_\Gamma$ as the influence mass discarded by regionalization.
 Those results bound structural bias from cutting influence; they do not
 claim that the chosen learner optimizes equally well under every partition.
 The optimization-conditioning term is therefore left explicit because
@@ -1121,7 +1166,7 @@ the L3 boundary condition.
 
 % ============================================================
 \section*{Acknowledgment}
-[Omitted in anonymised submission.]
+[Omitted in anonymized submission.]
 
 % ============================================================
 {

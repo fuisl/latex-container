@@ -22,10 +22,11 @@
 \newcommand{\Var}{\operatorname{Var}}
 \newcommand{\Cov}{\operatorname{Cov}}
 \newcommand{\Wt}{\widetilde{W}}
+\newcommand{\PsiG}{\Psi_{\Gamma}}
 \newcommand{\cut}[1]{c(i) \neq c(j)}
 
 \title{The Retention Chain, in Full:\\
-    \large From the Map Equation to Regional Value Loss ---
+    \large From Stationary-Walk Escape to Regional Value Loss ---
     Proof Notes for Discussion}
 \author{}
 \date{July 2026 --- working note, not for distribution}
@@ -45,30 +46,31 @@ machinery (shared rewards, a regional critic, restricted attention) operates
 within modules only.
 The design question is: \emph{what should a partition preserve, and why?}
 Our answer is a three-link chain of inequalities.
-Writing $\Phi$ for the fraction of vehicle flow a partition retains within
-modules, $\Psi$ for the fraction of inter-agent statistical dependency it
-retains, and $J^\star - J_{\mathcal{P}}$ for the value lost by decomposing
-the MARL problem regionally:
+Writing $\Phi_W$ for empirical route-flow retention, $\Phi_\pi$ for
+stationary-walk retention, $\PsiG$ for retained influence, and
+$J^\star - J_{\mathcal{P}}$ for the value lost by decomposing the MARL
+problem regionally:
 \begin{center}
     \small
     \begin{tabular}{lll}
         \toprule
         Link                                                        & Statement & Epistemic status \\
         \midrule
-        1. map equation $\Leftrightarrow$ flow retention            &
-        $q_{\circlearrowleft} = 1 - \Phi$                           &
-        exact identity (\S\ref{sec:link1})                                                         \\
-        2. cut flow bounds cut dependency                           &
-        $1 - \Psi \leq \kappa (1 - \Phi) + \epsilon_{\mathrm{dem}}$ &
-        theorem in a stylized model (\S\ref{sec:link2})                                            \\
-        3. cut dependency bounds value loss                         &
-        $J^\star - J_{\mathcal{P}} \leq C (1 - \Psi) + \epsilon$    &
-        imported, informal (\S\ref{sec:link3})                                                     \\
+        1. stationary walk $\Leftrightarrow$ retained flow          &
+        $q_{\circlearrowleft} = 1 - \Phi_\pi$                       &
+        exact identity (\S\ref{sec:link1})                         \\
+        2. cut route flow bounds cut influence                      &
+        $1 - \PsiG \leq \kappa (1 - \Phi_W) + \epsilon_{\mathrm{dem}}$ &
+        stylized bound (\S\ref{sec:link2})                         \\
+        3. cut influence bounds value loss                          &
+        $J^\star - J_{\mathcal{P}} \leq C (1 - \PsiG) + \epsilon$   &
+        imported, informal (\S\ref{sec:link3})                     \\
         \bottomrule
     \end{tabular}
 \end{center}
-Chained, the links say: \emph{a partition that minimizes the map equation
-    minimizes an upper bound on the value loss of regional decomposition}.
+Chained, the links say: \emph{a partition with low stationary-walk escape
+    and high empirical route-flow retention tightens the flow-mediated
+    component of the regional value-loss bound}.
 This is the theoretical backbone of the manuscript; it is why measuring flow
 retention --- which requires no training --- is a principled surrogate for
 coordination quality.
@@ -87,10 +89,10 @@ document, not a paper section.
 The chain's central physical object is \emph{influence} --- how much one
 intersection's state or action perturbs another's future --- not mutual
 information.
-Link 2 is proved for an MI instrument because MI is what we can estimate
-model-free from data; but MI relates to influence one-sidedly (large observed
-MI certifies large influence; small observed MI certifies nothing, since a
-strong channel can sit unexercised by the demand distribution).
+Link 2 is stated for the influence matrix $\Gamma$.
+MI is a model-free audit of the mechanism and relates to influence only under
+extra assumptions; small observed MI does not prove that a strong channel is
+absent, since the demand distribution may leave it unexercised.
 Keeping this asymmetry in view resolves several apparent puzzles about what
 the empirical results do and do not establish; we return to it in
 \S\ref{sec:link3}.
@@ -107,7 +109,8 @@ A partition $\mathcal{P} = \{P_1, \dots, P_K\}$ assigns each node a module
 label $c(i)$.
 
 \begin{definition}[Retention ratios]
-    For a non-negative matrix $M$ (flow or dependency), the retention ratio of
+    For a non-negative matrix $M$ (flow, influence, or measured dependency),
+    the retention ratio of
     partition $\mathcal{P}$ is
     \begin{equation}
         \Phi(\mathcal{P}, M)
@@ -115,18 +118,19 @@ label $c(i)$.
         \label{eq:retention}
     \end{equation}
     the fraction of total mass whose endpoints share a module.
-    We write $\Phi$ when $M$ is flow and $\Psi$ when $M$ is a dependency matrix
-    $D$; both lie in $[0,1]$, and $1 - \Phi$ (resp.\ $1 - \Psi$) is the
-    \emph{cut} fraction.
+    We write $\Phi_W$ for empirical route flow, $\Phi_\pi$ for the stationary
+    walk, $\PsiG$ for the influence matrix $\Gamma$, and
+    $\Psi(\mathcal{P},D)$ for empirical audit matrices.
+    Each lies in $[0,1]$, and its complement is the cut fraction.
 \end{definition}
 
-The dependency instrument used in Link 2 is lagged mutual information between
+The main dependency audit is lagged mutual information between
 per-intersection states,
 $D^{\mathrm{MI}}_{ij} = I\!\left(x_i(t); x_j(t{+}\tau)\right)$, $\tau \geq 1$,
 estimated in practice by the KSG estimator~\citep{kraskov2004ksg}.
 
 % ============================================================
-\section{Link 1: the map equation is a statement about retained flow}
+\section{Link 1: the map equation is a statement about stationary-walk retention}
 \label{sec:link1}
 
 \paragraph{Where we start.}
@@ -144,42 +148,43 @@ steps, $H(\mathcal{Q})$ the entropy of the between-module codebook, and the
 second sum prices within-module description.
 Infomap searches for the partition minimizing $L$.
 The observation --- elementary once seen, but load-bearing --- is that
-$q_{\circlearrowleft}$ \emph{is} the cut flow fraction, exactly, under the
-walk induced by the empirical flows.
+$q_{\circlearrowleft}$ is the cut fraction of the stationary edge measure
+used by the map equation.
+The empirical route-flow score $\Phi_W$ coincides with this stationary score
+only when the empirical OD edge measure matches the walk's stationary edge
+measure.
 
-\begin{proposition}[$q_{\circlearrowleft} = 1 - \Phi$]
+\begin{proposition}[$q_{\circlearrowleft} = 1 - \Phi_\pi$]
     \label{prop:phi}
-    Define the empirical OD walk by visit rates
-    $p_i = \sum_j W_{ij} / S$ with $S = \sum_{a,b} W_{ab}$, and transitions
-    $p_{ij} = W_{ij} / \sum_{j'} W_{ij'}$.
+    Let $\mu^\pi_{ij}=\pi_iP_{ij}$ be the stationary edge measure of the
+    random walk evaluated by the map equation, and define
+    $\Phi_\pi(\mathcal{P})=\sum_{c(i)=c(j)}\mu^\pi_{ij}$.
     Then
     \begin{equation}
         q_{\circlearrowleft}
-        = \sum_{i,j:\, c(i) \neq c(j)} p_i\, p_{ij}
-        = 1 - \Phi(\mathcal{P}, W).
+        = \sum_{c(i)\neq c(j)} \mu^\pi_{ij}
+        = 1 - \Phi_\pi(\mathcal{P}).
     \end{equation}
+    For empirical route flow,
+    $\Phi_W(\mathcal{P})=\sum_{c(i)=c(j)}\mu^W_{ij}$ with
+    $\mu^W_{ij}=W_{ij}/\sum_{a,b}W_{ab}$, and the mismatch is
+    $\epsilon_{\mathrm{walk}}=|\Phi_\pi-\Phi_W|$.
 \end{proposition}
 
 \begin{proof}
-    The stationary probability of traversing the directed edge $(i,j)$ in one
-    step is
-    \[
-        p_i\, p_{ij}
-        = \frac{\sum_b W_{ib}}{S} \cdot \frac{W_{ij}}{\sum_b W_{ib}}
-        = \frac{W_{ij}}{S}.
-    \]
-    Summing over ordered pairs with $c(i) \neq c(j)$ gives
-    \[
-        q_{\circlearrowleft}
-        = \frac{1}{S} \sum_{c(i) \neq c(j)} W_{ij},
-    \]
-    which is the complement of Eq.~\eqref{eq:retention}.
+    The map equation counts module exits under the stationary walk.
+    Summing the stationary edge mass over all cross-module edges gives
+    $q_{\circlearrowleft}$; since the total stationary edge mass is one, this
+    is the complement of the within-module stationary mass
+    $\Phi_\pi(\mathcal{P})$.
+    The empirical score uses $\mu^W$ instead, so equality requires
+    $\mu^W=\mu^\pi$.
 \end{proof}
 
-\begin{corollary}[Infomap maximises entropy-regularised flow retention]
+\begin{corollary}[Infomap favors entropy-regularized flow retention]
     At any fixed codebook-entropy profile, $L(\mathcal{M})$ is increasing in
-    $1 - \Phi$; the entropy terms are the regulariser that excludes the
-    degenerate one-module solution ($\Phi = 1$ at full within-module
+    $1 - \Phi_\pi$; the entropy terms are the regularizer that excludes the
+    degenerate one-module solution ($\Phi_\pi = 1$ at full within-module
     description cost).
 \end{corollary}
 
@@ -201,15 +206,16 @@ Infomap over alternatives is an object worth measuring rather than a
 foregone conclusion.
 
 % ============================================================
-\section{Link 2: cut flow bounds cut dependency (proved in a stylized model)}
+\section{Link 2: cut flow bounds cut influence (proved in a stylized model)}
 \label{sec:link2}
 
 \subsection{Why a stylized model, and which one}
 \label{sec:whymodel}
 
-The general claim --- flow cut by a partition upper-bounds the statistical
-dependency it cuts --- requires relating an information-theoretic quantity
-(MI) to a physical one (flow) through the dynamics.
+The manuscript-level claim --- flow cut by a partition upper-bounds the
+influence it cuts --- is stated for $\Gamma$.
+Relating this influence object to an information-theoretic audit such as MI
+requires extra dynamics and distributional assumptions.
 For general nonlinear stochastic dynamics this is the territory of strong
 data-processing inequalities on Bayesian networks, where end-to-end MI is
 bounded by sums over paths of products of per-edge contraction
@@ -476,7 +482,7 @@ MI \emph{linear} in correlation up to a constant.
 \subsection{The transfer theorem}
 \label{sec:transferthm}
 
-\begin{theorem}[Cut flow bounds cut dependency; stylized model]
+\begin{theorem}[Optional MI bridge for the cut-influence story; stylized model]
     \label{thm:transfer}
     Under (M1)--(M4), for every partition $\mathcal{P}$ and every lag
     $\tau \geq 1$,
@@ -542,9 +548,11 @@ MI \emph{linear} in correlation up to a constant.
 
 \paragraph{Interpretation.}
 The direction of Theorem~\ref{thm:transfer} matters: low cut flow
-\emph{certifies} low cut dependency (up to the demand term), but high
-retention does not certify high task performance --- the bound is a necessary
-condition for lossless decomposition, not a sufficient one.
+\emph{certifies} low cut influence in the manuscript object, and low cut
+dependency in the stylized MI bridge (up to the demand term), but high
+retention does not certify high task performance.
+It is a sufficient structural certificate for tightening the coupling-loss
+term, while low retention only weakens that guarantee.
 The constant's $\delta^{-3}$ makes a second point quantitative: as the
 network approaches saturation ($\delta \to 0$), the bound degrades --- and
 saturation is precisely where the backward (spill-back) channel activates.
@@ -560,7 +568,7 @@ structurally (in $b$) rather than assumed small; and
 Corollary~\ref{cor:demzero} converts the manuscript's ``conditional-MI fix''
 from a proposal into a theorem.
 
-\emph{Idealisations a critic should probe} (each is a genuine limitation; we
+\emph{Idealizations a critic should probe} (each is a genuine limitation; we
 state our best defense):
 \begin{enumerate}
     \item \textbf{Linearity.} Eq.~\eqref{eq:var} is a linearization; real
@@ -574,7 +582,7 @@ state our best defense):
           bounding those coefficients by flow.
     \item \textbf{Gaussianity.} Used twice: the MI--correlation bijection and
           conditional-variance monotonicity.
-          Defense: both have sub-Gaussian analogues at the price of constants;
+          Defense: both have sub-Gaussian analogs at the price of constants;
           nothing in the walk-counting core uses Gaussianity.
     \item \textbf{Dual-norm sub-criticality (M3).} Row sums bound influence
           \emph{exerted}; column sums bound influence \emph{received}.
@@ -600,7 +608,7 @@ state our best defense):
 \end{enumerate}
 
 % ============================================================
-\section{Link 3: cut dependency bounds regional value loss (imported)}
+\section{Link 3: cut influence bounds regional value loss (imported)}
 \label{sec:link3}
 
 \paragraph{Where the machinery comes from.}
@@ -622,11 +630,11 @@ is exactly the cut influence mass, giving the shape
 \begin{equation}
     J^\star - J_{\mathcal{P}}
     \;\leq\;
-    C \left(1 - \Psi(\mathcal{P}, D)\right)
+    C \left(1 - \PsiG(\mathcal{P})\right)
     + \epsilon_{\mathrm{approx}} + \epsilon_{\mathrm{opt}},
     \label{eq:valueloss}
 \end{equation}
-with $D$ an \emph{influence} matrix and the $\epsilon$'s collecting
+with $\Gamma$ the \emph{influence} matrix and the $\epsilon$'s collecting
 function-approximation and optimization error the partition does not control.
 
 \paragraph{Two formal gaps, stated precisely.}
@@ -667,20 +675,20 @@ nominal false-positive rates; manipulation check on action entropy) and
 \emph{still} produced zero FDR-significant held-out edges on either network,
 with effect estimates at sub-vehicle scale, though only $14/22$ and $41/71$
 preregistered pairs reached prospective $80\%$ power.
-The causal reading of Link 3 is therefore tested-and-null under the current
-demand regime, not merely unresolved.
+The causal reading of Link 3 is therefore unresolved under the current demand
+regime rather than established by the available traces.
 Three readings survive: closed-loop damping (perturbations measured under
-trained stabilising policies at all other intersections, which attenuate
+trained stabilizing policies at all other intersections, which attenuate
 disturbances by design); a deeply undersaturated regime (converging with the
 empty spill-back diagnostic, and consistent with the transfer bound's
 $\delta^{-3}$ locating strong coupling near saturation); and residual power.
-The constructive consequence: if cuttable influence is near zero for every
-partition, Eq.~\eqref{eq:valueloss}'s coupling term cannot distinguish
-partitions, and the observed large partition-dependent training differences
-fall to $\epsilon_{\mathrm{opt}}$ --- \emph{optimization conditioning} ---
-for which correlated within-module signals (the confirmed state-MI retention,
-common-demand mass included) suffice; causation is not required for the
-variance-reduction mechanisms of reward sharing and regional critics.
+The constructive consequence is interpretive: if cuttable influence is near
+zero for every partition, Eq.~\eqref{eq:valueloss}'s coupling term cannot
+distinguish partitions, and the observed partition-dependent training
+differences are consistent with $\epsilon_{\mathrm{opt}}$ ---
+\emph{optimization conditioning}.
+Correlated within-module signals make this explanation plausible, but they do
+not by themselves prove it.
 
 % ============================================================
 \section{Epistemic summary, and where to push}
@@ -698,12 +706,12 @@ variance-reduction mechanisms of reward sharing and regional critics.
         Teleportation; memoryless walk; greedy search
              & Disclosed; empirical margins quantify the slack                        \\
         \addlinespace
-        2 (flow $\Rightarrow$ dependency)
+        2 (flow $\Rightarrow$ influence)
              & Theorem, stylized model                          &
         Linearity; Gaussianity; dual-norm (M3); $\delta^{-3}$ looseness
              & SDPI route for general case; numerical companion                       \\
         \addlinespace
-        3 (dependency $\Rightarrow$ value loss)
+        3 (influence $\Rightarrow$ value loss)
              & Imported, informal                               &
         Algorithm-specificity; module $\neq$ $\kappa$-hop ball; MI vs.\
         influence one-sidedness
@@ -746,9 +754,10 @@ manuscript's assumptions made literal --- the strongest formal component, and
 the right object to present for proof-checking.
 Link 3 is an interpretation with named parents and two named gaps; it should
 be defended as such, never as a proved result.
-The chain's overall claim --- map-equation minimization minimizes an upper
-bound on regional value loss --- is accordingly: exact at step 1, proved in a
-stylized model at step 2, and conditional on imported machinery at step 3.
+The chain's overall claim --- stationary-walk escape and empirical route-flow
+retention tighten the flow-mediated component of regional value loss --- is
+accordingly: exact for the stationary walk at step 1, stylized at step 2,
+and conditional on imported machinery at step 3.
 
     % ============================================================
     {\small
