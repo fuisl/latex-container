@@ -15,6 +15,8 @@
 \usepackage{algorithm}
 \usepackage{algpseudocode}
 \usepackage{amsthm}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,fit,backgrounds,calc}
 \usepackage[numbers,sort&compress]{natbib}
 \usepackage{hyperref}
 
@@ -255,26 +257,76 @@ spill-back coupling.
 The partitioning problem is therefore to keep the coordination graph small
 while retaining the vehicle flow that carries those dependencies.
 
-This framing separates three objects that are often blurred.
-The \emph{road graph} says which intersections are physically adjacent.
-The \emph{OD-induced signal-transition flow graph} says which consecutive
-signalized intersections exchange vehicles under a demand regime.
-The \emph{coordination graph} says which agents share rewards, critic inputs,
-or messages during learning.
-Topology is useful, but it is not the same as coordination pressure: two
-adjacent intersections with low traffic exchange may need little explicit
-coordination, while a high-volume corridor can carry dependency even when
-the relevant decision pressure is not captured by an unweighted adjacency
-cut.
-The role of the partition is to turn this route-flow graph into a
-coordination graph whose modules are small enough for MARL and coherent
-enough that important dependencies remain inside modules.
+\begin{figure}[t]
+    \centering
+    \footnotesize
+    \begin{tikzpicture}[
+            every node/.style={inner sep=0pt},
+            nd/.style={circle,draw,fill=black!8,minimum size=3.6mm,inner sep=0pt,
+                    font=\tiny},
+            road/.style={draw=black!45,line width=0.4pt},
+            mod/.style={draw=black!70,dashed,rounded corners=1.5pt,inner sep=1.6pt},
+            plab/.style={font=\scriptsize,align=center,inner sep=1pt},
+            x=11mm,y=9mm
+        ]
+        % ---- Panel A: road graph
+        \begin{scope}
+            \node[nd] (a1) at (0,1) {};
+            \node[nd] (a2) at (1,1) {};
+            \node[nd] (a3) at (0,0) {};
+            \node[nd] (a4) at (1,0) {};
+            \draw[road] (a1)--(a2) (a3)--(a4) (a1)--(a3) (a2)--(a4);
+            \node[plab] at (0.5,-0.62) {(a) road graph\\[-1pt]adjacency};
+        \end{scope}
+        % ---- Panel B: OD flow graph
+        \begin{scope}[xshift=2.75cm]
+            \node[nd] (b1) at (0,1) {};
+            \node[nd] (b2) at (1,1) {};
+            \node[nd] (b3) at (0,0) {};
+            \node[nd] (b4) at (1,0) {};
+            \draw[road,line width=1.7pt,-{Latex[length=1.5mm]}] (b1)--(b2);
+            \draw[road,line width=1.7pt,-{Latex[length=1.5mm]}] (b2)--(b4);
+            \draw[road,line width=0.4pt,-{Latex[length=1.2mm]}] (b3)--(b4);
+            \draw[road,line width=0.4pt,-{Latex[length=1.2mm]}] (b1)--(b3);
+            \node[plab] at (0.5,-0.62) {(b) OD flow $\mathbf{W}$\\[-1pt]vehicle exchange};
+        \end{scope}
+        % ---- Panel C: coordination graph
+        \begin{scope}[xshift=5.5cm]
+            \node[nd] (c1) at (0,1) {};
+            \node[nd] (c2) at (1,1) {};
+            \node[nd] (c3) at (0,0) {};
+            \node[nd] (c4) at (1,0) {};
+            \draw[road,line width=1.7pt] (c1)--(c2) (c2)--(c4);
+            \begin{scope}[on background layer]
+                \node[mod,fit=(c1)(c2)(c4)] {};
+                \node[mod,fit=(c3)] {};
+            \end{scope}
+            \node[plab] at (0.5,-0.62) {(c) coordination\\[-1pt]modules for MARL};
+        \end{scope}
+    \end{tikzpicture}
+    \caption{Three objects the framework keeps distinct. Thicker arrows in (b)
+        mark the high-volume corridor that carries dependency; the partition
+        turns that route-flow graph into the coordination graph (c).}
+    \label{fig:threegraphs}
+\end{figure}
 
-The same distinction also explains why a partition can help even when
-causal inter-agent action effects are unresolved in a particular test regime.
-Regional reward sharing and regional critics do not require every within
-module pair to exert a measurable causal effect at the next decision step.
-They require signals that are jointly informative for learning.
+Fig.~\ref{fig:threegraphs} separates three objects that are often blurred:
+the \emph{road graph} of physical adjacency, the \emph{OD-induced
+    signal-transition flow graph} of vehicle exchange under a demand regime, and
+the \emph{coordination graph} of agents that share rewards, critic inputs, or
+messages.
+Topology is not coordination pressure: two adjacent intersections with low
+traffic exchange may need little explicit coordination, while a high-volume
+corridor can carry dependency that an unweighted adjacency cut misses.
+The partition's role is to turn the route-flow graph into a coordination
+graph whose modules are small enough for MARL and coherent enough to keep
+important dependencies inside modules.
+
+This also explains why a partition can help even when causal inter-agent
+action effects are unresolved in a particular test regime.
+Regional reward sharing and regional critics do not require every
+within-module pair to exert a measurable causal effect at the next decision
+step, only signals that are jointly informative for learning.
 Correlated queue and delay trajectories can reduce reward noise and critic
 approximation burden even when the closed-loop controller damps the direct
 action-to-queue channel.
@@ -342,16 +394,11 @@ Otherwise the discrepancy is the measurable walk-mismatch term
     |\Phi_\pi(\mathcal{P})-\Phi_W(\mathcal{P})|.
     \label{eq:walkmismatch}
 \end{equation}
-This is the useful coincidence of the paper: InfoMap's objective and the
-retention hypothesis point in the same direction, so InfoMap supplies a
-training-free flow-retaining candidate whose retained mass can be checked
-directly.
-In plain terms, InfoMap gives short descriptions to walks that stay inside
-modules and pays an extra codebook cost when they leave.
-If vehicles mostly circulate within a proposed region, that region is cheap
-to describe; if vehicles frequently cross a proposed boundary, the boundary
-is expensive.
-This is exactly the partition property the hypothesis asks to test.
+This is the useful coincidence of the paper: InfoMap codes walks that stay
+inside modules cheaply and pays an extra codebook cost when they leave, so
+its objective and the retention hypothesis point in the same direction, and
+InfoMap supplies a training-free flow-retaining candidate whose retained mass
+can be checked directly.
 The entropy terms in Eq.~\eqref{eq:mapeq} prevent the trivial solution of one
 giant module, while the measured $\Phi_W$ reports how much observed traffic
 the final modules actually retain.
@@ -405,12 +452,10 @@ $\mathbf{W}$.
     \end{algorithmic}
 \end{algorithm}
 
-When completed trips are available, each trip simply contributes one unit of
-demand to its realized route, so $\alpha_r q_{od}=1$ for that record.
-When only an aggregate OD table is available, $q_{od}$ is split over one or
-more assigned routes.
-In both cases, the output is the same object: a directed route-flow graph
-whose within-module mass is scored by Eq.~\eqref{eq:phi}.
+Completed trips contribute one unit of demand each to their realized route
+($\alpha_r q_{od}=1$), while an aggregate OD table splits $q_{od}$ over its
+assigned routes; either way the output is a directed route-flow graph whose
+within-module mass is scored by Eq.~\eqref{eq:phi}.
 
 \subsection{Dependency Retention}
 \label{sec:psi}
@@ -457,9 +502,6 @@ $D^{\mathrm{CMI}}$ is conditional mutual information from one agent's action
 to another's future queue, conditioning on the target's own queue and action;
 it targets causal control coupling but is treated as a diagnostic because the
 available data do not resolve significant edges.
-Together, the three instruments cover a useful spectrum: state correlation
-for reward conditioning, learned model sensitivity for attention, and
-action-level causal influence for the strongest mechanistic claim.
 
 Because coarse or uneven partitions retain more mass mechanically, we also
 use a chance-adjusted score
@@ -472,28 +514,22 @@ use a chance-adjusted score
 \end{equation}
 where $\mathcal{R}$ is a null family with the same module-size sequence, and
 in the benchmark also the same physical-connectivity constraint.
-The former controls for size; the latter controls for the fact that any
-connected traffic region already retains more dependency than an arbitrary
-assignment.
-This matters most for small networks, where one large module and several
-singletons can score well on raw retention simply because the large module
-contains many pairs.
+The former controls for size, which matters most on small networks where one
+large module plus singletons scores well simply by containing many pairs; the
+latter controls for the fact that any connected traffic region already
+retains more dependency than an arbitrary assignment.
 Raw $\Psi$ answers whether a particular deployed partition keeps dependency;
-$\Psi_{\mathrm{adj}}$ asks whether it keeps more dependency than partitions
-with the same size and operability constraints.
+$\Psi_{\mathrm{adj}}$ asks whether it keeps more than partitions under the
+same size and operability constraints.
 The within/cross MI check, spill-back check, and action-perturbation probe
-are therefore read as diagnostics.
-They ask, respectively, whether within-module MI exceeds cross-module MI,
-whether spill-back remains within modules, and whether randomized actions
-produce measurable downstream influence.
-They clarify mechanism, while $\Phi$, $\Psi$, and $\Psi_{\mathrm{adj}}$ carry
-the partition-level claim.
+are read as diagnostics that clarify mechanism, while $\Phi$, $\Psi$, and
+$\Psi_{\mathrm{adj}}$ carry the partition-level claim.
 
 \subsection{From Retention to Regional MARL}
 \label{sec:transfer}
 \label{sec:valueloss}
 
-The retention chain has three links.
+The retention chain has three links, summarized in Fig.~\ref{fig:chain}.
 Its scope is structural: it concerns the error introduced by severing
 inter-agent influence, not a guarantee that flow retention alone improves
 learned control.
@@ -507,11 +543,58 @@ separate term.
 Finally, the transfer model is an undersaturated approximation and does not
 by itself prove nonlinear spill-back.
 
-First, Proposition~\ref{prop:phi} links InfoMap's escape term to
-stationary-walk retention, with empirical OD retention connected through
-$\epsilon_{\mathrm{walk}}$.
-Second, in flow-local traffic dynamics, the influence crossing a partition
-is bounded by the corridor-flow exposure it cuts:
+\begin{figure}[t]
+    \centering
+    \begin{tikzpicture}[
+            font=\scriptsize,
+            box/.style={draw,rounded corners=2pt,align=center,inner sep=3pt,
+                    text width=25mm,minimum height=7.5mm},
+            aud/.style={draw,dashed,rounded corners=2pt,align=center,inner sep=3pt,
+                    text width=25mm,fill=black!4},
+            lnk/.style={-{Latex[length=1.8mm]},thick},
+            lab/.style={font=\tiny,align=left,inner sep=0pt}
+        ]
+        \node[box] (w) {OD route flow $\mathbf{W}$};
+        \node[box,below=13mm of w]   (phi) {$\Phi_W$\\[-1pt]retained flow};
+        \node[box,below=13mm of phi] (psi) {$\Psi_\Gamma$\\[-1pt]retained influence};
+        \node[box,below=13mm of psi] (val) {$J^\star-J_{\mathcal{P}}$\\[-1pt]regional value loss};
+
+        \draw[lnk] (w) -- (phi);
+        \draw[lnk] (phi) -- (psi);
+        \draw[lnk] (psi) -- (val);
+
+        \node[lab,right=1.5mm of $(w.south)!0.5!(phi.north)$]
+        {Prop.~\ref{prop:phi}; residual $\epsilon_{\mathrm{walk}}$};
+        \node[lab,right=1.5mm of $(phi.south)!0.5!(psi.north)$]
+        {Prop.~\ref{prop:transfer}; gain $\kappa$, residual
+        $\epsilon_{\mathrm{dem}}$};
+        \node[lab,right=1.5mm of $(psi.south)!0.5!(val.north)$]
+        {Eq.~\eqref{eq:valueloss}; residual\\
+        $\epsilon_{\mathrm{approx}},\epsilon^0_{\mathrm{opt}},
+            \epsilon_{\mathrm{cond}}$};
+
+        \node[aud,below=7mm of val] (meas)
+        {measurement track\\[1pt]
+        $\Psi(D^{\mathrm{MI}}),\Psi(D^{G}),$\\$\Psi(D^{\mathrm{CMI}}),
+            \Psi_{\mathrm{adj}}$};
+        \draw[-{Latex[length=1.5mm]},dashed] (meas.west) -- ++(-7mm,0)
+        |- node[font=\tiny,above,pos=0.95,inner sep=1.5pt] {audits} (psi.west);
+    \end{tikzpicture}
+    \caption{The three-link retention chain and its two tracks. The solid chain
+        is the theory track, which never passes through mutual information; each
+        arrow names the residual terms that link does not control. The dashed
+        box is the measurement track: retention scores audit a partition, but
+        are not the object $\Psi_\Gamma$ that enters the bound. The chain is
+        one-directional, and $\epsilon_{\mathrm{cond}}$ is named but not bounded
+        by retention.}
+    \label{fig:chain}
+\end{figure}
+
+Proposition~\ref{prop:phi} supplies the first link, connecting InfoMap's
+escape term to stationary-walk retention with empirical OD retention entering
+through $\epsilon_{\mathrm{walk}}$.
+The second link bounds the influence crossing a partition by the corridor-flow
+exposure it cuts:
 \begin{proposition}[Corridor exposure bounds stylized cut influence]
     \label{prop:transfer}
     Under stylized flow-local dynamics, one-step coupling satisfying
@@ -536,9 +619,10 @@ blocking; directed spill-back would require a separate blocked-sending or
 storage-state term.
 Common rush-hour demand can still correlate far-apart queues, which is why
 $\epsilon_{\mathrm{dem}}$ remains explicit.
-Third, networked-MARL value-locality and influence-based-abstraction
-results~\citep{qu2020average,qu2022scalable,congeduti2021iba} imply that a
-regional learner loses value in proportion to the influence it cuts:
+The third link is imported: networked-MARL value-locality and
+influence-based-abstraction results~\citep{qu2020average,qu2022scalable,congeduti2021iba}
+imply that a regional learner loses value in proportion to the influence it
+cuts:
 \begin{equation}
     J^\star-J_{\mathcal{P}}
     \leq
@@ -565,11 +649,6 @@ term.
 A partition that retains more OD flow should retain more
 coordination-relevant dependency, and this retained dependency should support
 better regional MARL behavior when the learner can use it.
-Equations~\eqref{eq:qphi}--\eqref{eq:valueloss} give the chain:
-OD flow defines the coordination pressure; InfoMap reduces stationary-walk
-escape and is audited by empirical OD retention; retained corridor-flow
-exposure bounds retained influence in the stylized model; retained influence
-reduces the coupling term regional MARL cuts away.
 When the causal coupling term is not resolved in the tested demand regime,
 the same retained state dependency is consistent with an
 optimization-conditioning mechanism through correlated rewards and smaller
@@ -626,11 +705,10 @@ module-size boundary rather than always favor flow.
 Algorithm~\ref{alg:workflow} is the intended use of the framework.
 InfoMap is the first candidate because its objective includes the
 stationary-walk escape term aligned with retained flow, but the final choice
-is made by the same retention score under the same operational constraints
-that the controller must satisfy.
-This keeps the scientific claim and the engineering procedure aligned:
-the paper proves and measures a criterion, then uses candidate partitioners
-as ways to instantiate that criterion.
+is made by the same retention score under the operational constraints the
+controller must satisfy.
+The paper therefore proves and measures a criterion, and treats candidate
+partitioners as ways to instantiate it.
 
 % ============================================================
 \section{Experiments and Results}

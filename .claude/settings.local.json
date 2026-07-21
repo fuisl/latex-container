@@ -87,7 +87,12 @@
       "Bash(rm -rf /tmp/claude-0/-workspace/7bb03855-26e5-43f5-826d-c0b8325a9f02/scratchpad/buildtest)",
       "Bash(mkdir -p /tmp/claude-0/-workspace/7bb03855-26e5-43f5-826d-c0b8325a9f02/scratchpad/buildtest)",
       "Bash(cp src/*.tex src/*.bib src/*.cls src/*.bst src/*.sty /tmp/claude-0/-workspace/7bb03855-26e5-43f5-826d-c0b8325a9f02/scratchpad/buildtest/)",
-      "Bash(pdflatex -interaction=nonstopmode main.tex)"
+      "Bash(pdflatex -interaction=nonstopmode main.tex)",
+      "Bash(git -C /workspace log --oneline -8)",
+      "Bash(git -C /workspace status --short)",
+      "Bash(pdftotext -f 9 -l 9 main.pdf -)",
+      "Bash(sed -i '282s/xshift=2.05cm/xshift=2.75cm/; 294s/xshift=4.1cm/xshift=5.5cm/' src/main.tex)",
+      "Bash(sed -i '279s/-0.72/-0.62/; 291s/-0.72/-0.62/; 304s/-0.72/-0.62/' src/main.tex)"
     ]
   }
 }
