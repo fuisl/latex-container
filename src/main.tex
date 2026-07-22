@@ -136,7 +136,7 @@ Our two most consequential contributions, with evidentiary status stated
 explicitly:
 \begin{itemize}
     \item \textbf{A retention-based theory of partition quality}
-          (Sections~\ref{sec:method}--\ref{sec:psi}): the first formal chain
+          (Section~\ref{sec:method}): the first formal chain
           connecting stationary-walk escape and empirical flow retention to
           the flow-mediated component of regional-MARL value loss, with an
           explicit criterion for how much flow and influence a partition
@@ -228,6 +228,25 @@ dominates.
 % ============================================================
 \section{Retention Framework}
 \label{sec:method}
+
+\subsection{Overview}
+\label{sec:overview}
+
+This section develops the criterion; Section~\ref{sec:construction} builds
+and selects partitions with it.
+The starting point is that the coordination graph is a design variable rather
+than a given (Section~\ref{sec:ndpomdp}), so a partition can be judged by what
+it preserves.
+Because coordination pressure in traffic is carried by vehicle flow, we score
+a partition by the OD flow it keeps inside modules, $\Phi_W$
+(Section~\ref{sec:flowretention}), and by the dependency it keeps, $\Psi$,
+measured with three complementary instruments and chance-adjusted against
+size- and connectivity-matched nulls (Section~\ref{sec:psi}).
+These two quantities are joined by a three-link retention chain running from
+OD flow to the flow-mediated component of regional MARL value loss
+(Section~\ref{sec:transfer}).
+Both scores are training-free: they are computed before any learner runs, so
+partition quality can be audited without conflating it with optimization luck.
 
 \subsection{Coordination Graph as a Design Variable}
 \label{sec:ndpomdp}
@@ -334,7 +353,8 @@ The framework below therefore keeps two terms separate: the coupling term
 that the retention theory bounds, and the optimization-conditioning term
 that the experiments treat as a leading working interpretation.
 
-\subsection{Flow Retention and InfoMap}
+\subsection{Flow Retention and the Map Equation}
+\label{sec:flowretention}
 \label{sec:infomap}
 \label{sec:theory}
 
@@ -342,14 +362,9 @@ Let $\mathcal{G}_{\mathrm{flow}}=(\mathcal{V},\mathcal{E},\mathbf{W})$ be
 the OD-induced signal-transition flow graph, where $W_{ij}$ is the number of
 vehicles traveling from signal $i$ to the next signal $j$ along realized
 routes during a representative warm-up window.
-We construct $\mathbf{W}$ from simulation trip logs by recording the
-sequence of signalized intersections visited by each completed trip and
-incrementing the corresponding directed OD edge counts.
-The warm-up policy is uniformly random, so the resulting graph reflects
-demand and network geometry before a learned controller reshapes the flow.
-This is deliberately training-free: the partition can be chosen before any
-MARL run, and its quality can be audited without conflating partition choice
-with optimization luck.
+The warm-up policy is uniformly random, so the graph reflects demand and
+network geometry before a learned controller reshapes the flow;
+Section~\ref{sec:odconstruction} gives the construction.
 For a partition $\mathcal{P}=\{P_1,\ldots,P_K\}$, define empirical OD-flow
 retention as
 \begin{equation}
@@ -396,9 +411,7 @@ Otherwise the discrepancy is the measurable walk-mismatch term
 \end{equation}
 This is the useful coincidence of the paper: InfoMap codes walks that stay
 inside modules cheaply and pays an extra codebook cost when they leave, so
-its objective and the retention hypothesis point in the same direction, and
-InfoMap supplies a training-free flow-retaining candidate whose retained mass
-can be checked directly.
+its objective and the retention criterion point in the same direction.
 The entropy terms in Eq.~\eqref{eq:mapeq} prevent the trivial solution of one
 giant module, while the measured $\Phi_W$ reports how much observed traffic
 the final modules actually retain.
@@ -415,47 +428,6 @@ the final modules actually retain.
     the stationary edge measure; otherwise
     $1-\Phi_W\leq1-\Phi_\pi+\epsilon_{\mathrm{walk}}$.
 \end{proposition}
-
-\subsection{OD-Demand Flow Partition Construction}
-\label{sec:odconstruction}
-
-Algorithm~\ref{alg:od-demand} makes the training-free construction explicit.
-The key step is to convert OD demand into a directed signal-to-signal flow
-matrix before any learner is trained.
-In simulation, the route weights come from completed SUMO trips; in a field
-deployment, they can come from historical assignment or a calibrated route
-choice model.
-The road graph is used to project routes and enforce connected modules, but
-the partitioning substrate is the OD-induced signal-transition matrix
-$\mathbf{W}$.
-
-\begin{algorithm}[t]
-    \caption{OD-induced route-flow partition construction}
-    \label{alg:od-demand}
-    \begin{algorithmic}[1]
-        \Require OD demand $\{(o,d,q_{od})\}$, routes, signals $\mathcal{V}$, feasible counts $\mathcal{K}$
-        \State Initialize $W_{ij}\gets0$ for all $i,j\in\mathcal{V}$ and candidate set $\mathcal{C}\gets\emptyset$
-        \For{each OD pair $(o,d,q_{od})$}
-        \For{each assigned route $r$ with route share $\alpha_r$}
-        \State Project $r$ to signal sequence $(v_1,\ldots,v_m)$
-        \For{each consecutive pair $(v_\ell,v_{\ell+1})$}
-        \State $W_{v_\ell v_{\ell+1}}\gets W_{v_\ell v_{\ell+1}}+\alpha_r q_{od}$
-        \EndFor
-        \EndFor
-        \EndFor
-        \For{each $k\in\mathcal{K}$}
-        \State Run directed InfoMap on $\mathbf{W}$ and collect $k$-module candidates
-        \State Keep candidates satisfying size and road-connectivity limits
-        \State Add the feasible candidate with largest $\Phi_W(\mathcal{P})$ to $\mathcal{C}$
-        \EndFor
-        \State \Return flow-based candidate partitions $\mathcal{C}$
-    \end{algorithmic}
-\end{algorithm}
-
-Completed trips contribute one unit of demand each to their realized route
-($\alpha_r q_{od}=1$), while an aggregate OD table splits $q_{od}$ over its
-assigned routes; either way the output is a directed route-flow graph whose
-within-module mass is scored by Eq.~\eqref{eq:phi}.
 
 \subsection{Dependency Retention}
 \label{sec:psi}
@@ -490,7 +462,8 @@ $D^{\mathrm{MI}}$ is lagged KSG mutual information between per-agent
 traffic-state slices, not the full network state vector, over
 $\tau\in\{1,5,15,30\}$ and is the model-free instrument for regional
 reward sharing.
-It is the right L1 instrument because independent actors have no cross-agent
+It is the right instrument for the regional-reward mechanism (level L1,
+Section~\ref{sec:levels}) because independent actors have no cross-agent
 input path: a Jacobian across agents would be structurally zero even if their
 traffic states are highly related.
 $D^{G}$ is the absolute input-output Jacobian of a global CoLight model and
@@ -654,6 +627,58 @@ the same retained state dependency is consistent with an
 optimization-conditioning mechanism through correlated rewards and smaller
 critic inputs.
 
+% ============================================================
+\section{Partition Construction and Selection}
+\label{sec:construction}
+
+The framework above states and measures a criterion; this section instantiates
+it, treating candidate partitioners as ways to satisfy that criterion.
+InfoMap is the first candidate, since its objective includes the
+stationary-walk escape term aligned with retained flow
+(Section~\ref{sec:flowretention}), so it supplies a training-free
+flow-retaining partition whose retained mass can be checked directly.
+
+\subsection{OD-Demand Flow Partition Construction}
+\label{sec:odconstruction}
+
+Algorithm~\ref{alg:od-demand} makes the training-free construction explicit.
+The key step is to convert OD demand into a directed signal-to-signal flow
+matrix before any learner is trained.
+In simulation, the route weights come from completed SUMO trips; in a field
+deployment, they can come from historical assignment or a calibrated route
+choice model.
+The road graph is used to project routes and enforce connected modules, but
+the partitioning substrate is the OD-induced signal-transition matrix
+$\mathbf{W}$.
+
+\begin{algorithm}[t]
+    \caption{OD-induced route-flow partition construction}
+    \label{alg:od-demand}
+    \begin{algorithmic}[1]
+        \Require OD demand $\{(o,d,q_{od})\}$, routes, signals $\mathcal{V}$, feasible counts $\mathcal{K}$
+        \State Initialize $W_{ij}\gets0$ for all $i,j\in\mathcal{V}$ and candidate set $\mathcal{C}\gets\emptyset$
+        \For{each OD pair $(o,d,q_{od})$}
+        \For{each assigned route $r$ with route share $\alpha_r$}
+        \State Project $r$ to signal sequence $(v_1,\ldots,v_m)$
+        \For{each consecutive pair $(v_\ell,v_{\ell+1})$}
+        \State $W_{v_\ell v_{\ell+1}}\gets W_{v_\ell v_{\ell+1}}+\alpha_r q_{od}$
+        \EndFor
+        \EndFor
+        \EndFor
+        \For{each $k\in\mathcal{K}$}
+        \State Run directed InfoMap on $\mathbf{W}$ and collect $k$-module candidates
+        \State Keep candidates satisfying size and road-connectivity limits
+        \State Add the feasible candidate with largest $\Phi_W(\mathcal{P})$ to $\mathcal{C}$
+        \EndFor
+        \State \Return flow-based candidate partitions $\mathcal{C}$
+    \end{algorithmic}
+\end{algorithm}
+
+Completed trips contribute one unit of demand each to their realized route
+($\alpha_r q_{od}=1$), while an aggregate OD table splits $q_{od}$ over its
+assigned routes; either way the output is a directed route-flow graph whose
+within-module mass is scored by Eq.~\eqref{eq:phi}.
+
 \subsection{Coordination Coupling Spectrum}
 \label{sec:levels}
 
@@ -687,6 +712,9 @@ L3 uses graph attention; it is sensitive when modules become smaller than the
 one-hop influence range, so the $D^G$ result is expected to expose a
 module-size boundary rather than always favor flow.
 
+\subsection{Retention-Guided Selection Workflow}
+\label{sec:workflow}
+
 \begin{algorithm}[t]
     \caption{Retention-guided coordination-graph construction}
     \label{alg:workflow}
@@ -702,13 +730,9 @@ module-size boundary rather than always favor flow.
     \end{algorithmic}
 \end{algorithm}
 
-Algorithm~\ref{alg:workflow} is the intended use of the framework.
-InfoMap is the first candidate because its objective includes the
-stationary-walk escape term aligned with retained flow, but the final choice
-is made by the same retention score under the operational constraints the
-controller must satisfy.
-The paper therefore proves and measures a criterion, and treats candidate
-partitioners as ways to instantiate it.
+Algorithm~\ref{alg:workflow} is the intended use of the framework: InfoMap
+supplies the first candidate, but the final choice is made by the same
+retention score under the operational constraints the controller must satisfy.
 
 % ============================================================
 \section{Experiments and Results}
