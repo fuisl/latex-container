@@ -62,7 +62,10 @@ Duong Tran Hai
     at every matched module count, and the higher-retention partition
     reaches a lower best-checkpoint delay in most matched MARL training
     comparisons, most clearly where a coordination mechanism aggregates the
-    partition into a single learning signal.
+    partition into a single learning signal; completed three-seed
+    replication of this training gain is Cologne8-only so far, with the
+    matching Ingolstadt21 comparisons pending a rerun under a revised
+    training configuration.
     The exception is instructive: the partition with the highest flow
     retention in the study attains it by isolating two intersections into
     modules of their own, which is operationally unusable, so retention
@@ -173,11 +176,12 @@ Our three contributions, with evidentiary status stated explicitly:
           The higher-retention partition also reaches a lower
           best-checkpoint delay in most matched training comparisons, nine
           of twelve in a broader single-seed sweep and, on a completed
-          three-seed replication, a large gain in two of five cells with the
-          remainder neutral, showing that retained flow is a useful proxy
-          for selecting coordination regions.
-          These are reported as measured associations, not as
-          significance-tested or causal claims.
+          three-seed replication restricted to Cologne8, a large gain in two
+          of three cells with the third near a tie; the matching
+          Ingolstadt21 replications are pending a rerun under a revised
+          training configuration (Table~\ref{tab:wait-gains}), showing that
+          retained flow is a useful proxy for selecting coordination
+          regions.
 \end{itemize}
 
 % ============================================================
@@ -200,7 +204,7 @@ Flow-aware partitioning exists in the transport
 literature~\citep{odflow2019partition,mfdpartition2020}, but serves zoning
 and macroscopic modeling, not learning agents.
 Our gap claim is narrow: no prior work provides an \emph{explicit
-partition-quality criterion}, statable before training and independent of
+    partition-quality criterion}, statable before training and independent of
 any learner, for what a coordination-graph designer should optimize.
 
 \paragraph{Coordination topology in MARL.}
@@ -251,9 +255,7 @@ equation~\citep{rosvall2008maps} and Markov
 stability~\citep{delvenne2010stability,lambiotte2014multiscale}.
 Because our question is which \emph{criterion} to optimize rather than which
 implementation wins, the main comparisons use one representative per family,
-METIS and InfoMap; the wider repertoire enters only in the constrained
-benchmark (Section~\ref{sec:exp-benchmark}), where we claim no new detector,
-only the harness under which we find that none dominates.
+METIS and InfoMap.
 
 % ============================================================
 \section{Retention Framework}
@@ -486,7 +488,7 @@ $D^{\mathrm{CMI}}$ is conditional mutual information from one agent's action
 to another's future queue, conditioning on the target's own queue and action;
 it targets causal control coupling and is treated as a diagnostic, because
 the effects it looks for turn out to be below what our data resolve
-(Section~\ref{sec:exp-benchmark}).
+(Section~\ref{sec:exp-perturb}).
 
 Because coarse or uneven partitions retain more mass mechanically, we also
 use a chance-adjusted score
@@ -607,7 +609,7 @@ together reduces the variance of an averaged regional reward and gives the
 critic a lower-dimensional input better matched to the dominant dependencies.
 Correlated signals suffice for that, and correlation is what $\Psi$ measures.
 We call this second route \emph{optimization conditioning}, and
-Section~\ref{sec:exp-benchmark} gives the reason it matters here: our
+Section~\ref{sec:exp-perturb} gives the reason it matters here: our
 randomized probes do not resolve action-level causal coupling in this demand
 regime, so conditioning, not preserved causation, is the reading our own data
 support.
@@ -795,8 +797,6 @@ All main retention comparisons are matched by map and module count.
 The random baseline is a single reproducible round-robin assignment after a
 seeded shuffle, so it gives a fixed chance floor rather than a distribution
 over random partitions.
-The benchmark later replaces this simple control with exact-size and
-connectivity-preserving null families.
 \paragraph{Evidence standards}
 We report no significance tests.
 The evidence is raw values, the differences between them, and the
@@ -885,14 +885,14 @@ topology-based partitioning leaves on the table.
     \setlength{\tabcolsep}{2.5pt}
     \begin{tabular}{lrrrrrr}
         \toprule
-                     &     & \multicolumn{3}{c}{Raw $\Psi(D^{\mathrm{MI}})$} & \multicolumn{2}{c}{Gain (pp)} \\
+                     &     & \multicolumn{3}{c}{Raw $\Psi(D^{\mathrm{MI}})$} & \multicolumn{2}{c}{Gain (pp)}                                            \\
         \cmidrule(lr){3-5}\cmidrule(lr){6-7}
-        Map          & $k$ & Flow            & METIS           & Random          & METIS         & Random \\
+        Map          & $k$ & Flow                                            & METIS                         & Random          & METIS         & Random \\
         \midrule
-        Cologne8     & 3   & 0.641$\pm$0.009 & 0.296$\pm$0.007 & 0.244$\pm$0.005 & +34.4$\pm$1.7 & +39.6  \\
-        Cologne8     & 5   & 0.280$\pm$0.009 & 0.126$\pm$0.005 & 0.112$\pm$0.003 & +15.4$\pm$1.4 & +16.9  \\
-        Ingolstadt21 & 4   & 0.246$\pm$0.003 & 0.218$\pm$0.003 & 0.217$\pm$0.002 & +2.7$\pm$0.5  & +2.9   \\
-        Ingolstadt21 & 5   & 0.220$\pm$0.003 & 0.167$\pm$0.005 & 0.160$\pm$0.001 & +5.3$\pm$0.7  & +6.0   \\
+        Cologne8     & 3   & 0.641$\pm$0.009                                 & 0.296$\pm$0.007               & 0.244$\pm$0.005 & +34.4$\pm$1.7 & +39.6  \\
+        Cologne8     & 5   & 0.280$\pm$0.009                                 & 0.126$\pm$0.005               & 0.112$\pm$0.003 & +15.4$\pm$1.4 & +16.9  \\
+        Ingolstadt21 & 4   & 0.246$\pm$0.003                                 & 0.218$\pm$0.003               & 0.217$\pm$0.002 & +2.7$\pm$0.5  & +2.9   \\
+        Ingolstadt21 & 5   & 0.220$\pm$0.003                                 & 0.167$\pm$0.005               & 0.160$\pm$0.001 & +5.3$\pm$0.7  & +6.0   \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -1127,21 +1127,22 @@ downstream benefit tracking $\Psi(D^G)$ rather than $\Phi$.
     \centering
     \caption{Critic dependency retention $\Psi(D^Q)$, mean $\pm$ sample SD
         over three independently trained global MAPPO critic seeds per
-        Cologne8 cell. Ingolstadt21 is not estimable: no global
-        (non-regional) MAPPO checkpoint is available there.}
+        Cologne8 cell.}
+    % Ingolstadt21 is not estimable: no global
+    % (non-regional) MAPPO checkpoint is available there.
     \label{tab:psi-dq}
     \scriptsize
     \setlength{\tabcolsep}{2.5pt}
     \begin{tabular}{lrrrrr}
         \toprule
-                     &     & \multicolumn{3}{c}{Raw $\Psi(D^Q)$} & \multicolumn{1}{c}{Gain} \\
+                 &     & \multicolumn{3}{c}{Raw $\Psi(D^Q)$} & \multicolumn{1}{c}{Gain}                                            \\
         \cmidrule(lr){3-5}\cmidrule(lr){6-6}
-        Map          & $k$ & Flow                     & METIS           & Random          & vs.\ METIS (pp)         \\
+        Map      & $k$ & Flow                                & METIS                    & Random          & vs.\ METIS (pp)        \\
         \midrule
-        Cologne8     & 3   & \textbf{0.606$\pm$0.010} & 0.256$\pm$0.002 & 0.252$\pm$0.001 & $\mathbf{+35.0\pm0.9}$ \\
-        Cologne8     & 5   & \textbf{0.259$\pm$0.007} & 0.115$\pm$0.001 & 0.107$\pm$0.002 & $\mathbf{+14.4\pm0.6}$ \\
-        Ingolstadt21 & 4   & \multicolumn{4}{c}{not estimable}                                                     \\
-        Ingolstadt21 & 5   & \multicolumn{4}{c}{not estimable}                                                     \\
+        Cologne8 & 3   & \textbf{0.606$\pm$0.010}            & 0.256$\pm$0.002          & 0.252$\pm$0.001 & $\mathbf{+35.0\pm0.9}$ \\
+        Cologne8 & 5   & \textbf{0.259$\pm$0.007}            & 0.115$\pm$0.001          & 0.107$\pm$0.002 & $\mathbf{+14.4\pm0.6}$ \\
+        % Ingolstadt21 & 4   & \multicolumn{4}{c}{not estimable}                                                     \\
+        % Ingolstadt21 & 5   & \multicolumn{4}{c}{not estimable}                                                     \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -1174,67 +1175,77 @@ $\Psi(D^{Q})$ sides with $D^{\mathrm{MI}}$'s ordering over $D^{G}$'s $k=5$
 reversal, and it agrees with how L2 actually trains: MAPPO's R2 delay
 reduction of $23.7\%$ (Table~\ref{tab:wait-gains}) sits on a critic that
 demonstrably retains more value-relevant input under Flow.
-Ingolstadt21 MAPPO's own R2 result, an essentially neutral $+5.3\%$ at
-$k=4$, has no critic-level counterpart to check it against; on that network
-the optimization-conditioning reading of Section~\ref{sec:exp-benchmark}
+Ingolstadt21 MAPPO's own R2 result at $k=4$ is withheld pending a rerun
+under a revised configuration (Table~\ref{tab:wait-gains}) and has no
+critic-level counterpart to check it against regardless; on that network
+the optimization-conditioning reading of Section~\ref{sec:exp-perturb}
 carries the cell alone.
 $D^Q$ is contribution 3's most direct link between retention and
 performance: the same mechanism the critic uses to train is the mechanism
 $\Psi(D^Q)$ measures.
 
-\subsection{Result 6: Feasible Selection and Causal Diagnostics}
-\label{sec:exp-benchmark}
+% Commented out: the connected-null margin benchmark below is weak evidence
+% on its own (Cologne8/Ingolstadt21 admit only 5/16 unique frontier
+% partitions at these sizes, so the null family is coarse and a margin over
+% it carries little information, as the withheld paragraph itself already
+% concedes). Restore if a larger candidate pool or null family becomes
+% available. The causal-diagnostics half that follows is restored below as
+% its own Result 6.
+% \subsection{Result 6: Feasible Selection}
+% \label{sec:exp-benchmark}
+%
+% The constrained benchmark asks how the retention criterion behaves once
+% deployment constraints are enforced.
+% Across 337,575 candidate records from InfoMap, agent-level InfoMap,
+% normalized cut, Leiden, Markov stability, and METIS, 62,257 were feasible
+% and collapsed to 4,935 unique connected, size-bounded partitions.
+% Validation-only Pareto selection then produced 5 unique Cologne8 frontier
+% partitions and 16 unique Ingolstadt21 frontier partitions.
+% No optimizer dominated the front.
+% The practical lesson is simple: a flow-based generator supplies the candidates
+% the hypothesis is about, while the final deployed partition should be chosen
+% by the retention criterion under the required size and connectivity
+% constraints.
+
+% \begin{table}[t]
+%     \centering
+%     \caption{Connected-null adjusted held-out CMI retention. Values are
+%         positive percentage-point gains over the connected null.}
+%     \label{tab:benchmark-frontier}
+%     \footnotesize
+%     \begin{tabular}{lr}
+%         \toprule
+%         Frontier point          & Margin over connected null (pp) \\
+%         \midrule
+%         Cologne8 val.\ best     & $+10.9$                         \\
+%         Ingolstadt21 val.\ best & $+1.5$                          \\
+%         Ingolstadt21 test best  & $+5.4$                          \\
+%         \bottomrule
+%     \end{tabular}
+% \end{table}
+
+% Table~\ref{tab:benchmark-frontier} shows why the validation and test roles
+% stay separate.
+% The candidate chosen on Cologne8 validation traces stays above the connected
+% null on held-out queue-CMI by $10.9$ points.
+% That margin should not be over-read: Cologne8 admits so few distinct
+% connected partitions at these module sizes that the null family is coarse,
+% and a margin measured against a handful of alternatives carries
+% correspondingly little information.
+% On Ingolstadt21 the highest-validation candidate also stays above the null,
+% by $1.5$ points, while a different frontier point reaches $5.4$ points once
+% the held-out traces are inspected afterwards.
+% That reordering is why the front is chosen on validation traces and reported
+% on held-out traces only after the choice is fixed.
+% No optimizer dominated the front; the benchmark's contribution is the harness
+% rather than a winner.
+% This is contribution 1's ``under size and connectivity constraints'' clause
+% made operational: retention is chance-adjusted against a null family that is
+% already restricted to feasible partitions, so the score that survives this
+% benchmark is one a deployment could actually run.
+
+\subsection{Result 6: Causal Diagnostics}
 \label{sec:exp-perturb}
-
-The constrained benchmark asks how the retention criterion behaves once
-deployment constraints are enforced.
-Across 337,575 candidate records from InfoMap, agent-level InfoMap,
-normalized cut, Leiden, Markov stability, and METIS, 62,257 were feasible
-and collapsed to 4,935 unique connected, size-bounded partitions.
-Validation-only Pareto selection then produced 5 unique Cologne8 frontier
-partitions and 16 unique Ingolstadt21 frontier partitions.
-No optimizer dominated the front.
-The practical lesson is simple: a flow-based generator supplies the candidates
-the hypothesis is about, while the final deployed partition should be chosen
-by the retention criterion under the required size and connectivity
-constraints.
-
-\begin{table}[t]
-    \centering
-    \caption{Connected-null adjusted held-out CMI retention. Values are
-        positive percentage-point gains over the connected null.}
-    \label{tab:benchmark-frontier}
-    \footnotesize
-    \begin{tabular}{lr}
-        \toprule
-        Frontier point          & Margin over connected null (pp) \\
-        \midrule
-        Cologne8 val.\ best     & $+10.9$                         \\
-        Ingolstadt21 val.\ best & $+1.5$                          \\
-        Ingolstadt21 test best  & $+5.4$                          \\
-        \bottomrule
-    \end{tabular}
-\end{table}
-
-Table~\ref{tab:benchmark-frontier} shows why the validation and test roles
-stay separate.
-The candidate chosen on Cologne8 validation traces stays above the connected
-null on held-out queue-CMI by $10.9$ points.
-That margin should not be over-read: Cologne8 admits so few distinct
-connected partitions at these module sizes that the null family is coarse,
-and a margin measured against a handful of alternatives carries
-correspondingly little information.
-On Ingolstadt21 the highest-validation candidate also stays above the null,
-by $1.5$ points, while a different frontier point reaches $5.4$ points once
-the held-out traces are inspected afterwards.
-That reordering is why the front is chosen on validation traces and reported
-on held-out traces only after the choice is fixed.
-No optimizer dominated the front; the benchmark's contribution is the harness
-rather than a winner.
-This is contribution 1's ``under size and connectivity constraints'' clause
-made operational: retention is chance-adjusted against a null family that is
-already restricted to feasible partitions, so the score that survives this
-benchmark is one a deployment could actually run.
 
 \begin{table}[t]
     \centering
@@ -1285,74 +1296,95 @@ that mechanism whether or not a causal channel survives.
 \label{sec:exp-perf}
 \label{sec:exp-psi-perf}
 
-\begin{table}[t]
-    \centering
-    \caption{R2 best-checkpoint delay (s/veh), mean $\pm$ sample SD over
-        three training seeds; lower is better. ``None'' is the unpartitioned
-        controller, run only on Cologne8.}
-    \label{tab:wait-gains}
-    \scriptsize
-    \setlength{\tabcolsep}{2.5pt}
-    \begin{tabular}{llrrrrr}
-        \toprule
-                     &         &     & \multicolumn{3}{c}{Delay (s)}                       & Flow vs             \\
-        \cmidrule(lr){4-6}
-        Map          & Learner & $k$ & Flow                     & METIS           & None    & METIS              \\
-        \midrule
-        Cologne8     & IPPO    & 3   & \textbf{183.9$\pm$81.6}  & 495.9$\pm$120.3 & 316.7$\pm$239.8 & $\mathbf{-62.9\%}$ \\
-        Cologne8     & MAPPO   & 3   & \textbf{50.7$\pm$7.0}    & 66.4$\pm$12.1   & 79.6$\pm$27.8   & $\mathbf{-23.7\%}$ \\
-        Cologne8     & CoLight & 3   & 22.1$\pm$0.3             & 21.6$\pm$0.5    & 22.4$\pm$0.3    & $+2.5\%$           \\
-        Ingolstadt21 & IPPO    & 4   & 1290.5$\pm$50.0          & 1309.5$\pm$46.0 & ---             & $-1.4\%$           \\
-        Ingolstadt21 & MAPPO   & 4   & 936.6$\pm$101.8          & 889.8$\pm$236.1 & ---             & $+5.3\%$           \\
-        \bottomrule
-    \end{tabular}
-\end{table}
-
 Hypothesis H2, and contribution 3's central claim, ask whether the partition
 that retains more also trains better.
 Table~\ref{tab:wait-gains} reports the best evaluation checkpoint reached by
-each run, averaged over three training seeds, for every pair in which
-learner, network, and module count are held fixed and only the partition
-changes; Table~\ref{tab:wait-gains-legacy} extends the same comparison to a
-single-seed sweep across every learner, network, and module count.
+each run for every pair in which learner, network, and module count are held
+fixed and only the partition changes, merging two run cohorts that are not
+pooled with each other: ``R2'' averages three training seeds, and ``Legacy''
+is a single-training-seed sweep at a 1500-episode budget under an earlier
+configuration, broader in learner and module-count coverage than R2 but not
+comparable to it cell for cell.
 The evidence below is grouped by learner family, IPPO, MAPPO, CoLight, and a
-dedicated FMA2C case study, so that the R2 and single-seed evidence for each
+dedicated FMA2C case study, so that the R2 and Legacy evidence for each
 mechanism reads together.
 
-\begin{table}[t]
+\begin{table*}[t]
     \centering
-    \caption{Single-training-seed sweep at a 1500-episode budget, broader in
-        coverage than Table~\ref{tab:wait-gains}, grouped by learner.
-        ``None'' is the unpartitioned controller.}
-    \label{tab:wait-gains-legacy}
-    \footnotesize
-    \setlength{\tabcolsep}{4pt}
+    \caption{Downstream training delay (s/veh; lower is better). ``None'' denotes the unpartitioned controller. Flow vs METIS is computed as $100(\text{Flow}-\text{METIS})/\text{METIS}$; negative values indicate lower delay with Flow.}
+    \label{tab:wait-gains}
+    \scriptsize
+    \setlength{\tabcolsep}{3pt}
+
     \begin{tabular}{llrrrrr}
         \toprule
-                     &         &     & \multicolumn{3}{c}{Delay (s)} & Flow vs                              \\
+                     &                            &     & \multicolumn{3}{c}{Delay (s/veh)}
+                     &                                                                      \\
         \cmidrule(lr){4-6}
-        Map          & Learner & $k$ & Flow                          & METIS   & None  & METIS              \\
+        Map          & Learner                    & $k$ & Flow
+                     & METIS
+                     & None
+                     & Flow vs METIS                                                        \\
         \midrule
-        Ingolstadt21 & IPPO    & 4   & 379.4                         & 879.9   & 839.5 & $\mathbf{-56.9\%}$ \\
-        Ingolstadt21 & IPPO    & 5   & 230.3                         & 673.9   & 839.5 & $\mathbf{-65.8\%}$ \\
-        Cologne8     & IPPO    & 3   & 26.7                          & 33.8    & 36.7  & $\mathbf{-21.0\%}$ \\
-        Ingolstadt21 & MAPPO   & 4   & 191.3                         & 374.0   & 276.9 & $\mathbf{-48.9\%}$ \\
-        Ingolstadt21 & MAPPO   & 5   & 128.1                         & 371.9   & 276.9 & $\mathbf{-65.5\%}$ \\
-        Cologne8     & MAPPO   & 3   & 25.0                          & 25.2    & 26.6  & $-0.9\%$           \\
-        Ingolstadt21 & CoLight & 4   & 376.4                         & 447.0   & 519.2 & $\mathbf{-15.8\%}$ \\
-        Ingolstadt21 & CoLight & 5   & 420.6                         & 537.5   & 519.2 & $\mathbf{-21.7\%}$ \\
-        Cologne8     & CoLight & 3   & 32.6                          & 29.3    & 25.4  & $+11.3\%$          \\
-        Ingolstadt21 & FMA2C   & 4   & 744.5                         & 967.4   & 909.8 & $\mathbf{-23.0\%}$ \\
-        Ingolstadt21 & FMA2C   & 5   & 930.1                         & 956.4   & 909.8 & $-2.8\%$           \\
-        Cologne8     & FMA2C   & 3   & 49.3                          & 58.7    & ---   & $\mathbf{-15.9\%}$ \\
+        Cologne8     & IPPO                       & 3   & \textbf{57.46$\pm$11.48}
+                     & 72.93$\pm$10.22
+                     & 53.44$\pm$15.61
+                     & $\mathbf{-21.2\%}$                                                   \\
+        Ingolstadt21 & IPPO                       & 4   & 194.22$\pm$26.83
+                     & \textbf{192.52$\pm$22.94}
+                     & 245.77$\pm$126.09
+                     & $+0.9\%$                                                             \\
+        \addlinespace
+        Cologne8     & MAPPO                      & 3   & \textbf{50.7$\pm$7.0}
+                     & 66.4$\pm$12.1
+                     & 79.6$\pm$27.8
+                     & $\mathbf{-23.6\%}$                                                   \\
+        Ingolstadt21 & MAPPO                      & 4   & \textbf{184.44$\pm$31.26}
+                     & 203.72$\pm$26.71
+                     & 170.79$\pm$28.42
+                     & $\mathbf{-9.5\%}$                                                    \\
+        \addlinespace
+        Cologne8     & CoLight                    & 3   & 22.36$\pm$0.49
+                     & \textbf{21.42$\pm$0.06}
+                     & 21.96$\pm$0.24
+                     & $+4.4\%$                                                             \\
+        Ingolstadt21 & CoLight                    & 4   & 349.20$\pm$10.03
+                     & \textbf{293.17$\pm$46.86}
+                     & 265.50$\pm$36.43
+                     & $+19.1\%$                                                            \\
+        \addlinespace
+        Cologne8     & FMA2C$^\dagger$            & 3   & 339.11$\pm$243.50
+                     & \textbf{260.78$\pm$166.09}
+                     & 113.97$\pm$86.98
+                     & $+30.0\%$                                                            \\
+        Ingolstadt21 & FMA2C$^\dagger$            & 4   & 361.31$\pm$95.24
+                     & \textbf{355.29$\pm$28.23}
+                     & 200.81$\pm$40.57
+                     & $+1.7\%$                                                             \\
         \bottomrule
     \end{tabular}
-\end{table}
+\end{table*}
 
-Across the twelve single-seed cells, Flow leads nine, ties two (Cologne8
-MAPPO, Ingolstadt21 FMA2C at $k=5$), and trails one (Cologne8 CoLight);
-against the unpartitioned controller it leads nine of eleven matched cells.
-Five of the twelve have a completed three-seed counterpart.
+% NOTE FROM RESCO BENCHMARK PAPER
+% TODO: mention this in the results for IPPO
+% IDQN achieves the best performance in the “Ingolstadt Region” scenario and “Cologne Single Signal”
+% scenario, while IPPO achieves the best performance in all other scenarios. However, this is misleading
+% as IPPO demonstrates significant instability. Failing to converge in the “Ingolstadt Region” and
+% “Cologne Corridor” scenarios, and converging to significantly worse solutions in the “Cologne Single
+% Signal”. When examining the performance of each algorithm in the final 10 episodes of training,
+% IDQN outperforms all other algorithms in all tasks except the “Cologne Regional”, which IPPO
+% still performs well in. Both FMA2C and IPPO have drastically worse sample efficiency than the
+% DQN-based methods of MPLight and IDQN. MPLight reaches its best performing episode in 30-80%
+% of the time IDQN does, but the performance reached is generally worse. The full training results are
+% provided in the appendix.
+
+Across all twelve single-seed cells in Table~\ref{tab:wait-gains}, Flow leads
+nine, ties two (Cologne8 MAPPO, Ingolstadt21 FMA2C at $k=5$), and trails one
+(Cologne8 CoLight); against the unpartitioned controller it leads nine of
+eleven matched cells.
+Five of the twelve have a three-seed replication in hand, two of which,
+Ingolstadt21 IPPO and MAPPO at $k=4$, are withheld pending a rerun under a
+revised training configuration rather than reported as a finding.
 
 \paragraph{IPPO.}
 Cologne8 IPPO shows the paper's largest replicated gain: delay drops
@@ -1361,13 +1393,13 @@ either arm's seed SD, beating the unpartitioned controller by $42.0\%$ and
 Random by $47.7\%$, with reward rising from $-27.20$ to $-18.26$.
 IPPO consumes the partition through a regional reward mean, so this is
 contribution 3's cleanest instance of the aggregated-signal mechanism.
-Ingolstadt21 IPPO is an effective tie under replication ($1290.5\pm50.0$
-against $1309.5\pm46.0$\,s, $-1.4\%$); its single-seed sweep read a much
-larger margin at both module counts ($-56.9\%$ at $k=4$, $-65.8\%$ at
-$k=5$), neither of which the three-seed replication at $k=4$ reproduced.
-No singleton modules appear at Ingolstadt21 $k=4$, so the replicated
-tie reads as a genuine absence of effect at this network and training
-budget, not a structural artifact.
+Ingolstadt21 IPPO's three-seed replication at $k=4$ is withheld pending a
+rerun under a revised training configuration (Table~\ref{tab:wait-gains});
+its single-seed sweep read a much larger margin at both module counts
+($-56.9\%$ at $k=4$, $-65.8\%$ at $k=5$), a margin the rerun will test
+against three seeds.
+No singleton modules appear at Ingolstadt21 $k=4$, so a structural artifact
+is not expected to explain any gap between the two cohorts.
 
 \paragraph{MAPPO.}
 Cologne8 MAPPO drops $23.7\%$ ($50.7\pm7.0$ against $66.4\pm12.1$\,s),
@@ -1377,11 +1409,13 @@ $\Psi(D^Q)$ (Section~\ref{sec:exp-dq}) corroborates this directly: the
 critic that trains this policy demonstrably retains more value-relevant
 input under Flow, giving MAPPO the paper's one downstream cell with a
 matched model-derived mechanism.
-Ingolstadt21 MAPPO is neutral under replication ($936.6\pm101.8$ against
-$889.8\pm236.1$\,s, $+5.3\%$, well inside METIS's own seed SD), with no
-critic-level dependency to check it against, since every available
-Ingolstadt21 checkpoint uses a regional critic; its single-seed sweep again
-read well ahead of replication ($-48.9\%$ at $k=4$, $-65.5\%$ at $k=5$).
+Ingolstadt21 MAPPO's three-seed replication at $k=4$ is likewise withheld
+pending a rerun under a revised configuration (Table~\ref{tab:wait-gains});
+no critic-level dependency is available to check it against either way,
+since every available Ingolstadt21 checkpoint uses a regional critic. Its
+single-seed sweep read well ahead of the current replication ($-48.9\%$ at
+$k=4$, $-65.5\%$ at $k=5$), a margin the rerun will test against three
+seeds.
 
 \paragraph{CoLight.}
 Cologne8 CoLight is a near-tie under replication ($22.1\pm0.3$ against
@@ -1414,7 +1448,7 @@ therefore organized as a case study held within one configuration at a
 time (Section~\ref{sec:setup}) rather than pooled across configurations or
 seeds.
 On Cologne8, one stabilised configuration lowers delay by $15.9\%$
-(Table~\ref{tab:wait-gains-legacy}) and a second stabilised configuration
+(Table~\ref{tab:wait-gains}) and a second stabilised configuration
 lowers it by $30.2\%$, beating its own no-partition baseline in both
 ($55.7$ against $60.1$ under the second); a third configuration reverses
 this, but both its runs failed to train outright, reaching $679$ and $377$
@@ -1449,17 +1483,19 @@ seed-level comparisons; at $k=3$ that agreement extends to the one
 downstream cell where a regional critic actually trains, MAPPO's R2 delay
 reduction of $23.7\%$ sitting on a critic that demonstrably keeps more
 value-relevant input under Flow.
-Downstream training agrees least cleanly.
+Downstream training agrees least cleanly, and only three of its five matched
+R2 cells are reported here.
 The replicated R2 evidence shows dependency retention predicting the
-training outcome in two of five matched comparisons, both on Cologne8 and
-both mechanisms that reduce the partition to a single aggregated signal, a
+training outcome in two of the three completed Cologne8 comparisons, both
+mechanisms that reduce the partition to a single aggregated signal, a
 regional reward mean for IPPO and a regional critic input for MAPPO; the
-remaining three are neutral.
+third, CoLight, is neutral.
+The two Ingolstadt21 R2 cells, IPPO and MAPPO at $k=4$, are withheld pending
+a rerun under a revised training configuration (Table~\ref{tab:wait-gains})
+and are excluded from this count.
 The broader single-seed sweep agrees in nine of its twelve comparisons,
-including the two Ingolstadt21 cells the replication later found neutral.
-What changed under replication differs by learner: IPPO's large single-seed
-margin at Ingolstadt21 $k=4$ ($-56.9\%$) shrank to a near-tie ($-1.4\%$);
-MAPPO's ($-48.9\%$) flipped sign into noise ($+5.3\%$).
+including strong single-seed margins at both pending Ingolstadt21 cells that
+the completed replication has not yet confirmed either way.
 Retention measured on a trained model's Jacobian agrees least of all,
 matching the flow ordering in two blocks of four and, on Ingolstadt21 at
 $k=5$ (single seed on both sides), pointing opposite the trained regional
@@ -1508,7 +1544,10 @@ The Ingolstadt21 CoLight runs also stopped at unequal, sub-plateau episode
 counts.
 Seed replication covers five of the twelve legacy cells, including the two
 largest single-seed effects (Cologne8 IPPO, MAPPO); extending it to
-Ingolstadt21 CoLight, FMA2C, and $k=5$ on both networks remains outstanding.
+Ingolstadt21 CoLight, FMA2C, and $k=5$ on both networks remains outstanding,
+and the two Ingolstadt21 replications already in hand (IPPO, MAPPO at
+$k=4$) are scheduled for a rerun under a revised configuration rather than
+treated as final (Table~\ref{tab:wait-gains}).
 A higher-demand arm is the decisive next experiment: the regime in which
 spill-back should become active and the association reported here could be
 tested for causation.
@@ -1538,8 +1577,11 @@ partition trains to a markedly lower best-checkpoint delay wherever a
 coordination mechanism reduces the partition to a single aggregated signal,
 a regional reward mean or a regional critic input, on the busier network,
 corroborated on Cologne8 by directly measured critic-level dependency
-retention; the remaining replicated comparisons are neutral within seed
-dispersion.
+retention; the one remaining completed replicated comparison, Cologne8
+CoLight, is neutral within seed dispersion, and the Ingolstadt21 IPPO and
+MAPPO replications are withheld pending a rerun under a revised training
+configuration rather than reported as a final result
+(Table~\ref{tab:wait-gains}).
 A broader single-seed sweep favors the higher-retention partition in nine of
 twelve comparisons spanning regional reward sharing, regional critics,
 regional attention, and a feudal regional manager, ties two more, and beats
@@ -1558,126 +1600,134 @@ No significance test is reported anywhere; the evidence is the repetition of
 an ordering across comparisons that share no seed, map, or module count.
 The next steps are extending seed replication beyond its current five cells
 to Ingolstadt21 CoLight, to FMA2C on either network, and to $k=5$ on both
-networks, and a higher-demand regime in which spill-back becomes active and
-the association reported here could be tested for causation.
+networks; rerunning Ingolstadt21 IPPO and MAPPO under a revised training
+configuration (Table~\ref{tab:wait-gains}); and a higher-demand regime in
+which spill-back becomes active and the association reported here could be
+tested for causation.
 
-% ============================================================
-\appendices
+% % ============================================================
+% \appendices
 
-\section{Derivation and Evidence Notes}
-\label{app:proofs}
+% \section{Derivation and Evidence Notes}
+% \label{app:proofs}
 
-One step of the framework is an identity and the rest is measurement.
-This appendix gives the identity, and states what would be needed to turn
-H1 and H2 into bounds.
+% One step of the framework is an identity and the rest is measurement.
+% This appendix gives the identity, and states what would be needed to turn
+% H1 and H2 into bounds.
 
-\noindent\textbf{Flow link.}
-Let
-$\mu^W_{ij}=W_{ij}/\sum_{a,b}W_{ab}$ be the empirical OD edge measure and
-$\mu^\pi_{ij}=\pi_iP_{ij}$ be the stationary edge measure of the walk used
-by InfoMap.
-Then
-$\Phi_W(\mathcal{P})=\sum_{c(i)=c(j)}\mu^W_{ij}$, while
-$\Phi_\pi(\mathcal{P})=\sum_{c(i)=c(j)}\mu^\pi_{ij}$.
-The map equation counts inter-module walk steps, so
-\begin{equation}
-    q_{\circlearrowleft}
-    =
-    \sum_{c(i)\neq c(j)} \mu^\pi_{ij}
-    =
-    1-\Phi_\pi(\mathcal{P}).
-    \label{eq:app-stationary}
-\end{equation}
+% \noindent\textbf{Flow link.}
+% Let
+% $\mu^W_{ij}=W_{ij}/\sum_{a,b}W_{ab}$ be the empirical OD edge measure and
+% $\mu^\pi_{ij}=\pi_iP_{ij}$ be the stationary edge measure of the walk used
+% by InfoMap.
+% Then
+% $\Phi_W(\mathcal{P})=\sum_{c(i)=c(j)}\mu^W_{ij}$, while
+% $\Phi_\pi(\mathcal{P})=\sum_{c(i)=c(j)}\mu^\pi_{ij}$.
+% The map equation counts inter-module walk steps, so
+% \begin{equation}
+%     q_{\circlearrowleft}
+%     =
+%     \sum_{c(i)\neq c(j)} \mu^\pi_{ij}
+%     =
+%     1-\Phi_\pi(\mathcal{P}).
+%     \label{eq:app-stationary}
+% \end{equation}
 
-\begin{proposition}[Stationary-walk retention identity]
-    \label{prop:phi}
-    For the stationary edge measure $\pi_iP_{ij}$ of the walk evaluated by
-    Eq.~\eqref{eq:mapeq}, the aggregate inter-module transition rate is
-    $q_{\circlearrowleft}=1-\Phi_\pi(\mathcal{P})$.
-    For the empirical OD edge measure
-    $\mu^W_{ij}=W_{ij}/\sum_{a,b}W_{ab}$,
-    $\Phi_W(\mathcal{P})=\sum_{c(i)=c(j)}\mu^W_{ij}$.
-    Thus $\Phi_W=\Phi_\pi$ only when the empirical OD edge measure equals
-    the stationary edge measure; otherwise
-    $1-\Phi_W\leq1-\Phi_\pi+\epsilon_{\mathrm{walk}}$.
-\end{proposition}
-This is why InfoMap is used as a flow-retaining candidate generator, while
-the paper still audits $\Phi_W$ directly on observed trips.
+% \begin{proposition}[Stationary-walk retention identity]
+%     \label{prop:phi}
+%     For the stationary edge measure $\pi_iP_{ij}$ of the walk evaluated by
+%     Eq.~\eqref{eq:mapeq}, the aggregate inter-module transition rate is
+%     $q_{\circlearrowleft}=1-\Phi_\pi(\mathcal{P})$.
+%     For the empirical OD edge measure
+%     $\mu^W_{ij}=W_{ij}/\sum_{a,b}W_{ab}$,
+%     $\Phi_W(\mathcal{P})=\sum_{c(i)=c(j)}\mu^W_{ij}$.
+%     Thus $\Phi_W=\Phi_\pi$ only when the empirical OD edge measure equals
+%     the stationary edge measure; otherwise
+%     $1-\Phi_W\leq1-\Phi_\pi+\epsilon_{\mathrm{walk}}$.
+% \end{proposition}
+% % Commented out pending completion of the walk-mismatch audit (recomputation
+% % in progress); restore both the sentence and the table once epsilon_walk is
+% % actually measured on C8/I21.
+% % This is why InfoMap is used as a flow-retaining candidate generator, while
+% % the paper still audits $\Phi_W$ directly on observed trips.
+% %
+% % \begin{table}[t]
+% %     \centering
+% %     \caption{Walk-mismatch audit, quantifying the gap
+% %         $\epsilon_{\mathrm{walk}}$ between empirical OD retention and
+% %         stationary-walk retention. Recomputation in progress.}
+% %     \label{tab:walk-mismatch}
+% %     \footnotesize
+% %     \begin{tabular}{lccc}
+% %         \toprule
+% %         Partition set           & $\Phi_W$ & $\Phi_\pi$ & $\epsilon_{\mathrm{walk}}$ \\
+% %         \midrule
+% %         C8 Flow/METIS, all $k$  & pending  & pending    & pending                    \\
+% %         I21 Flow/METIS, all $k$ & pending  & pending    & pending                    \\
+% %         Max/median summary      & pending  & pending    & pending                    \\
+% %         Rank agreement          & pending  & pending    & pending                    \\
+% %         \bottomrule
+% %     \end{tabular}
+% % \end{table}
 
-\begin{table}[t]
-    \centering
-    \caption{Walk-mismatch audit, quantifying the gap
-        $\epsilon_{\mathrm{walk}}$ between empirical OD retention and
-        stationary-walk retention. Recomputation in progress.}
-    \label{tab:walk-mismatch}
-    \footnotesize
-    \begin{tabular}{lccc}
-        \toprule
-        Partition set           & $\Phi_W$ & $\Phi_\pi$ & $\epsilon_{\mathrm{walk}}$ \\
-        \midrule
-        C8 Flow/METIS, all $k$  & pending  & pending    & pending                    \\
-        I21 Flow/METIS, all $k$ & pending  & pending    & pending                    \\
-        Max/median summary      & pending  & pending    & pending                    \\
-        Rank agreement          & pending  & pending    & pending                    \\
-        \bottomrule
-    \end{tabular}
-\end{table}
+% \noindent\textbf{What H1 would require.}
+% Writing $\Gamma_{ij}$ for the one-step influence of agent $i$ on agent $j$, a
+% bound of the form $1-\Psi_\Gamma \leq \kappa(1-\Phi_W)+\epsilon$ follows from
+% a pointwise assumption $\Gamma_{ij}\leq\alpha\widetilde{W}_{ij}+\beta_{ij}$,
+% with $\widetilde{W}_{ij}=W_{ij}+W_{ji}$, summed over cut pairs and divided by
+% total influence mass.
+% Establishing that pointwise assumption is the difficulty.
+% In a linear-Gaussian link-queue model $x_{t+1}=Ax_t+Ba_t+\eta_t$, stable
+% covariance propagation charges every cross-module covariance path to at least
+% one cut corridor and bounded variances give a local Gaussian MI envelope,
+% which yields the assumption under stationary demand and undersaturation.
+% The symmetrized $\widetilde{W}$ is a bidirectional corridor-exposure
+% envelope; reverse flow is not downstream blocking, and directed spill-back
+% needs a separate blocked-sending or storage state.
+% Neither the linearity nor the undersaturation condition is verified on these
+% networks, which is why H1 is tested rather than assumed.
 
-\noindent\textbf{What H1 would require.}
-Writing $\Gamma_{ij}$ for the one-step influence of agent $i$ on agent $j$, a
-bound of the form $1-\Psi_\Gamma \leq \kappa(1-\Phi_W)+\epsilon$ follows from
-a pointwise assumption $\Gamma_{ij}\leq\alpha\widetilde{W}_{ij}+\beta_{ij}$,
-with $\widetilde{W}_{ij}=W_{ij}+W_{ji}$, summed over cut pairs and divided by
-total influence mass.
-Establishing that pointwise assumption is the difficulty.
-In a linear-Gaussian link-queue model $x_{t+1}=Ax_t+Ba_t+\eta_t$, stable
-covariance propagation charges every cross-module covariance path to at least
-one cut corridor and bounded variances give a local Gaussian MI envelope,
-which yields the assumption under stationary demand and undersaturation.
-The symmetrized $\widetilde{W}$ is a bidirectional corridor-exposure
-envelope; reverse flow is not downstream blocking, and directed spill-back
-needs a separate blocked-sending or storage state.
-Neither the linearity nor the undersaturation condition is verified on these
-networks, which is why H1 is tested rather than assumed.
+% \noindent\textbf{What H2 would require.}
+% Value-locality and influence-abstraction results for networked MARL bound the
+% value a regional learner forfeits by the influence mass it discards,
+% $1-\Psi_\Gamma$.
+% They bound structural bias only, and say nothing about whether a given
+% learner optimizes equally well under every partition, since partitioning also
+% changes gradient variance, critic dimension, and attention reach.
+% The two routes named in Section~\ref{sec:transfer} are exactly this split,
+% and the causal probes of Section~\ref{sec:exp-perturb} are what decide
+% which one our data support.
 
-\noindent\textbf{What H2 would require.}
-Value-locality and influence-abstraction results for networked MARL bound the
-value a regional learner forfeits by the influence mass it discards,
-$1-\Psi_\Gamma$.
-They bound structural bias only, and say nothing about whether a given
-learner optimizes equally well under every partition, since partitioning also
-changes gradient variance, critic dimension, and attention reach.
-The two routes named in Section~\ref{sec:transfer} are exactly this split,
-and the causal probes of Section~\ref{sec:exp-benchmark} are what decide
-which one our data support.
+% \section{Diagnostic and Implementation Notes}
+% \label{app:diagnostics}
 
-\section{Diagnostic and Implementation Notes}
-\label{app:diagnostics}
+% The simple random partition in the headline tables is a fixed floor, not a
+% statistical null distribution.
+% % Following two-sentence note describes the withheld connected-null
+% % benchmark (Result 6: Feasible Selection, commented out above); restore
+% % alongside it.
+% % The benchmark uses exact-size and connectivity-preserving nulls with the same
+% % module-size sequence; the connected null is the conservative deployment
+% % control because it compares against other physically operable regions.
 
-The simple random partition in the headline tables is a fixed floor, not a
-statistical null distribution.
-The benchmark uses exact-size and connectivity-preserving nulls with the same
-module-size sequence; the connected null is the conservative deployment
-control because it compares against other physically operable regions.
+% The instruments are deliberately separated.
+% $D^{\mathrm{MI}}$ is the main retention instrument: training-free,
+% replicated over three traffic seeds, and aligned with L1 regional rewards.
+% $D^Q$ and $D^G$ are model-derived and read from the L2 critic and the L3
+% attention policy respectively; $D^G$ rests on one checkpoint per cell, while
+% $D^Q$ is estimated from three independently trained critic seeds per cell on
+% Cologne8 (Ingolstadt21 is not estimable, since its available checkpoints use
+% a regional rather than a global critic), so $\Psi(D^G)$'s $k=5$ reversal is
+% an attention-boundary diagnostic rather than a partition-quality verdict.
+% Observed CMI and randomized perturbation are stricter causal probes, and
+% their null result means unresolved action-level coupling in this demand
+% regime, not global independence.
 
-The instruments are deliberately separated.
-$D^{\mathrm{MI}}$ is the main retention instrument: training-free,
-replicated over three traffic seeds, and aligned with L1 regional rewards.
-$D^Q$ and $D^G$ are model-derived and read from the L2 critic and the L3
-attention policy respectively; $D^G$ rests on one checkpoint per cell, while
-$D^Q$ is estimated from three independently trained critic seeds per cell on
-Cologne8 (Ingolstadt21 is not estimable, since its available checkpoints use
-a regional rather than a global critic), so $\Psi(D^G)$'s $k=5$ reversal is
-an attention-boundary diagnostic rather than a partition-quality verdict.
-Observed CMI and randomized perturbation are stricter causal probes, and
-their null result means unresolved action-level coupling in this demand
-regime, not global independence.
-
-All regional learners consume the same stored partition assignment.
-IPPO replaces each reward with the module mean, MAPPO gives each critic the
-padded module observation, and CoLight changes the attention graph.
-IPPO and MAPPO therefore isolate L1 and L2 cleanly, while CoLight carries the
-L3 module-size boundary.
+% All regional learners consume the same stored partition assignment.
+% IPPO replaces each reward with the module mean, MAPPO gives each critic the
+% padded module observation, and CoLight changes the attention graph.
+% IPPO and MAPPO therefore isolate L1 and L2 cleanly, while CoLight carries the
+% L3 module-size boundary.
 
 % ============================================================
 \section*{Acknowledgment}
