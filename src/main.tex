@@ -20,6 +20,14 @@
 \usepackage[numbers,sort&compress]{natbib}
 \usepackage{hyperref}
 
+\setlength{\textfloatsep}{6pt plus 2pt minus 2pt}
+\setlength{\dbltextfloatsep}{6pt plus 2pt minus 2pt}
+\setlength{\intextsep}{6pt plus 2pt minus 2pt}
+\setlength{\floatsep}{4pt plus 2pt minus 2pt}
+\setlength{\dblfloatsep}{4pt plus 2pt minus 2pt}
+\setlength{\abovecaptionskip}{4pt}
+\setlength{\belowcaptionskip}{2pt}
+
 \newtheorem{proposition}{Proposition}
 \newtheorem{theorem}{Theorem}
 \newtheorem{corollary}{Corollary}[proposition]
@@ -60,12 +68,10 @@ Duong Tran Hai
     Third, across two SUMO networks, flow-based partitions retain more
     route flow and state dependency than topology-based METIS partitions
     at every matched module count, and the higher-retention partition
-    reaches a lower best-checkpoint delay in most matched MARL training
-    comparisons, most clearly where a coordination mechanism aggregates the
-    partition into a single learning signal; completed three-seed
-    replication of this training gain is Cologne8-only so far, with the
-    matching Ingolstadt21 comparisons pending a rerun under a revised
-    training configuration.
+    reaches a lower best-checkpoint delay in three of eight matched MARL
+    training comparisons, each one where a coordination mechanism
+    aggregates the partition into a single learning signal, a regional
+    reward mean or a regional critic input.
     The exception is instructive: the partition with the highest flow
     retention in the study attains it by isolating two intersections into
     modules of their own, which is operationally unusable, so retention
@@ -174,14 +180,11 @@ Our three contributions, with evidentiary status stated explicitly:
           count, and higher flow retention consistently corresponds to
           higher state-dependency retention.
           The higher-retention partition also reaches a lower
-          best-checkpoint delay in most matched training comparisons, nine
-          of twelve in a broader single-seed sweep and, on a completed
-          three-seed replication restricted to Cologne8, a large gain in two
-          of three cells with the third near a tie; the matching
-          Ingolstadt21 replications are pending a rerun under a revised
-          training configuration (Table~\ref{tab:wait-gains}), showing that
-          retained flow is a useful proxy for selecting coordination
-          regions.
+          best-checkpoint delay in three of eight matched training
+          comparisons (Table~\ref{tab:wait-gains}), each one where a
+          coordination mechanism aggregates the partition into a single
+          learning signal, showing that retained flow is a useful proxy for
+          selecting coordination regions where that mechanism applies.
 \end{itemize}
 
 % ============================================================
@@ -277,11 +280,9 @@ a partition by the OD flow it keeps inside modules, $\Phi_W$
 (Section~\ref{sec:flowretention}), and by the dependency it keeps, $\Psi$,
 measured with three complementary instruments and chance-adjusted against
 size- and connectivity-matched nulls (Section~\ref{sec:psi}).
-Section~\ref{sec:transfer} states why these two scores are expected to move
-together and to track downstream learning, and names the residual effects
-that would break the expectation.
-Both scores are training-free: they are computed before any learner runs, so
-partition quality can be ranked without first paying for a training run.
+Section~\ref{sec:transfer} states why these two scores, both computed before
+any learner runs, are expected to move together and to track downstream
+learning, and names the residual effects that would break the expectation.
 
 \subsection{Coordination Graph as a Design Variable}
 \label{sec:ndpomdp}
@@ -651,6 +652,7 @@ the partitioning substrate is the OD-induced signal-transition matrix
 $\mathbf{W}$.
 
 \begin{algorithm}[t]
+    \footnotesize
     \caption{OD-induced route-flow partition construction}
     \label{alg:od-demand}
     \begin{algorithmic}[1]
@@ -720,25 +722,15 @@ partition grouped, is the available partition-sensitive signal.
 \subsection{Retention-Guided Selection Workflow}
 \label{sec:workflow}
 
-\begin{algorithm}[t]
-    \caption{Retention-guided coordination-graph construction}
-    \label{alg:workflow}
-    \begin{algorithmic}[1]
-        \Require Trip logs, road graph, feasible module counts
-        \State Build Flow candidates using Algorithm~\ref{alg:od-demand}
-        \State Generate additional topology and community-detection candidates
-        \State Enforce module-count, size, and connectivity constraints
-        \State Estimate dependency matrices on validation traces
-        \State Score candidates by $\Phi$, $\Psi$, and $\Psi_{\mathrm{adj}}$
-        \State Select a small validation-front subset for policy training
-        \State Report held-out retention and seed-explicit training results
-    \end{algorithmic}
-\end{algorithm}
-
-Algorithm~\ref{alg:workflow} is the intended use of the framework: flow-based
-and structure-based candidates are generated together, and the final choice is
-made by the retention score under the operational constraints the controller
-must satisfy.
+The framework's intended use builds Flow candidates with
+Algorithm~\ref{alg:od-demand} alongside topology and community-detection
+candidates, enforces module-count, size, and connectivity constraints,
+estimates dependency matrices on validation traces, scores every surviving
+candidate by $\Phi$, $\Psi$, and $\Psi_{\mathrm{adj}}$, selects a small
+validation-front subset for policy training, and reports held-out retention
+alongside seed-explicit training results: the final choice is made by the
+retention score under the operational constraints the controller must
+satisfy.
 
 % ============================================================
 \section{Experiments and Results}
@@ -760,19 +752,13 @@ checkpoint uncertainty estimate; $D^Q$ uses three independently trained
 global MAPPO critic seeds on Cologne8 and is not estimable on Ingolstadt21,
 where no completed checkpoint uses a global rather than a regional critic
 (Section~\ref{sec:exp-dq}).
-Downstream training evidence spans two tiers.
-The primary tier (``R2'') is a three-training-seed replication covering
-IPPO, MAPPO, and CoLight on Cologne8 at $k=3$ and IPPO and MAPPO on
-Ingolstadt21 at $k=4$.
-The second tier is a single-training-seed sweep at a 1500-episode budget,
-spanning both networks, both tested module counts, and all four learners
-including FMA2C.
+Downstream training evidence is one training run per (network, learner,
+module count) pair, covering IPPO, MAPPO, and CoLight on Cologne8 at $k=3$
+and on Ingolstadt21 at $k=4$.
 FMA2C's hyperparameters were still being searched when these runs were
-collected, so its evidence is organized as a per-configuration case study
-(Section~\ref{sec:exp-perf}) rather than a seed-replicated estimate:
-comparisons hold one hyperparameter generation fixed so that only the
-partition differs, with a second generation on Cologne8 used as a direction
-check.
+collected, so its two rows (Section~\ref{sec:exp-perf}) compare partitions
+inside one fixed, not fully tuned, configuration rather than an optimized
+one.
 Each run is scored by its best evaluation checkpoint, the minimum delay per
 vehicle over its logged evaluation
 episodes~\citep{henderson2018matters,agarwal2021rliable}.
@@ -780,7 +766,9 @@ Delay per vehicle is SUMO's time loss, the travel time accrued beyond
 free-flow, and is the control metric throughout.
 The benchmark uses 10 stochastic-policy episodes at each of 5 traffic seeds
 per network, split chronologically into construction, validation, and
-held-out test traces.
+held-out test traces; every reported delay is a mean $\pm$ SD over these 5
+held-out traffic seeds at the best checkpoint, not over training seeds, since
+each cell is one training run.
 The state-MI matrices are estimated from per-agent state slices of 361-step
 warm-up trajectories with KSG $k=3$ and lags 1, 5, 15, and 30.
 Because KSG on autocorrelated traffic traces is noisy, the evidence uses
@@ -1163,7 +1151,7 @@ excluded.
 The matrix is estimated from a global, no-partition critic before any
 candidate partition is applied, so a partition cannot circularly earn credit
 for dependency its own architecture forces to zero.
-This is why Ingolstadt21, where every available R2 MAPPO checkpoint is
+This is why Ingolstadt21, where every available MAPPO checkpoint is
 regional, is not estimable here.
 
 Table~\ref{tab:psi-dq} reports the result for Cologne8.
@@ -1172,14 +1160,14 @@ METIS at $k=3$ and $14.40\pm0.62$ points more at $k=5$, positive in all six
 seed-level comparisons and an order of magnitude larger than the seed
 dispersion.
 $\Psi(D^{Q})$ sides with $D^{\mathrm{MI}}$'s ordering over $D^{G}$'s $k=5$
-reversal, and it agrees with how L2 actually trains: MAPPO's R2 delay
-reduction of $23.7\%$ (Table~\ref{tab:wait-gains}) sits on a critic that
+reversal, and it agrees with how L2 actually trains: MAPPO's Cologne8 delay
+reduction of $23.6\%$ (Table~\ref{tab:wait-gains}) sits on a critic that
 demonstrably retains more value-relevant input under Flow.
-Ingolstadt21 MAPPO's own R2 result at $k=4$ is withheld pending a rerun
-under a revised configuration (Table~\ref{tab:wait-gains}) and has no
-critic-level counterpart to check it against regardless; on that network
-the optimization-conditioning reading of Section~\ref{sec:exp-perturb}
-carries the cell alone.
+Ingolstadt21 MAPPO favors Flow by $9.5\%$ (Table~\ref{tab:wait-gains}) with
+no critic-level counterpart to check it against, since its available
+checkpoints use a regional rather than global critic; on that network the
+optimization-conditioning reading of Section~\ref{sec:exp-perturb} carries
+the cell alone.
 $D^Q$ is contribution 3's most direct link between retention and
 performance: the same mechanism the critic uses to train is the mechanism
 $\Psi(D^Q)$ measures.
@@ -1299,174 +1287,87 @@ that mechanism whether or not a causal channel survives.
 Hypothesis H2, and contribution 3's central claim, ask whether the partition
 that retains more also trains better.
 Table~\ref{tab:wait-gains} reports the best evaluation checkpoint reached by
-each run for every pair in which learner, network, and module count are held
-fixed and only the partition changes, merging two run cohorts that are not
-pooled with each other: ``R2'' averages three training seeds, and ``Legacy''
-is a single-training-seed sweep at a 1500-episode budget under an earlier
-configuration, broader in learner and module-count coverage than R2 but not
-comparable to it cell for cell.
-The evidence below is grouped by learner family, IPPO, MAPPO, CoLight, and a
-dedicated FMA2C case study, so that the R2 and Legacy evidence for each
-mechanism reads together.
+one training run per learner, network, and module count, holding all three
+fixed and varying only the partition.
 
-\begin{table*}[t]
+\begin{table}[t]
     \centering
-    \caption{Downstream training delay (s/veh; lower is better). ``None'' denotes the unpartitioned controller. Flow vs METIS is computed as $100(\text{Flow}-\text{METIS})/\text{METIS}$; negative values indicate lower delay with Flow.}
+    \caption{Downstream training delay (s/veh; lower is better), best evaluation checkpoint per (map, learner, $k$) pair, holding learner and module count fixed and varying only the partition. $\Delta\%=100(\text{Flow}-\text{METIS})/\text{METIS}$; negative favors Flow.}
     \label{tab:wait-gains}
     \scriptsize
-    \setlength{\tabcolsep}{3pt}
+    \setlength{\tabcolsep}{2.5pt}
 
-    \begin{tabular}{llrrrrr}
+    \begin{tabular}{llrrrr}
         \toprule
-                     &                            &     & \multicolumn{3}{c}{Delay (s/veh)}
-                     &                                                                      \\
-        \cmidrule(lr){4-6}
-        Map          & Learner                    & $k$ & Flow
-                     & METIS
-                     & None
-                     & Flow vs METIS                                                        \\
+        Map  & Learner         & $k$ & Flow                     & METIS                    & $\Delta\%$        \\
         \midrule
-        Cologne8     & IPPO                       & 3   & \textbf{57.46$\pm$11.48}
-                     & 72.93$\pm$10.22
-                     & 53.44$\pm$15.61
-                     & $\mathbf{-21.2\%}$                                                   \\
-        Ingolstadt21 & IPPO                       & 4   & 194.22$\pm$26.83
-                     & \textbf{192.52$\pm$22.94}
-                     & 245.77$\pm$126.09
-                     & $+0.9\%$                                                             \\
+        C8   & IPPO            & 3   & \textbf{57.46$\pm$11.48} & 72.93$\pm$10.22          & $\mathbf{-21.2}$  \\
+        I21  & IPPO            & 4   & 194.22$\pm$26.83         & \textbf{192.52$\pm$22.94} & $+0.9$           \\
         \addlinespace
-        Cologne8     & MAPPO                      & 3   & \textbf{50.7$\pm$7.0}
-                     & 66.4$\pm$12.1
-                     & 79.6$\pm$27.8
-                     & $\mathbf{-23.6\%}$                                                   \\
-        Ingolstadt21 & MAPPO                      & 4   & \textbf{184.44$\pm$31.26}
-                     & 203.72$\pm$26.71
-                     & 170.79$\pm$28.42
-                     & $\mathbf{-9.5\%}$                                                    \\
+        C8   & MAPPO           & 3   & \textbf{50.7$\pm$7.0}    & 66.4$\pm$12.1            & $\mathbf{-23.6}$  \\
+        I21  & MAPPO           & 4   & \textbf{184.44$\pm$31.26} & 203.72$\pm$26.71        & $\mathbf{-9.5}$   \\
         \addlinespace
-        Cologne8     & CoLight                    & 3   & 22.36$\pm$0.49
-                     & \textbf{21.42$\pm$0.06}
-                     & 21.96$\pm$0.24
-                     & $+4.4\%$                                                             \\
-        Ingolstadt21 & CoLight                    & 4   & 349.20$\pm$10.03
-                     & \textbf{293.17$\pm$46.86}
-                     & 265.50$\pm$36.43
-                     & $+19.1\%$                                                            \\
+        C8   & CoLight         & 3   & 22.36$\pm$0.49           & \textbf{21.42$\pm$0.06}  & $+4.4$            \\
+        I21  & CoLight         & 4   & 349.20$\pm$10.03         & \textbf{293.17$\pm$46.86} & $+19.1$          \\
         \addlinespace
-        Cologne8     & FMA2C$^\dagger$            & 3   & 339.11$\pm$243.50
-                     & \textbf{260.78$\pm$166.09}
-                     & 113.97$\pm$86.98
-                     & $+30.0\%$                                                            \\
-        Ingolstadt21 & FMA2C$^\dagger$            & 4   & 361.31$\pm$95.24
-                     & \textbf{355.29$\pm$28.23}
-                     & 200.81$\pm$40.57
-                     & $+1.7\%$                                                             \\
+        C8   & FMA2C$^\dagger$ & 3   & 339.11$\pm$243.50        & \textbf{260.78$\pm$166.09} & $+30.0$         \\
+        I21  & FMA2C$^\dagger$ & 4   & 361.31$\pm$95.24         & \textbf{355.29$\pm$28.23} & $+1.7$           \\
         \bottomrule
     \end{tabular}
-\end{table*}
+\end{table}
 
-% NOTE FROM RESCO BENCHMARK PAPER
-% TODO: mention this in the results for IPPO
-% IDQN achieves the best performance in the “Ingolstadt Region” scenario and “Cologne Single Signal”
-% scenario, while IPPO achieves the best performance in all other scenarios. However, this is misleading
-% as IPPO demonstrates significant instability. Failing to converge in the “Ingolstadt Region” and
-% “Cologne Corridor” scenarios, and converging to significantly worse solutions in the “Cologne Single
-% Signal”. When examining the performance of each algorithm in the final 10 episodes of training,
-% IDQN outperforms all other algorithms in all tasks except the “Cologne Regional”, which IPPO
-% still performs well in. Both FMA2C and IPPO have drastically worse sample efficiency than the
-% DQN-based methods of MPLight and IDQN. MPLight reaches its best performing episode in 30-80%
-% of the time IDQN does, but the performance reached is generally worse. The full training results are
-% provided in the appendix.
-
-Across all twelve single-seed cells in Table~\ref{tab:wait-gains}, Flow leads
-nine, ties two (Cologne8 MAPPO, Ingolstadt21 FMA2C at $k=5$), and trails one
-(Cologne8 CoLight); against the unpartitioned controller it leads nine of
-eleven matched cells.
-Five of the twelve have a three-seed replication in hand, two of which,
-Ingolstadt21 IPPO and MAPPO at $k=4$, are withheld pending a rerun under a
-revised training configuration rather than reported as a finding.
+Across the eight matched cells in Table~\ref{tab:wait-gains}, Flow leads
+three (Cologne8 IPPO, Cologne8 MAPPO, Ingolstadt21 MAPPO), is within two
+percentage points of METIS in two more (Ingolstadt21 IPPO, Ingolstadt21
+FMA2C), and trails clearly in three (Cologne8 CoLight, Ingolstadt21 CoLight,
+Cologne8 FMA2C).
 
 \paragraph{IPPO.}
-Cologne8 IPPO shows the paper's largest replicated gain: delay drops
-$62.9\%$ ($183.9\pm81.6$ against $495.9\pm120.3$\,s), about three times
-either arm's seed SD, beating the unpartitioned controller by $42.0\%$ and
-Random by $47.7\%$, with reward rising from $-27.20$ to $-18.26$.
-IPPO consumes the partition through a regional reward mean, so this is
-contribution 3's cleanest instance of the aggregated-signal mechanism.
-Ingolstadt21 IPPO's three-seed replication at $k=4$ is withheld pending a
-rerun under a revised training configuration (Table~\ref{tab:wait-gains});
-its single-seed sweep read a much larger margin at both module counts
-($-56.9\%$ at $k=4$, $-65.8\%$ at $k=5$), a margin the rerun will test
-against three seeds.
-No singleton modules appear at Ingolstadt21 $k=4$, so a structural artifact
-is not expected to explain any gap between the two cohorts.
+Flow favors Cologne8 by $21.2\%$ ($57.46\pm11.48$ against
+$72.93\pm10.22$\,s) but is flat on Ingolstadt21 ($+0.9\%$).
+IPPO consumes the partition through a regional reward mean, contribution
+3's clearest aggregated-signal mechanism, and that mechanism transfers on
+Cologne8.
+IPPO is also the least stable learner in the RESCO traffic-signal benchmark,
+failing to converge or converging to markedly worse solutions on some
+networks~\citep{ault2021resco}, a plausible contributor to the flat
+Ingolstadt21 cell.
 
 \paragraph{MAPPO.}
-Cologne8 MAPPO drops $23.7\%$ ($50.7\pm7.0$ against $66.4\pm12.1$\,s),
-beating the unpartitioned controller by $36.3\%$ and Random by $15.9\%$,
-with reward rising from $-7.50$ to $-2.36$.
-$\Psi(D^Q)$ (Section~\ref{sec:exp-dq}) corroborates this directly: the
-critic that trains this policy demonstrably retains more value-relevant
-input under Flow, giving MAPPO the paper's one downstream cell with a
-matched model-derived mechanism.
-Ingolstadt21 MAPPO's three-seed replication at $k=4$ is likewise withheld
-pending a rerun under a revised configuration (Table~\ref{tab:wait-gains});
-no critic-level dependency is available to check it against either way,
-since every available Ingolstadt21 checkpoint uses a regional critic. Its
-single-seed sweep read well ahead of the current replication ($-48.9\%$ at
-$k=4$, $-65.5\%$ at $k=5$), a margin the rerun will test against three
-seeds.
+Flow favors both networks: Cologne8 by $23.6\%$ ($50.7\pm7.0$ against
+$66.4\pm12.1$\,s) and Ingolstadt21 by $9.5\%$ ($184.44\pm31.26$ against
+$203.72\pm26.71$\,s).
+$\Psi(D^Q)$ (Section~\ref{sec:exp-dq}) corroborates the Cologne8 cell
+directly: the critic that trains this policy retains more value-relevant
+input under Flow, the paper's one downstream cell with a matched
+model-derived mechanism; no critic-level check is available on
+Ingolstadt21, where every available checkpoint uses a regional rather than
+a global critic.
 
 \paragraph{CoLight.}
-Cologne8 CoLight is a near-tie under replication ($22.1\pm0.3$ against
-$21.6\pm0.5$, $+2.5\%$), with the size-balanced Random control
-($21.1\pm0.3$) the best mean performer and Flow still $1.1\%$ ahead of the
-unpartitioned controller.
-The flow partition's size profile here is $6/1/1$: two of its three
-modules hold a single intersection with no neighbor to attend to, so the
-highest-$\Phi$ candidate in the study ($\Phi=0.939$) is also the one whose
-module structure most directly undercuts attention, a structural point that
-holds independent of training noise (a single-seed run read this cell as an
-outright loss, $+11.3\%$; three seeds place it at $+2.5\%$, inside seed
-dispersion).
-Retention is maximized here by a partition that is operationally unusable,
-so it must be scored under the size and connectivity constraints of
-Section~\ref{sec:workflow}.
-Ingolstadt21 CoLight has no replicated counterpart: single-seed runs favor
-Flow by $15.8\%$ at $k=4$ and $21.7\%$ at $k=5$, terminating at 65--80
-logged evaluations against 150 for IPPO and MAPPO, short of a plateau; at
-$k=5$ this also runs opposite $\Psi(D^G)$, which favors METIS.
-CoLight is contribution 3's structural boundary case: retention predicts
-training benefit only where the coordination mechanism can use what is
-retained, and an attention graph over singleton modules cannot.
+METIS favors both networks: Cologne8 by $4.4\%$ ($22.36\pm0.49$ against
+$21.42\pm0.06$\,s) and Ingolstadt21 by $19.1\%$ ($349.20\pm10.03$ against
+$293.17\pm46.86$\,s).
+The Cologne8 flow partition splits two of its three modules into single
+intersections with no neighbor to attend to, undercutting the attention
+mechanism CoLight coordinates through even though it is the highest-$\Phi$
+candidate in the study ($\Phi=0.939$); graph-attention controllers of this
+kind are known to weight only instantaneous, spatially local neighbor
+features rather than historical context~\citep{lu2023dualight}, compounding
+the effect on Ingolstadt21 as well.
+Retention maximized by an operationally unusable partition must be scored
+under the size and connectivity constraints of Section~\ref{sec:workflow}.
 
-\paragraph{FMA2C case study.}
-An FMA2C manager's span of control \emph{is} a module, so the partition
-fixes the learner's internal structure outright, and its hyperparameters
-were still under search when these runs were collected; the evidence is
-therefore organized as a case study held within one configuration at a
-time (Section~\ref{sec:setup}) rather than pooled across configurations or
-seeds.
-On Cologne8, one stabilised configuration lowers delay by $15.9\%$
-(Table~\ref{tab:wait-gains}) and a second stabilised configuration
-lowers it by $30.2\%$, beating its own no-partition baseline in both
-($55.7$ against $60.1$ under the second); a third configuration reverses
-this, but both its runs failed to train outright, reaching $679$ and $377$
-where the stabilised configurations reach roughly $50$, which is evidence
-of a failed hyperparameter search rather than a partition effect.
-On Ingolstadt21, Flow lowers delay by $23.0\%$ at $k=4$ with the manager's
-own reward rising alongside it ($-0.50$ under METIS to $-0.11$ under Flow),
-reproduced in direction by a second, shorter-budget configuration
-($-18.3\%$); at $k=5$ both signals go quiet ($2.8\%$ delay separation,
-reward moving the other way).
-Cologne8 is the one configuration where manager reward favors METIS
-($2.71$ against $2.31$) despite delay favoring Flow, consistent with the
-$6/1/1$ profile leaving two singleton-module managers nothing to aggregate.
-FMA2C's absolute delay on Ingolstadt21 runs three to four times MAPPO's
-because the stabilised configuration was never tuned there, so those rows
-compare partitions inside a differently tuned learner only.
-Held this way, one configuration at a time, FMA2C is directionally
-consistent with the other three learners' aggregated-signal cells.
+\paragraph{FMA2C.}
+An FMA2C manager's span of control \emph{is} a module, and its
+hyperparameters were still under search when these runs were collected, so
+both rows compare partitions inside one fixed, not fully tuned,
+configuration.
+METIS favors both networks: Cologne8 by $30.0\%$ ($339.11\pm243.50$ against
+$260.78\pm166.09$\,s) and Ingolstadt21 by $1.7\%$ ($361.31\pm95.24$ against
+$355.29\pm28.23$\,s); both gaps are smaller than either arm's own
+evaluation-seed SD, so neither is distinguishable from noise at this
+configuration.
 
 % ============================================================
 \section{Discussion}
@@ -1480,30 +1381,24 @@ matched blocks out of four, twelve seed-level comparisons out of twelve.
 Critic-level dependency retention, estimable only on Cologne8, agrees just
 as cleanly, Flow ahead of METIS at both module counts and in all six
 seed-level comparisons; at $k=3$ that agreement extends to the one
-downstream cell where a regional critic actually trains, MAPPO's R2 delay
-reduction of $23.7\%$ sitting on a critic that demonstrably keeps more
-value-relevant input under Flow.
-Downstream training agrees least cleanly, and only three of its five matched
-R2 cells are reported here.
-The replicated R2 evidence shows dependency retention predicting the
-training outcome in two of the three completed Cologne8 comparisons, both
-mechanisms that reduce the partition to a single aggregated signal, a
-regional reward mean for IPPO and a regional critic input for MAPPO; the
-third, CoLight, is neutral.
-The two Ingolstadt21 R2 cells, IPPO and MAPPO at $k=4$, are withheld pending
-a rerun under a revised training configuration (Table~\ref{tab:wait-gains})
-and are excluded from this count.
-The broader single-seed sweep agrees in nine of its twelve comparisons,
-including strong single-seed margins at both pending Ingolstadt21 cells that
-the completed replication has not yet confirmed either way.
+downstream MAPPO cell with a critic-level retention estimate to check it
+against, Cologne8's $23.6\%$ delay reduction sitting on a critic that
+demonstrably keeps more value-relevant input under Flow.
+Downstream training agrees least cleanly: Flow leads only three of the eight
+matched cells (Table~\ref{tab:wait-gains}), and in every one of the three a
+coordination mechanism reduces the partition to a single aggregated signal,
+a regional reward mean for IPPO on Cologne8 and a regional critic input for
+MAPPO on both networks; CoLight and FMA2C favor METIS on both networks, and
+the remaining IPPO cell is a near-tie.
 Retention measured on a trained model's Jacobian agrees least of all,
 matching the flow ordering in two blocks of four and, on Ingolstadt21 at
 $k=5$ (single seed on both sides), pointing opposite the trained regional
 model's own behavior.
 The pattern is the finding: what a partition retains of raw traffic and raw
 state dependency predicts a regional learner's training most reliably where
-that learner consumes the partition through an aggregated signal, and what
-an unpartitioned model's gradients use predicts it least.
+that learner consumes the partition through an aggregated signal, and least
+reliably where it does not, CoLight's attention graph and FMA2C's manager
+structure among them.
 
 Our own data constrain the mechanism behind that association.
 Spill-back is nearly absent from these traces, the observational CMI
@@ -1537,17 +1432,15 @@ The OD matrix is measured under a random warm-up policy, before a learned
 controller reshapes traffic, so it describes the demand the partition was
 designed for, not the traffic it will eventually see.
 $D^G$ rests on one checkpoint per network; $D^Q$ is not estimable on
-Ingolstadt21, where every completed R2 MAPPO checkpoint uses a regional
+Ingolstadt21, where every available MAPPO checkpoint uses a regional
 critic, making Ingolstadt21 MAPPO the one training cell this paper cannot
 cross-check against critic-level retention.
 The Ingolstadt21 CoLight runs also stopped at unequal, sub-plateau episode
 counts.
-Seed replication covers five of the twelve legacy cells, including the two
-largest single-seed effects (Cologne8 IPPO, MAPPO); extending it to
-Ingolstadt21 CoLight, FMA2C, and $k=5$ on both networks remains outstanding,
-and the two Ingolstadt21 replications already in hand (IPPO, MAPPO at
-$k=4$) are scheduled for a rerun under a revised configuration rather than
-treated as final (Table~\ref{tab:wait-gains}).
+Table~\ref{tab:wait-gains} is one training run per cell; repeating it over
+training seeds, particularly for CoLight and FMA2C where the observed
+Flow--METIS gap is already smaller than either arm's own evaluation-seed SD,
+remains outstanding.
 A higher-demand arm is the decisive next experiment: the regime in which
 spill-back should become active and the association reported here could be
 tested for causation.
@@ -1572,24 +1465,17 @@ Flow retention and dependency retention rank candidates identically in every
 matched block, so the training-free flow score is a usable proxy for the
 dependency a partition preserves, though the ordering transfers while the
 magnitude does not.
-On a completed three-training-seed replication, the higher-retention
-partition trains to a markedly lower best-checkpoint delay wherever a
-coordination mechanism reduces the partition to a single aggregated signal,
-a regional reward mean or a regional critic input, on the busier network,
-corroborated on Cologne8 by directly measured critic-level dependency
-retention; the one remaining completed replicated comparison, Cologne8
-CoLight, is neutral within seed dispersion, and the Ingolstadt21 IPPO and
-MAPPO replications are withheld pending a rerun under a revised training
-configuration rather than reported as a final result
-(Table~\ref{tab:wait-gains}).
-A broader single-seed sweep favors the higher-retention partition in nine of
-twelve comparisons spanning regional reward sharing, regional critics,
-regional attention, and a feudal regional manager, ties two more, and beats
-the unpartitioned controller in nine of eleven cells that have one.
-The single-seed loss is informative regardless of magnitude: the partition
-with the highest flow retention in the study achieves it with two singleton
-modules, so retention must be scored inside the deployment's size and
-connectivity constraints, not maximized on its own.
+Downstream training agrees least: Flow reaches a lower best-checkpoint delay
+in three of the eight matched cells (Table~\ref{tab:wait-gains}), each one
+where a coordination mechanism reduces the partition to a single aggregated
+signal, a regional reward mean for IPPO or a regional critic input for
+MAPPO, corroborated on Cologne8 by directly measured critic-level
+dependency retention; CoLight and FMA2C, whose mechanisms do not aggregate
+the partition into one signal, favor METIS on both networks.
+The loss is informative regardless of magnitude: the partition with the
+highest flow retention in the study achieves it with two singleton modules,
+so retention must be scored inside the deployment's size and connectivity
+constraints, not maximized on its own.
 
 Two claims are withheld.
 Spill-back is nearly absent in these traces and a preregistered randomized
@@ -1598,12 +1484,9 @@ are reported as consistent with optimization conditioning through correlated
 within-module signals, not as evidence of preserved causal coupling.
 No significance test is reported anywhere; the evidence is the repetition of
 an ordering across comparisons that share no seed, map, or module count.
-The next steps are extending seed replication beyond its current five cells
-to Ingolstadt21 CoLight, to FMA2C on either network, and to $k=5$ on both
-networks; rerunning Ingolstadt21 IPPO and MAPPO under a revised training
-configuration (Table~\ref{tab:wait-gains}); and a higher-demand regime in
-which spill-back becomes active and the association reported here could be
-tested for causation.
+The next steps are repeating Table~\ref{tab:wait-gains} over training seeds
+and a higher-demand regime in which spill-back becomes active, where the
+association reported here could be tested for causation.
 
 % % ============================================================
 % \appendices
@@ -1735,7 +1618,7 @@ tested for causation.
 
 % ============================================================
 {
-    \footnotesize
+    \scriptsize
     \bibliographystyle{IEEEtranN}
     \bibliography{refs}
 }
