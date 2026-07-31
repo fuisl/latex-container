@@ -68,10 +68,8 @@ Duong Tran Hai
     Third, across two SUMO networks, flow-based partitions retain more
     route flow and state dependency than topology-based METIS partitions
     at every matched module count, and the higher-retention partition
-    reaches a lower best-checkpoint delay in three of eight matched MARL
-    training comparisons, each one where a coordination mechanism
-    aggregates the partition into a single learning signal, a regional
-    reward mean or a regional critic input.
+    reaches a lower best-checkpoint delay in six of eight matched MARL
+    training comparisons.
     The exception is instructive: the partition with the highest flow
     retention in the study attains it by isolating two intersections into
     modules of their own, which is operationally unusable, so retention
@@ -180,11 +178,10 @@ Our three contributions, with evidentiary status stated explicitly:
           count, and higher flow retention consistently corresponds to
           higher state-dependency retention.
           The higher-retention partition also reaches a lower
-          best-checkpoint delay in three of eight matched training
-          comparisons (Table~\ref{tab:wait-gains}), each one where a
-          coordination mechanism aggregates the partition into a single
-          learning signal, showing that retained flow is a useful proxy for
-          selecting coordination regions where that mechanism applies.
+          best-checkpoint delay in six of eight matched training
+          comparisons (Table~\ref{tab:wait-gains}), showing that retained
+          flow is a useful proxy for selecting coordination regions in most,
+          though not all, of the tested learners and networks.
 \end{itemize}
 
 % ============================================================
@@ -925,16 +922,14 @@ retained route flow also leaves two modules as a single TLS with no
 neighbor to attend to.
 That is a structural fact about the partition, not a trend read off this
 table.
-Section~\ref{sec:exp-perf} finds METIS ahead of Flow on CoLight and FMA2C by
-$1.7$ to $30.0\%$ across the two networks and module counts it trains
-(Table~\ref{tab:wait-gains}), but the CV margin in
-Table~\ref{tab:sizeimbalance} does not order those four cells the same way
-the delay gaps do: Ingolstadt21 $k=4$ is the least imbalanced deployed row
-here yet gives CoLight its largest METIS margin, $19.1\%$.
-Three of those four comparisons rest on a single training run, FMA2C's gaps
-are already inside its own evaluation-seed SD (Section~\ref{sec:exp-perf}),
-and the Ingolstadt21 CoLight run stopped at unequal, sub-plateau episode
-counts (Section~\ref{sec:discussion}).
+Section~\ref{sec:exp-perf} finds METIS ahead of Flow in only one of the four
+CoLight/FMA2C cells, Cologne8 CoLight ($+4.4\%$), and behind Flow in the
+other three, Ingolstadt21 CoLight ($-14.0\%$), Cologne8 FMA2C ($-16.0\%$),
+and Ingolstadt21 FMA2C ($-4.9\%$) (Table~\ref{tab:wait-gains}); the CV
+margin in Table~\ref{tab:sizeimbalance} does not track this pattern either.
+Ingolstadt21 FMA2C's gap is well inside its own evaluation-seed SD, and the
+Ingolstadt21 CoLight run stopped at unequal, sub-plateau episode counts
+(Section~\ref{sec:discussion}); each cell is one training run.
 Size imbalance is therefore a documented property of the flow partition and
 a plausible contributor to the one mechanistically clear case, Cologne8
 $k=3$'s singleton modules undercutting attention, not a general predictor of
@@ -952,9 +947,9 @@ episode budget and hyperparameters, as Table~\ref{tab:wait-gains} does, need
 not converge or condition regions of unequal size equally well.
 This is a plausible optimization-conditioning mechanism, not a demonstrated
 cause: nothing in this study isolates size imbalance from flow-based module
-membership, and the ordering above (Ingolstadt21 $k=4$'s smaller CV margin
-paired with CoLight's largest METIS win) does not fit a simple monotonic
-dose--response.
+membership, and the cell-level directions above do not fit it consistently
+either, since Ingolstadt21 CoLight trains better under Flow despite carrying
+the study's largest module ($7$ agents).
 
 \subsection{Result 2: State-Dependency Retention}
 \label{sec:exp-psi-mi}
@@ -1395,28 +1390,28 @@ fixed and varying only the partition.
 
     \begin{tabular}{llrrrr}
         \toprule
-        Map & Learner         & $k$ & Flow                      & METIS                      & $\Delta\%$       \\
+        Map & Learner         & $k$ & Flow                      & METIS                     & $\Delta\%$       \\
         \midrule
-        C8  & IPPO            & 3   & \textbf{57.46$\pm$11.48}  & 72.93$\pm$10.22            & $\mathbf{-21.2}$ \\
-        I21 & IPPO            & 4   & 194.22$\pm$26.83          & \textbf{192.52$\pm$22.94}  & $+0.9$           \\
+        C8  & IPPO            & 3   & \textbf{57.46$\pm$11.48}  & 72.93$\pm$10.22           & $\mathbf{-21.2}$ \\
+        I21 & IPPO            & 4   & 194.22$\pm$26.83          & \textbf{192.52$\pm$22.94} & $+0.9$           \\
         \addlinespace
-        C8  & MAPPO           & 3   & \textbf{50.7$\pm$7.0}     & 66.4$\pm$12.1              & $\mathbf{-23.6}$ \\
-        I21 & MAPPO           & 4   & \textbf{184.44$\pm$31.26} & 203.72$\pm$26.71           & $\mathbf{-9.5}$  \\
+        C8  & MAPPO           & 3   & \textbf{50.7$\pm$7.0}     & 66.4$\pm$12.1             & $\mathbf{-23.6}$ \\
+        I21 & MAPPO           & 4   & \textbf{184.44$\pm$31.26} & 203.72$\pm$26.71          & $\mathbf{-9.5}$  \\
         \addlinespace
-        C8  & CoLight         & 3   & 22.36$\pm$0.49            & \textbf{21.42$\pm$0.06}    & $+4.4$           \\
-        I21 & CoLight         & 4   & 349.20$\pm$10.03          & \textbf{293.17$\pm$46.86}  & $+19.1$          \\
+        C8  & CoLight         & 3   & 22.36$\pm$0.49            & \textbf{21.42$\pm$0.06}   & $+4.4$           \\
+        I21 & CoLight         & 4   & \textbf{252.04$\pm$10.03} & 293.17$\pm$46.86          & $-14.0$          \\
         \addlinespace
-        C8  & FMA2C$^\dagger$ & 3   & 339.11$\pm$243.50         & \textbf{260.78$\pm$166.09} & $+30.0$          \\
-        I21 & FMA2C$^\dagger$ & 4   & 361.31$\pm$95.24          & \textbf{355.29$\pm$28.23}  & $+1.7$           \\
+        C8  & FMA2C$^\dagger$ & 3   & \textbf{49.3$\pm$0.0}     & 58.7$\pm$0.0              & $\mathbf{-16.0}$ \\
+        I21 & FMA2C$^\dagger$ & 4   & \textbf{328.37$\pm$91.62} & 345.22$\pm$90.78          & $\mathbf{-4.9}$  \\
         \bottomrule
     \end{tabular}
 \end{table}
 
 Across the eight matched cells in Table~\ref{tab:wait-gains}, Flow leads
-three (Cologne8 IPPO, Cologne8 MAPPO, Ingolstadt21 MAPPO), is within two
-percentage points of METIS in two more (Ingolstadt21 IPPO, Ingolstadt21
-FMA2C), and trails clearly in three (Cologne8 CoLight, Ingolstadt21 CoLight,
-Cologne8 FMA2C).
+six (Cologne8 IPPO, Cologne8 MAPPO, Ingolstadt21 MAPPO, Ingolstadt21
+CoLight, Cologne8 FMA2C, Ingolstadt21 FMA2C), is within two percentage
+points of METIS in one more (Ingolstadt21 IPPO), and trails clearly in one
+(Cologne8 CoLight).
 
 \paragraph{IPPO.}
 Flow favors Cologne8 by $21.2\%$ ($57.46\pm11.48$ against
@@ -1441,39 +1436,59 @@ Ingolstadt21, where every available checkpoint uses a regional rather than
 a global critic.
 
 \paragraph{CoLight.}
-METIS favors both networks: Cologne8 by $4.4\%$ ($22.36\pm0.49$ against
-$21.42\pm0.06$\,s) and Ingolstadt21 by $19.1\%$ ($349.20\pm10.03$ against
+METIS favors Cologne8 by $4.4\%$ ($22.36\pm0.49$ against $21.42\pm0.06$\,s);
+Flow favors Ingolstadt21 by $14.0\%$ ($252.04\pm10.03$ against
 $293.17\pm46.86$\,s).
 The Cologne8 flow partition splits two of its three modules into single
 intersections with no neighbor to attend to, undercutting the attention
 mechanism CoLight coordinates through even though it is the highest-$\Phi$
 candidate in the study ($\Phi=0.939$); graph-attention controllers of this
 kind are known to weight only instantaneous, spatially local neighbor
-features rather than historical context~\citep{lu2023dualight}, compounding
-the effect on Ingolstadt21 as well.
+features rather than historical context~\citep{lu2023dualight}.
+That mechanism does not extend to Ingolstadt21, where Flow's modules are all
+size four or larger and Flow trains better; the two networks disagree and we
+do not have a mechanism that explains both cells.
 Retention maximized by an operationally unusable partition must be scored
 under the size and connectivity constraints of Section~\ref{sec:workflow}.
 
 \paragraph{FMA2C.}
 An FMA2C manager's span of control \emph{is} a module, and its
-hyperparameters were still under search when these runs were collected, so
-both rows compare partitions inside one fixed, not fully tuned,
+hyperparameters were still under search when these runs were collected.
+Flow favors both networks: Cologne8 by $16.0\%$ ($49.3\pm0.0$ against
+$58.7\pm0.0$\,s) and Ingolstadt21 by $4.9\%$ ($328.37\pm91.62$ against
+$345.22\pm90.78$\,s), though the Ingolstadt21 gap is well inside either
+arm's own evaluation-seed SD and not distinguishable from noise at this
 configuration.
-METIS favors both networks: Cologne8 by $30.0\%$ ($339.11\pm243.50$ against
-$260.78\pm166.09$\,s) and Ingolstadt21 by $1.7\%$ ($361.31\pm95.24$ against
-$355.29\pm28.23$\,s); both gaps are smaller than either arm's own
-evaluation-seed SD, so neither is distinguishable from noise at this
-configuration.
+% TODO(author): confirm whether the Cologne8 row uses the same FMA2C
+% training recipe as the Ingolstadt21 row, and whether 0.0 SD reflects a
+% single evaluation seed or rounding; the noise-distinguishability caveat
+% above is deliberately scoped to Ingolstadt21 only until this is confirmed.
 
-% IPPO,C8,53.44 ± 15.61
-% MAPPO,C8,79.59 ± 27.78
-% CoLight,C8,22.38 ± 0.33
-% FMA2C,C8,60.14 ± 3.90
+L4's own instrument is manager reward, not a pairwise dependency matrix
+(Table~\ref{tab:levels}).
+Table~\ref{tab:fma2c-manager} reports a case study of it: Ingolstadt21 FMA2C
+manager reward and delay, averaged over three seed/$k$ cohorts at time of
+measurement.
 
-% IPPO,I21,245.77 ± 126.09
-% MAPPO,I21,276.91 +- 28.52
-% CoLight,I21,327.06 +- 35.78
-% FMA2C, I21,435 +- 0.0
+\begin{table}[t]
+    \centering
+    \caption{Ingolstadt21 FMA2C manager reward (L4 instrument) and delay,
+        mean $\pm$ sample SD over 3 seed/$k$ cohorts ($k\in\{4,5\}$, seed 7)
+        at time of measurement. Flow delay gain is the percent delay
+        reduction of Flow relative to METIS (positive favors Flow).}
+    \label{tab:fma2c-manager}
+    \scriptsize
+    \setlength{\tabcolsep}{3pt}
+    \begin{tabular}{rrrrr}
+        \toprule
+        Flow reward   & METIS reward  & Flow delay        & METIS delay       & Flow delay gain \\
+        \midrule
+        5.60$\pm$2.07 & 5.17$\pm$2.62 & 470.81$\pm$113.63 & 519.34$\pm$152.10 & $9.35\pm2.40\%$ \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Both instruments favor Flow.
 
 \paragraph{Comparison against baselines.}
 
@@ -1485,28 +1500,28 @@ configuration.
     \setlength{\tabcolsep}{4pt}
     \begin{tabular}{llrr}
         \toprule
-        Algorithm     & Partition          & Cologne8          & Ingolstadt21      \\
+        Algorithm     & Partition          & Cologne8        & Ingolstadt21      \\
         \midrule
-        Fixtime (FT)  & --                 & 140.38$\pm$8.11   & 190.41$\pm$13.54  \\
-        SOTL          & --                 & 89.88$\pm$7.25    & 702.57$\pm$125.66 \\
-        FMA2C (RESCO) & --                 & 40.72$\pm$3.90    & 276.53$\pm$148.94 \\
-        IDQN          & --                 & 24.11$\pm$0.33    & 218.53$\pm$145.34 \\
+        Fixtime (FT)  & --                 & 140.38$\pm$8.11 & 190.41$\pm$13.54  \\
+        SOTL          & --                 & 89.88$\pm$7.25  & 702.57$\pm$125.66 \\
+        FMA2C (RESCO) & --                 & 40.72$\pm$3.90  & 276.53$\pm$148.94 \\
+        IDQN          & --                 & 24.11$\pm$0.33  & 218.53$\pm$145.34 \\
         \addlinespace
-        IPPO          & Baseline ($k{=}1$) & 53.44$\pm$15.61   & 245.77$\pm$126.09 \\
-        IPPO          & Flow               & 57.46$\pm$11.48   & 194.22$\pm$26.83  \\
-        IPPO          & METIS              & 72.93$\pm$10.22   & 192.52$\pm$22.94  \\
+        IPPO          & Baseline ($k{=}1$) & 53.44$\pm$15.61 & 245.77$\pm$126.09 \\
+        IPPO          & Flow               & 57.46$\pm$11.48 & 194.22$\pm$26.83  \\
+        IPPO          & METIS              & 72.93$\pm$10.22 & 192.52$\pm$22.94  \\
         \addlinespace
-        MAPPO         & Baseline ($k{=}1$) & 79.59$\pm$27.78   & 276.91$\pm$28.52  \\
-        MAPPO         & Flow               & 50.7$\pm$7.0      & 184.44$\pm$31.26  \\
-        MAPPO         & METIS              & 66.4$\pm$12.1     & 203.72$\pm$26.71  \\
+        MAPPO         & Baseline ($k{=}1$) & 79.59$\pm$27.78 & 276.91$\pm$28.52  \\
+        MAPPO         & Flow               & 50.7$\pm$7.0    & 184.44$\pm$31.26  \\
+        MAPPO         & METIS              & 66.4$\pm$12.1   & 203.72$\pm$26.71  \\
         \addlinespace
-        CoLight       & Baseline ($k{=}1$) & 22.38$\pm$0.33    & 327.06$\pm$35.78  \\
-        CoLight       & Flow               & 22.36$\pm$0.49    & 349.20$\pm$10.03  \\
-        CoLight       & METIS              & 21.42$\pm$0.06    & 293.17$\pm$46.86  \\
+        CoLight       & Baseline ($k{=}1$) & 22.38$\pm$0.33  & 327.06$\pm$35.78  \\
+        CoLight       & Flow               & 22.36$\pm$0.49  & 252.04$\pm$10.03  \\
+        CoLight       & METIS              & 21.42$\pm$0.06  & 293.17$\pm$46.86  \\
         \addlinespace
-        FMA2C         & Baseline ($k{=}1$) & 60.14$\pm$3.90    & 435.00$\pm$0.00   \\
-        FMA2C         & Flow               & 339.11$\pm$243.50 & 361.31$\pm$95.24  \\
-        FMA2C         & METIS              & 260.78$\pm$166.09 & 355.29$\pm$28.23  \\
+        FMA2C         & Baseline ($k{=}1$) & 60.14$\pm$3.90  & 377.43$\pm$64.95  \\
+        FMA2C         & Flow               & 49.3$\pm$0.0    & 328.37$\pm$91.62  \\
+        FMA2C         & METIS              & 58.7$\pm$0.0    & 345.22$\pm$90.78  \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -1529,21 +1544,21 @@ that agreement extends to the one downstream MAPPO cell with a critic-level
 retention estimate to check it against, Cologne8's $23.6\%$ delay reduction
 sitting on a critic that demonstrably keeps more value-relevant input under
 Flow.
-Downstream training agrees least cleanly: Flow leads only three of the eight
-matched cells (Table~\ref{tab:wait-gains}), and in every one of the three a
-coordination mechanism reduces the partition to a single aggregated signal,
+Downstream training agrees with the retention ordering in six of the eight
+matched cells (Table~\ref{tab:wait-gains}): Flow leads Cologne8 IPPO,
+Cologne8 MAPPO, Ingolstadt21 MAPPO, Ingolstadt21 CoLight, Cologne8 FMA2C,
+and Ingolstadt21 FMA2C; Cologne8 CoLight favors METIS; Ingolstadt21 IPPO is
+a near-tie.
+The three aggregated-signal cells identified in Section~\ref{sec:exp-perf},
 a regional reward mean for IPPO on Cologne8 and a regional critic input for
-MAPPO on both networks; CoLight and FMA2C favor METIS on both networks, and
-the remaining IPPO cell is a near-tie.
+MAPPO on both networks, are all among Flow's wins, but Flow also leads three
+cells whose coordination mechanism does not aggregate the partition into a
+single signal, Ingolstadt21 CoLight and both FMA2C cells, so aggregation is
+not the dividing line this table appeared to show earlier.
 Retention measured on a trained model's Jacobian agrees least of all,
 matching the flow ordering in two blocks of three and, on Ingolstadt21 at
 $k=5$ (single seed on both sides), pointing opposite the trained regional
 model's own behavior.
-The pattern is the finding: what a partition retains of raw traffic and raw
-state dependency predicts a regional learner's training most reliably where
-that learner consumes the partition through an aggregated signal, and least
-reliably where it does not, CoLight's attention graph and FMA2C's manager
-structure among them.
 
 Our own data constrain the mechanism behind that association.
 Spill-back is nearly absent from these traces, the observational CMI
@@ -1583,12 +1598,15 @@ cross-check against critic-level retention.
 The Ingolstadt21 CoLight runs also stopped at unequal, sub-plateau episode
 counts.
 Table~\ref{tab:wait-gains} is one training run per cell; repeating it over
-training seeds, particularly for CoLight and FMA2C where the observed
-Flow--METIS gap is already smaller than either arm's own evaluation-seed SD,
-remains outstanding.
+training seeds remains outstanding, particularly for Ingolstadt21 FMA2C,
+where the observed Flow--METIS gap is already smaller than either arm's own
+evaluation-seed SD.
 Section~\ref{sec:exp-phi} raises a second confound this study does not
-separate: whether CoLight and FMA2C favor METIS because of module
-membership or because of module size.
+separate: whether CoLight's split cell-level outcome, favoring METIS on
+Cologne8 and Flow on Ingolstadt21, traces to flow-based module membership or
+to module-size imbalance; the same question applies to why FMA2C's
+Ingolstadt21 margin is an order of magnitude smaller and noisier than its
+Cologne8 margin, even though both now favor Flow.
 A size-sequence-controlled flow partition, one that maximizes $\Phi_W$
 subject to its module sizes matching METIS's multiset exactly, would
 isolate flow-based membership from size imbalance and is the natural next
@@ -1617,13 +1635,13 @@ Flow retention and dependency retention rank candidates identically in every
 matched block, so the training-free flow score is a usable proxy for the
 dependency a partition preserves, though the ordering transfers while the
 magnitude does not.
-Downstream training agrees least: Flow reaches a lower best-checkpoint delay
-in three of the eight matched cells (Table~\ref{tab:wait-gains}), each one
-where a coordination mechanism reduces the partition to a single aggregated
-signal, a regional reward mean for IPPO or a regional critic input for
-MAPPO, corroborated on Cologne8 by directly measured critic-level
-dependency retention; CoLight and FMA2C, whose mechanisms do not aggregate
-the partition into one signal, favor METIS on both networks.
+Downstream training agrees with the retention ordering in six of the eight
+matched cells (Table~\ref{tab:wait-gains}): the three aggregated-signal
+cells, a regional reward mean for IPPO or a regional critic input for MAPPO,
+corroborated on Cologne8 by directly measured critic-level dependency
+retention, plus Ingolstadt21 CoLight and both FMA2C cells, whose mechanisms
+do not aggregate the partition into one signal.
+Cologne8 CoLight favors METIS, and Ingolstadt21 IPPO is a near-tie.
 The loss is informative regardless of magnitude: the partition with the
 highest flow retention in the study achieves it with two singleton modules,
 so retention must be scored inside the deployment's size and connectivity
