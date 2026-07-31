@@ -863,37 +863,62 @@ topology-based partitioning leaves on the table.
 \paragraph{Module size imbalance.}
 \begin{table}[t]
     \centering
-    \caption{Module size imbalance for Table~\ref{tab:phi}'s three matched
-        blocks.
-        $I=\max_i|m_i|/(n/k)$ is the imbalance ratio METIS's own balance
-        constraint bounds~\citep{karypis1998metis}; CV is the population
-        coefficient of variation $\sigma/\mu$ of module sizes. Both are
-        unbounded, zero-floor cost quantities: 1 is perfect balance for $I$,
-        0 for CV.}
+    \caption{Module size imbalance and retained flow, extending
+        Table~\ref{tab:phi}.
+        The Cologne8 block sweeps Infomap's Bayesian regularization strength
+        at fixed $k=3$: weaker regularization favors flow cohesion, stronger
+        regularization favors balance; \emph{Flow} and \emph{METIS} are the
+        partitions actually carried into Table~\ref{tab:wait-gains}, and
+        \emph{compromise}/\emph{balanced} are exploratory intermediate
+        candidates, not trained downstream.
+        CV is the population coefficient of variation $\sigma/\mu$ of module
+        sizes (0 is perfect balance); $\Phi$ repeats Table~\ref{tab:phi}'s
+        realized-flow retention.
+        Retained TLS edges are undirected physical communication edges with
+        both endpoints in the same module.}
     \label{tab:sizeimbalance}
     \scriptsize
     \setlength{\tabcolsep}{3pt}
-    \begin{tabular}{llllrrrr}
+    \begin{tabular}{llrrrr}
         \toprule
-                     &     & \multicolumn{2}{c}{Module sizes ($m_i$ order)} & \multicolumn{2}{c}{$I$} & \multicolumn{2}{c}{CV}                         \\
-        \cmidrule(lr){3-4}\cmidrule(lr){5-6}\cmidrule(lr){7-8}
-        Map          & $k$ & Flow                                           & METIS                   & Flow                   & METIS & Flow  & METIS \\
+        Candidate        & $k$ & Sizes         & CV    & $\Phi$ & TLS edges \\
         \midrule
-        Cologne8     & 3   & 6, 1, 1                                        & 2, 3, 3                 & 2.250                  & 1.125 & 0.884 & 0.177 \\
-        Ingolstadt21 & 4   & 7, 4, 3, 7                                     & 5, 5, 5, 6              & 1.333                  & 1.143 & 0.340 & 0.083 \\
-        Ingolstadt21 & 5   & 7, 2, 3, 2, 7                                  & 4, 4, 4, 4, 5           & 1.667                  & 1.190 & 0.551 & 0.095 \\
+        \multicolumn{6}{@{}l}{\textit{Cologne8, regularization sweep}}      \\
+        Flow             & 3   & 6, 1, 1       & 0.884 & 0.939  & 9 / 11    \\
+        Flow, compromise & 3   & 4, 3, 1       & 0.468 & 0.737  & 5 / 11    \\
+        Flow, balanced   & 3   & 3, 3, 2       & 0.177 & 0.614  & 6 / 11    \\
+        METIS            & 3   & 3, 3, 2       & 0.177 & 0.614  & 6 / 11    \\
+        \addlinespace
+        \multicolumn{6}{@{}l}{\textit{Ingolstadt21, deployed partitions}}   \\
+        Flow             & 4   & 7, 4, 3, 7    & 0.340 & 0.817  & 24 / 33   \\
+        METIS            & 4   & 5, 5, 5, 6    & 0.082 & 0.643  & 22 / 33   \\
+        Flow             & 5   & 7, 2, 3, 2, 7 & 0.551 & 0.792  & 23 / 33   \\
+        METIS            & 5   & 4, 4, 4, 4, 5 & 0.095 & 0.636  & 19 / 33   \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-Flow is more size-imbalanced than METIS on both indices in every row: $1.17$
-to $2.00\times$ by $I$ and $4.1$ to $5.8\times$ by CV.
-In each row METIS's sizes are the maximally even split of $n$ into $k$ parts,
-and the size-balanced random control (Section~\ref{sec:setup}) is a
-round-robin assignment, which is forced to the same multiset of sizes
-regardless of seed; METIS and Random therefore sit at the same balance floor
-here, and Flow is the outlier on this axis rather than the other two
-differing from each other.
+The Cologne8 block shows the size axis is a continuous, controllable
+trade-off rather than a fixed difference between two algorithms.
+Raising the regularization strength on the flow candidate moves it from
+$6/1/1$ (CV $0.884$, $\Phi=0.939$) through $4/3/1$ (CV $0.468$,
+$\Phi=0.737$) to $3/3/2$ (CV $0.177$, $\Phi=0.614$), and at that balanced
+end Infomap's own module membership is identical to METIS's, up to
+region-label permutation.
+The balanced-Infomap row is therefore Infomap converging to the
+topology-balanced solution under regularization, not an independent flow
+advantage at that size profile: retention and balance trade off along one
+frontier, and METIS sits at its balanced extreme.
+A more balanced $4/2/2$ profile is not a free improvement on this
+frontier: exhaustive enumeration over the connected, size-bounded candidate
+space finds only four connected $4/2/2$ partitions at $k=3$, and the best of
+them retains $57.43\%$ of flow, below the deployed $3/3/2$ candidate's
+$61.43\%$.
+
+Flow is more size-imbalanced than METIS in every deployed row, from
+$4.1\times$ (Ingolstadt21 $k=4$) to $5.8\times$ (Ingolstadt21 $k=5$) by CV,
+and METIS's sizes are the maximally even split of $n$ into $k$ parts at
+every deployed $k$.
 The Cologne8 $k=3$ cell is the extreme case already noted for
 Table~\ref{tab:phi}: the $6/1/1$ split that makes Flow nearly lossless in
 retained route flow also leaves two modules as a single TLS with no
@@ -902,10 +927,10 @@ That is a structural fact about the partition, not a trend read off this
 table.
 Section~\ref{sec:exp-perf} finds METIS ahead of Flow on CoLight and FMA2C by
 $1.7$ to $30.0\%$ across the two networks and module counts it trains
-(Table~\ref{tab:wait-gains}), but the size margin in
+(Table~\ref{tab:wait-gains}), but the CV margin in
 Table~\ref{tab:sizeimbalance} does not order those four cells the same way
-the delay gaps do: Ingolstadt21 $k=4$ is the least imbalanced row here yet
-gives CoLight its largest METIS margin, $19.1\%$.
+the delay gaps do: Ingolstadt21 $k=4$ is the least imbalanced deployed row
+here yet gives CoLight its largest METIS margin, $19.1\%$.
 Three of those four comparisons rest on a single training run, FMA2C's gaps
 are already inside its own evaluation-seed SD (Section~\ref{sec:exp-perf}),
 and the Ingolstadt21 CoLight run stopped at unequal, sub-plateau episode
@@ -914,6 +939,22 @@ Size imbalance is therefore a documented property of the flow partition and
 a plausible contributor to the one mechanistically clear case, Cologne8
 $k=3$'s singleton modules undercutting attention, not a general predictor of
 the downstream ordering.
+
+Beyond that singleton-attention mechanism, a module's size can matter for
+any learner that trains it under a shared architecture and budget, since
+complexity results for localized actor-critic MARL scale with the
+state-action size of the \emph{largest} coordination neighborhood rather
+than the network total~\citep{qu2022scalable}.
+Flow's deployed partitions have a larger maximum module than METIS's at
+every module count in this study ($\max_k|P_k|=6$ against $3$ on Cologne8,
+$7$ against $5$--$6$ on Ingolstadt21), so training every module for the same
+episode budget and hyperparameters, as Table~\ref{tab:wait-gains} does, need
+not converge or condition regions of unequal size equally well.
+This is a plausible optimization-conditioning mechanism, not a demonstrated
+cause: nothing in this study isolates size imbalance from flow-based module
+membership, and the ordering above (Ingolstadt21 $k=4$'s smaller CV margin
+paired with CoLight's largest METIS win) does not fit a simple monotonic
+dose--response.
 
 \subsection{Result 2: State-Dependency Retention}
 \label{sec:exp-psi-mi}
@@ -1424,6 +1465,55 @@ $355.29\pm28.23$\,s); both gaps are smaller than either arm's own
 evaluation-seed SD, so neither is distinguishable from noise at this
 configuration.
 
+% IPPO,C8,53.44 ± 15.61
+% MAPPO,C8,79.59 ± 27.78
+% CoLight,C8,22.38 ± 0.33
+% FMA2C,C8,60.14 ± 3.90
+
+% IPPO,I21,245.77 ± 126.09
+% MAPPO,I21,276.91 +- 28.52
+% CoLight,I21,327.06 +- 35.78
+% FMA2C, I21,435 +- 0.0
+
+\paragraph{Comparison against baselines.}
+
+\begin{table}[t]
+    \centering
+    \caption{Delay (s/veh; lower is better) vs. non-partitioned literature baselines and regional learners. RESCO baselines are reported mean $\pm$ SD over evaluation episodes; the RESCO FMA2C row is a single-region baseline. $k{=}1$ rows use the all-network partition; Flow and METIS rows repeat Table~\ref{tab:wait-gains}.}
+    \label{tab:baselines}
+    \scriptsize
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabular}{llrr}
+        \toprule
+        Algorithm     & Partition          & Cologne8          & Ingolstadt21      \\
+        \midrule
+        Fixtime (FT)  & --                 & 140.38$\pm$8.11   & 190.41$\pm$13.54  \\
+        SOTL          & --                 & 89.88$\pm$7.25    & 702.57$\pm$125.66 \\
+        FMA2C (RESCO) & --                 & 40.72$\pm$3.90    & 276.53$\pm$148.94 \\
+        IDQN          & --                 & 24.11$\pm$0.33    & 218.53$\pm$145.34 \\
+        \addlinespace
+        IPPO          & Baseline ($k{=}1$) & 53.44$\pm$15.61   & 245.77$\pm$126.09 \\
+        IPPO          & Flow               & 57.46$\pm$11.48   & 194.22$\pm$26.83  \\
+        IPPO          & METIS              & 72.93$\pm$10.22   & 192.52$\pm$22.94  \\
+        \addlinespace
+        MAPPO         & Baseline ($k{=}1$) & 79.59$\pm$27.78   & 276.91$\pm$28.52  \\
+        MAPPO         & Flow               & 50.7$\pm$7.0      & 184.44$\pm$31.26  \\
+        MAPPO         & METIS              & 66.4$\pm$12.1     & 203.72$\pm$26.71  \\
+        \addlinespace
+        CoLight       & Baseline ($k{=}1$) & 22.38$\pm$0.33    & 327.06$\pm$35.78  \\
+        CoLight       & Flow               & 22.36$\pm$0.49    & 349.20$\pm$10.03  \\
+        CoLight       & METIS              & 21.42$\pm$0.06    & 293.17$\pm$46.86  \\
+        \addlinespace
+        FMA2C         & Baseline ($k{=}1$) & 60.14$\pm$3.90    & 435.00$\pm$0.00   \\
+        FMA2C         & Flow               & 339.11$\pm$243.50 & 361.31$\pm$95.24  \\
+        FMA2C         & METIS              & 260.78$\pm$166.09 & 355.29$\pm$28.23  \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Table~\ref{tab:baselines} places Table~\ref{tab:wait-gains} against the wider
+literature.
+
 % ============================================================
 \section{Discussion}
 \label{sec:discussion}
@@ -1496,9 +1586,16 @@ Table~\ref{tab:wait-gains} is one training run per cell; repeating it over
 training seeds, particularly for CoLight and FMA2C where the observed
 Flow--METIS gap is already smaller than either arm's own evaluation-seed SD,
 remains outstanding.
-A higher-demand arm is the decisive next experiment: the regime in which
-spill-back should become active and the association reported here could be
-tested for causation.
+Section~\ref{sec:exp-phi} raises a second confound this study does not
+separate: whether CoLight and FMA2C favor METIS because of module
+membership or because of module size.
+A size-sequence-controlled flow partition, one that maximizes $\Phi_W$
+subject to its module sizes matching METIS's multiset exactly, would
+isolate flow-based membership from size imbalance and is the natural next
+step for that question.
+A higher-demand arm is the decisive next experiment for causal spill-back:
+the regime in which spill-back should become active and the association
+reported here could be tested for causation.
 
 % ============================================================
 \section{Conclusion}
