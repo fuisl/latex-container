@@ -57,11 +57,11 @@ Duong Tran Hai
     This paper makes three contributions.
     First, it introduces a pre-training evaluation framework for regional
     MARL traffic signal control: candidate partitions are scored by how
-    much vehicle flow and inter-agent dependency they retain, and by
-    whether that retention remains meaningful under size- and
-    connectivity-matched null models, before any controller is trained.
+    much vehicle flow and inter-agent dependency they retain, before any
+    controller is trained.
     Second, it instantiates this framework with a flow-based construction
-    method: a signal-to-signal flow graph built from OD trip movements
+    method: a signal-to-signal flow graph built from origin-destination (OD)
+    trip movements
     generates candidate coordination regions, so that vehicle movement,
     rather than road geometry alone, is the basis for regional MARL
     coordination.
@@ -92,8 +92,8 @@ Duong Tran Hai
 
 Urban traffic signal control (TSC) is a canonical large-scale coordination
 problem: a phase decision at one intersection reshapes arrival patterns and
-queue spill-back at its neighbors, so signals must be controlled jointly,
-yet exact joint control requires evaluating a joint action space that grows
+queue spill-back at its neighbors, so signals must be controlled jointly.
+Yet exact joint control requires evaluating a joint action space that grows
 exponentially with the number of intersections, which is intractable beyond
 a handful of
 agents~\citep{nair2005ndpomdp,kok2006ndpomdp,oliehoek2012ndpomdp}.
@@ -130,9 +130,8 @@ construction, and an empirical test of the link between them.
 First, we specify a training-free criterion that scores, on the same
 partitions, how much observed route flow they retain ($\Phi$) and how much
 inter-agent dependency they retain ($\Psi$, under three complementary
-instruments), chance-adjusted against size- and connectivity-matched nulls,
-so that a partition can be ranked without first paying for a training run
-(Section~\ref{sec:method}).
+instruments), so that a partition can be ranked without first paying for a
+training run (Section~\ref{sec:method}).
 Second, we instantiate that criterion for traffic signal control: since
 coordination pressure in traffic networks is carried by vehicle flow, an
 OD-induced signal-transition flow graph is the natural partitioning
@@ -159,8 +158,7 @@ Our three contributions, with evidentiary status stated explicitly:
               partitions} (Section~\ref{sec:method}): a training-free
           criterion that scores a candidate partition by how much observed
           route flow ($\Phi$) and inter-agent state dependency ($\Psi$,
-          under three complementary instruments) it retains, chance-adjusted
-          against size- and connectivity-matched null models, so that
+          under three complementary instruments) it retains, so that
           candidate partitions can be compared before any controller is
           trained.
     \item \textbf{A flow-based method for constructing coordination regions}
@@ -275,8 +273,7 @@ The coordination graph is a design variable rather than a given
 Because coordination pressure in traffic is carried by vehicle flow, we score
 a partition by the OD flow it keeps inside modules, $\Phi_W$
 (Section~\ref{sec:flowretention}), and by the dependency it keeps, $\Psi$,
-measured with three complementary instruments and chance-adjusted against
-size- and connectivity-matched nulls (Section~\ref{sec:psi}).
+measured with three complementary instruments (Section~\ref{sec:psi}).
 Section~\ref{sec:transfer} states why these two scores, both computed before
 any learner runs, are expected to move together and to track downstream
 learning, and names the residual effects that would break the expectation.
@@ -381,8 +378,6 @@ leading working interpretation.
 
 \subsection{Flow Retention and the Map Equation}
 \label{sec:flowretention}
-\label{sec:infomap}
-\label{sec:theory}
 
 Let $\mathcal{G}_{\mathrm{flow}}=(\mathcal{V},\mathcal{E},\mathbf{W})$ be
 the OD-induced signal-transition flow graph, where $W_{ij}$ is the number of
@@ -412,8 +407,7 @@ family of Section~\ref{sec:related}.
 We work with the map equation~\citep{rosvall2008maps,rosvall2009mapequation}
 because its escape term is exactly the complement of retained \emph{stationary}
 flow (Eq.~\eqref{eq:qphi}), making the first link an identity rather than an
-analogy, with the gap to observed OD flow carried explicitly by
-$\epsilon_{\mathrm{walk}}$ below; its coding objective still only
+analogy; its coding objective still only
 favors, without uniquely optimizing, the flow-retentive structure this
 hypothesis wants to preserve.
 For the random walk used by the map equation,
@@ -430,18 +424,11 @@ For the random walk used by the map equation,
 \end{align}
 where
 $\Phi_\pi(\mathcal{P})=\sum_{c(i)=c(j)}\pi_iP_{ij}$ is within-module
-stationary-walk mass, and $q_{\circlearrowleft}=1-\Phi_\pi(\mathcal{P})$ is
-exact for this stationary edge measure
-(Proposition~\ref{prop:phi}, Appendix~\ref{app:proofs}).
+stationary-walk mass, and $q_{\circlearrowleft}=1-\Phi_\pi(\mathcal{P})$ holds
+exactly for this stationary edge measure by construction of the map
+equation's escape term.
 The empirical $\Phi_W$ in Eq.~\eqref{eq:phi} equals $\Phi_\pi$ when the OD
-edge measure matches the stationary edge measure, and otherwise differs by the
-measurable walk-mismatch term
-\begin{equation}
-    \epsilon_{\mathrm{walk}}(\mathcal{P})
-    =
-    |\Phi_\pi(\mathcal{P})-\Phi_W(\mathcal{P})|.
-    \label{eq:walkmismatch}
-\end{equation}
+edge measure matches the stationary edge measure.
 The entropy terms in Eq.~\eqref{eq:mapeq} prevent the trivial solution of one
 giant module, while the measured $\Phi_W$ reports how much observed traffic
 the final modules actually retain.
@@ -465,7 +452,8 @@ any non-negative pairwise dependency matrix can be scored, which is what lets
 the framework compare instruments that answer different questions on the same
 partition.
 We use three.
-$D^{\mathrm{MI}}$ is lagged KSG mutual information between per-agent
+$D^{\mathrm{MI}}$ is lagged Kraskov--St\"ogbauer--Grassberger (KSG) mutual
+information~\citep{kraskov2004ksg} between per-agent
 traffic-state slices, not the full network state vector, over
 $\tau\in\{1,5,15,30\}$ and is the model-free instrument for regional
 reward sharing.
@@ -488,31 +476,34 @@ it targets causal control coupling and is treated as a diagnostic, because
 the effects it looks for turn out to be below what our data resolve
 (Section~\ref{sec:exp-perturb}).
 
-Because coarse or uneven partitions retain more mass mechanically, we also
-use a chance-adjusted score
-\begin{equation}
-    \Psi_{\mathrm{adj}}
-    =
-    \frac{\Psi-\mathbb{E}_{\mathcal{R}}[\Psi]}
-    {1-\mathbb{E}_{\mathcal{R}}[\Psi]},
-    \label{eq:psiadj}
-\end{equation}
-where $\mathcal{R}$ is a null family with the same module-size sequence, and
-in the benchmark also the same physical-connectivity constraint.
-The former controls for size, which matters most on small networks where one
-large module plus singletons scores well simply by containing many pairs; the
-latter controls for the fact that any connected traffic region already
-retains more dependency than an arbitrary assignment.
-Raw $\Psi$ answers whether a particular deployed partition keeps dependency;
-$\Psi_{\mathrm{adj}}$ asks whether it keeps more than partitions under the
-same size and operability constraints.
-$\Phi$, $\Psi$, and $\Psi_{\mathrm{adj}}$ carry the partition-level
+% Chance-adjusted Psi_adj score against a size- and connectivity-matched null
+% family is left out of this iteration: the connected-null benchmark that
+% would report it (formerly Result 6) is not part of the current results, and
+% the raw counts are too coarse on these two networks for the adjustment to
+% carry much information (see the withheld benchmark note further below).
+% Restore alongside that benchmark if a larger candidate pool or null family
+% becomes available.
+% Because coarse or uneven partitions retain more mass mechanically, a
+% chance-adjusted score
+% \begin{equation}
+%     \Psi_{\mathrm{adj}}
+%     =
+%     \frac{\Psi-\mathbb{E}_{\mathcal{R}}[\Psi]}
+%     {1-\mathbb{E}_{\mathcal{R}}[\Psi]},
+%     \label{eq:psiadj}
+% \end{equation}
+% where $\mathcal{R}$ is a null family with the same module-size sequence, and
+% in the benchmark also the same physical-connectivity constraint, would
+% control for it: the former controls for size, which matters most on small
+% networks where one large module plus singletons scores well simply by
+% containing many pairs; the latter controls for the fact that any connected
+% traffic region already retains more dependency than an arbitrary assignment.
+$\Phi$ and $\Psi$ carry the partition-level
 comparison; the spill-back and action-perturbation probes enter only as
 diagnostics that constrain which mechanism can be invoked to explain it.
 
 \subsection{What We Expect Retention to Track}
 \label{sec:transfer}
-\label{sec:valueloss}
 
 The main hypothesis of Section~\ref{sec:intro} is a chain: retained flow to
 retained dependency to regional MARL performance.
@@ -545,8 +536,7 @@ networks.
         \draw[lnk] (psi) -- node[lab,right=1.5mm] {\textbf{H2}} (val);
 
         \node[lab,right=1.5mm of $(w.south)!0.5!(phi.north)$]
-        {Eq.~\eqref{eq:phi}; exact for the\\stationary walk
-            (Prop.~\ref{prop:phi}),\\residual $\epsilon_{\mathrm{walk}}$};
+        {Eq.~\eqref{eq:phi}; exact for the\\stationary walk (Eq.~\eqref{eq:qphi})};
         \node[lab,right=6mm of $(phi.south)!0.5!(psi.north)$]
         {flow carries coupling;\\confound: common demand};
         \node[lab,right=6mm of $(psi.south)!0.5!(val.north)$]
@@ -555,15 +545,14 @@ networks.
 
         \node[aud,below=5mm of val] (meas)
         {instruments\\[1pt]
-            $D^{\mathrm{MI}},D^{G},D^{\mathrm{CMI}},
-                \Psi_{\mathrm{adj}}$};
+            $D^{\mathrm{MI}},D^{G},D^{\mathrm{CMI}}$};
         \draw[-{Latex[length=1.5mm]},dashed] (meas.west) -- ++(-7mm,0)
         |- node[font=\tiny,above,pos=0.95,inner sep=1.5pt] {measures} (psi.west);
     \end{tikzpicture}
     \caption{The measured chain. All four quantities are computed on the same
         partitions, the top two before any training. The first arrow is an
-        identity for the stationary walk and is audited empirically through
-        $\epsilon_{\mathrm{walk}}$. H1 and H2 are the two links of the main
+        identity for the stationary walk (Eq.~\eqref{eq:qphi}). H1 and H2 are
+        the two links of the main
         hypothesis, tested in Section~\ref{sec:experiments} rather than
         proved; each is annotated with the confound that would produce the
         same reading without the mechanism. The relation is one-directional:
@@ -677,7 +666,7 @@ Completed trips contribute one unit of demand each to their realized route
 assigned routes; either way the output is a directed route-flow graph whose
 within-module mass is scored by Eq.~\eqref{eq:phi}.
 
-\subsection{Coordination Coupling Spectrum}
+\subsection{Coordination Mechanism Levels}
 \label{sec:levels}
 
 We hold the partition fixed while varying the coordination mechanism.
@@ -723,7 +712,7 @@ The framework's intended use builds Flow candidates with
 Algorithm~\ref{alg:od-demand} alongside topology and community-detection
 candidates, enforces module-count, size, and connectivity constraints,
 estimates dependency matrices on validation traces, scores every surviving
-candidate by $\Phi$, $\Psi$, and $\Psi_{\mathrm{adj}}$, selects a small
+candidate by $\Phi$ and $\Psi$, selects a small
 validation-front subset for policy training, and reports held-out retention
 alongside seed-explicit training results: the final choice is made by the
 retention score under the operational constraints the controller must
@@ -871,7 +860,8 @@ topology-based partitioning leaves on the table.
         CV is the population coefficient of variation $\sigma/\mu$ of module
         sizes (0 is perfect balance); $\Phi$ repeats Table~\ref{tab:phi}'s
         realized-flow retention.
-        Retained TLS edges are undirected physical communication edges with
+        Retained traffic light system (TLS) edges are undirected physical
+        communication edges with
         both endpoints in the same module.}
     \label{tab:sizeimbalance}
     \scriptsize
@@ -1373,7 +1363,6 @@ that mechanism whether or not a causal channel survives.
 
 \subsection{Result 7: Downstream Training}
 \label{sec:exp-perf}
-\label{sec:exp-psi-perf}
 
 Hypothesis H2, and contribution 3's central claim, ask whether the partition
 that retains more also trains better.
@@ -1574,9 +1563,8 @@ $\Psi(D^Q)$ now measures directly on Cologne8.
 
 For deployment the procedure is concrete.
 Estimate route flow from representative trips, generate feasible candidate
-partitions, score them by $\Phi$, $\Psi$, and connected-null
-$\Psi_{\mathrm{adj}}$ on validation traces, and train only the small
-validation front.
+partitions, score them by $\Phi$ and $\Psi$ on validation traces, and train
+only the small validation front.
 The Cologne8 $k=3$ result shows why the constraints are not optional: the
 highest-$\Phi$ partition in the study is also the one no operator should
 deploy, because it reaches that score by isolating two intersections in
