@@ -745,7 +745,7 @@ signalized intersections and an 85-dimensional total network state.
 For each network we compare one representative of each partitioning family at
 matched module count, InfoMap flow partitions against METIS structure-based
 partitions, together with a reproducible size-balanced random partition:
-$k\in\{3,5\}$ on Cologne8 and $k\in\{4,5\}$ on Ingolstadt21.
+$k=3$ on Cologne8 and $k\in\{4,5\}$ on Ingolstadt21.
 $D^{\mathrm{MI}}$ uses three stochastic warm-up seeds per network; $D^G$
 uses one seed-7 global CoLight checkpoint per network and therefore has no
 checkpoint uncertainty estimate; $D^Q$ uses three independently trained
@@ -832,7 +832,7 @@ named baseline.
         Map          & $k$ & Flow                           & METIS                              & Random & METIS & Random \\
         \midrule
         Cologne8     & 3   & 0.939                          & 0.614                              & 0.136  & +32.5 & +80.3  \\
-        Cologne8     & 5   & 0.569                          & 0.416                              & 0.261  & +15.4 & +30.9  \\
+        % Cologne8   & 5   & 0.569                          & 0.416                              & 0.261  & +15.4 & +30.9  \\
         Ingolstadt21 & 4   & 0.817                          & 0.643                              & 0.342  & +17.4 & +47.5  \\
         Ingolstadt21 & 5   & 0.792                          & 0.636                              & 0.185  & +15.7 & +60.8  \\
         \bottomrule
@@ -845,20 +845,75 @@ The underlying counts are 1{,}781 signal-to-signal vehicle transitions over
 22 observed edges on Cologne8 and 13{,}271 over 71 edges on Ingolstadt21, so
 the fractions are computed on tens of thousands of movements, not on a
 handful.
-The flow partition keeps between 57\% and 94\% of observed route flow inside
-modules, METIS between 42\% and 64\%, and the random assignment between 14\%
+The flow partition keeps between 79\% and 94\% of observed route flow inside
+modules, METIS between 61\% and 64\%, and the random assignment between 14\%
 and 34\%.
 The ordering Flow $>$ METIS $>$ Random holds at every matched module count.
 METIS sits well above random, so road topology does carry real flow
-structure; the additional 15.4 to 32.5 points Flow gains over METIS is the
+structure; the additional 15.7 to 32.5 points Flow gains over METIS is the
 part attributable to using movement rather than geometry as the substrate.
 The margin is largest on Cologne8 at $k=3$, where the flow partition is
 nearly lossless ($\Phi=0.939$) with a $6/1/1$ module profile, a combination
 Section~\ref{sec:exp-perf} returns to.
 This is the direct payoff of building modules from OD-induced movement
 rather than road adjacency (contribution 2, Section~\ref{sec:construction}):
-the substitution alone recovers 15.4 to 32.5 points of route flow that
+the substitution alone recovers 15.7 to 32.5 points of route flow that
 topology-based partitioning leaves on the table.
+
+\paragraph{Module size imbalance.}
+\begin{table}[t]
+    \centering
+    \caption{Module size imbalance for Table~\ref{tab:phi}'s three matched
+        blocks.
+        $I=\max_i|m_i|/(n/k)$ is the imbalance ratio METIS's own balance
+        constraint bounds~\citep{karypis1998metis}; CV is the population
+        coefficient of variation $\sigma/\mu$ of module sizes. Both are
+        unbounded, zero-floor cost quantities: 1 is perfect balance for $I$,
+        0 for CV.}
+    \label{tab:sizeimbalance}
+    \scriptsize
+    \setlength{\tabcolsep}{3pt}
+    \begin{tabular}{llllrrrr}
+        \toprule
+                     &     & \multicolumn{2}{c}{Module sizes ($m_i$ order)} & \multicolumn{2}{c}{$I$} & \multicolumn{2}{c}{CV}                         \\
+        \cmidrule(lr){3-4}\cmidrule(lr){5-6}\cmidrule(lr){7-8}
+        Map          & $k$ & Flow                                           & METIS                   & Flow                   & METIS & Flow  & METIS \\
+        \midrule
+        Cologne8     & 3   & 6, 1, 1                                        & 2, 3, 3                 & 2.250                  & 1.125 & 0.884 & 0.177 \\
+        Ingolstadt21 & 4   & 7, 4, 3, 7                                     & 5, 5, 5, 6              & 1.333                  & 1.143 & 0.340 & 0.083 \\
+        Ingolstadt21 & 5   & 7, 2, 3, 2, 7                                  & 4, 4, 4, 4, 5           & 1.667                  & 1.190 & 0.551 & 0.095 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Flow is more size-imbalanced than METIS on both indices in every row: $1.17$
+to $2.00\times$ by $I$ and $4.1$ to $5.8\times$ by CV.
+In each row METIS's sizes are the maximally even split of $n$ into $k$ parts,
+and the size-balanced random control (Section~\ref{sec:setup}) is a
+round-robin assignment, which is forced to the same multiset of sizes
+regardless of seed; METIS and Random therefore sit at the same balance floor
+here, and Flow is the outlier on this axis rather than the other two
+differing from each other.
+The Cologne8 $k=3$ cell is the extreme case already noted for
+Table~\ref{tab:phi}: the $6/1/1$ split that makes Flow nearly lossless in
+retained route flow also leaves two modules as a single TLS with no
+neighbor to attend to.
+That is a structural fact about the partition, not a trend read off this
+table.
+Section~\ref{sec:exp-perf} finds METIS ahead of Flow on CoLight and FMA2C by
+$1.7$ to $30.0\%$ across the two networks and module counts it trains
+(Table~\ref{tab:wait-gains}), but the size margin in
+Table~\ref{tab:sizeimbalance} does not order those four cells the same way
+the delay gaps do: Ingolstadt21 $k=4$ is the least imbalanced row here yet
+gives CoLight its largest METIS margin, $19.1\%$.
+Three of those four comparisons rest on a single training run, FMA2C's gaps
+are already inside its own evaluation-seed SD (Section~\ref{sec:exp-perf}),
+and the Ingolstadt21 CoLight run stopped at unequal, sub-plateau episode
+counts (Section~\ref{sec:discussion}).
+Size imbalance is therefore a documented property of the flow partition and
+a plausible contributor to the one mechanistically clear case, Cologne8
+$k=3$'s singleton modules undercutting attention, not a general predictor of
+the downstream ordering.
 
 \subsection{Result 2: State-Dependency Retention}
 \label{sec:exp-psi-mi}
@@ -878,7 +933,7 @@ topology-based partitioning leaves on the table.
         Map          & $k$ & Flow                                            & METIS                         & Random          & METIS         & Random \\
         \midrule
         Cologne8     & 3   & 0.641$\pm$0.009                                 & 0.296$\pm$0.007               & 0.244$\pm$0.005 & +34.4$\pm$1.7 & +39.6  \\
-        Cologne8     & 5   & 0.280$\pm$0.009                                 & 0.126$\pm$0.005               & 0.112$\pm$0.003 & +15.4$\pm$1.4 & +16.9  \\
+        % Cologne8   & 5   & 0.280$\pm$0.009                                 & 0.126$\pm$0.005               & 0.112$\pm$0.003 & +15.4$\pm$1.4 & +16.9  \\
         Ingolstadt21 & 4   & 0.246$\pm$0.003                                 & 0.218$\pm$0.003               & 0.217$\pm$0.002 & +2.7$\pm$0.5  & +2.9   \\
         Ingolstadt21 & 5   & 0.220$\pm$0.003                                 & 0.167$\pm$0.005               & 0.160$\pm$0.001 & +5.3$\pm$0.7  & +6.0   \\
         \bottomrule
@@ -888,13 +943,13 @@ topology-based partitioning leaves on the table.
 Table~\ref{tab:psi-mi} is the most replicated result in the paper.
 The flow partition retains more model-free state dependency than METIS in
 every same-$k$ comparison and, since each cell is measured on three
-independent traffic seeds, in all twelve seed-level comparisons individually.
+independent traffic seeds, in all nine seed-level comparisons individually.
 Seed-to-seed variation is small relative to the gaps: the largest sample
 standard deviation anywhere in the table is $0.0094$, the smallest
 Flow--METIS gap $0.027$.
 Magnitudes differ sharply by network.
-On Cologne8 the gaps are $34.4$ points at $k=3$ and $15.4$ at $k=5$; on
-Ingolstadt21 they shrink to $2.7$ and $5.3$.
+Cologne8's $k=3$ gap is $34.4$ points; on Ingolstadt21 the gaps are much
+smaller, $2.7$ at $k=4$ and $5.3$ at $k=5$.
 On the larger network the choice of partition moves retained state dependency
 by a few percentage points, not tens.
 
@@ -924,7 +979,7 @@ $\rho=0.031$ on Ingolstadt21, so the full per-agent state slice is the
 headline instrument and the queue-only variant is a sensitivity check.
 $\Psi(D^{\mathrm{MI}})$ is the pre-training evaluation framework
 (contribution 1, Section~\ref{sec:method}) doing its job: computed before any
-controller trains, it already separates Flow from METIS in all twelve
+controller trains, it already separates Flow from METIS in all nine
 seed-level comparisons.
 
 \subsection{Result 3: How Flow Retention and Dependency Retention Relate}
@@ -955,24 +1010,25 @@ seed-level comparisons.
 
         % series: Random -> METIS -> Flow within each matched block
         \draw[ser] (0.136,0.244) -- (0.614,0.296) -- (0.939,0.641);
-        \draw[ser] (0.261,0.112) -- (0.416,0.126) -- (0.569,0.280);
+        % Cologne8 k=5 series commented out
+        % \draw[ser] (0.261,0.112) -- (0.416,0.126) -- (0.569,0.280);
         \draw[ser] (0.342,0.217) -- (0.643,0.218) -- (0.817,0.246);
         \draw[ser] (0.185,0.160) -- (0.636,0.167) -- (0.792,0.220);
 
         % markers
-        \foreach \p in {(0.136,0.244),(0.261,0.112),(0.342,0.217),(0.185,0.160)}{
+        \foreach \p in {(0.136,0.244),(0.342,0.217),(0.185,0.160)}{
                 \node[circle,draw=black!70,fill=white,inner sep=1.1pt] at \p {};
             }
-        \foreach \p in {(0.614,0.296),(0.416,0.126),(0.643,0.218),(0.636,0.167)}{
+        \foreach \p in {(0.614,0.296),(0.643,0.218),(0.636,0.167)}{
                 \node[rectangle,draw=black!70,fill=black!25,inner sep=1.1pt] at \p {};
             }
-        \foreach \p in {(0.939,0.641),(0.569,0.280),(0.817,0.246),(0.792,0.220)}{
+        \foreach \p in {(0.939,0.641),(0.817,0.246),(0.792,0.220)}{
                 \node[circle,draw=black!80,fill=black!80,inner sep=1.2pt] at \p {};
             }
 
         % block labels
         \node[tk,anchor=west] at (0.955,0.615) {C8 $k{=}3$};
-        \node[tk,anchor=west] at (0.585,0.283) {C8 $k{=}5$};
+        % \node[tk,anchor=west] at (0.585,0.283) {C8 $k{=}5$};
         \node[tk,anchor=west] at (0.833,0.253) {I21 $k{=}4$};
         \node[tk,anchor=west] at (0.808,0.204) {I21 $k{=}5$};
 
@@ -984,7 +1040,7 @@ seed-level comparisons.
         \node[circle,draw=black!80,fill=black!80,inner sep=1.2pt] at (0.55,0.68) {};
         \node[tk,anchor=west] at (0.575,0.68) {Flow};
     \end{tikzpicture}
-    \caption{Retained flow against retained state dependency for all twelve
+    \caption{Retained flow against retained state dependency for all nine
         partitions. Each line joins the three candidates within one matched
         map and module-count block. Every block rises monotonically, so within
         a block the two training-free scores induce the same ranking. The
@@ -994,22 +1050,22 @@ seed-level comparisons.
     \label{fig:phi-psi}
 \end{figure}
 
-Results 1 and 2 measured two things on the same twelve partitions. This
+Results 1 and 2 measured two things on the same nine partitions. This
 subsection asks whether they agree, which is hypothesis H1.
 
 They do, in ranking.
-Within each of the four matched map and module-count blocks, $\Phi$ and
+Within each of the three matched map and module-count blocks, $\Phi$ and
 $\Psi(D^{\mathrm{MI}})$ order the three candidates identically, Flow above
-METIS above Random, giving four out of four blocks and, at the seed level,
-twelve out of twelve.
+METIS above Random, giving three out of three blocks and, at the seed level,
+nine out of nine.
 Fig.~\ref{fig:phi-psi} shows this directly: every block traces a monotonically
 rising path.
 The blocks differ in network, module count, and traffic seed, so these are
-not four restatements of one comparison.
+not three restatements of one comparison.
 
 Two qualifications follow.
 First, the agreement is \emph{within} blocks and not across them.
-The four paths in Fig.~\ref{fig:phi-psi} are visibly offset from one another.
+The three paths in Fig.~\ref{fig:phi-psi} are visibly offset from one another.
 The Ingolstadt21 $k=4$ flow partition retains $\Phi=0.817$ and
 $\Psi=0.246$; the Cologne8 $k=3$ \emph{random} partition retains barely a
 sixth as much flow, $\Phi=0.136$, and yet essentially the same dependency,
@@ -1020,9 +1076,8 @@ candidates within a fixed deployment, not a predictor of $\Psi$ across
 networks, and they do not function as absolute quality numbers.
 
 Second, the ordering transfers but the magnitude does not.
-On Cologne8 the pass-through is close to one-to-one: a $32.5$ point flow
-advantage at $k=3$ buys $34.4$ points of dependency, and $15.4$ buys $15.4$
-at $k=5$.
+On Cologne8 $k=3$ the pass-through is close to one-to-one: a $32.5$ point
+flow advantage buys $34.4$ points of dependency.
 On Ingolstadt21 the same instrument gives $17.4 \to 2.7$ and $15.7 \to 5.3$,
 a pass-through of roughly $0.16$ and $0.34$.
 On the larger network most of the flow a partition additionally retains does
@@ -1058,7 +1113,7 @@ tested here.
         Map          & $k$ & Flow                                & METIS                         & Random & vs.\ METIS (pp) \\
         \midrule
         Cologne8     & 3   & 0.754                               & 0.591                         & 0.247  & $+16.4$         \\
-        Cologne8     & 5   & 0.370                               & 0.476                         & 0.311  & $-10.6$         \\
+        % Cologne8   & 5   & 0.370                               & 0.476                         & 0.311  & $-10.6$         \\
         Ingolstadt21 & 4   & 0.798                               & 0.669                         & 0.246  & $+12.9$         \\
         Ingolstadt21 & 5   & 0.700                               & 0.731                         & 0.255  & $-3.2$          \\
         \bottomrule
@@ -1076,12 +1131,12 @@ $D^{\mathrm{MI}}$.
 What a trained attention model depends on is, pairwise, largely what the
 traffic does.
 Yet Table~\ref{tab:psi-dg} shows the flow partition winning only two of the
-four blocks.
+three blocks.
 At the coarser module count on each network it retains $12.9$ to $16.4$ more
-points of learned dependency than METIS; at $k=5$ it retains $3.2$ to $10.6$
-points fewer.
-So $\Phi$ and $\Psi$ share a ranking under $D^{\mathrm{MI}}$ in four blocks
-out of four, and under $D^G$ in two out of four.
+points of learned dependency than METIS; at Ingolstadt21 $k=5$ it retains
+$3.2$ points fewer.
+So $\Phi$ and $\Psi$ share a ranking under $D^{\mathrm{MI}}$ in three blocks
+out of three, and under $D^G$ in two out of three.
 
 The reversal has a mechanical reading.
 The analyzed CoLight checkpoints carry nonzero Jacobian influence only at
@@ -1092,7 +1147,7 @@ under $D^{\mathrm{MI}}$ and costs a live message path under $D^G$.
 As $k$ grows and modules shrink toward the one-hop radius, that trade turns
 against flow.
 Both structured partitions stay far above random in every block, including
-the reversed ones, so the effect is second-order between two sensible
+the reversed one, so the effect is second-order between two sensible
 methods.
 
 Each $D^G$ value comes from one seed-7 checkpoint and one evaluated
@@ -1128,7 +1183,7 @@ downstream benefit tracking $\Psi(D^G)$ rather than $\Phi$.
         Map      & $k$ & Flow                                & METIS                    & Random          & vs.\ METIS (pp)        \\
         \midrule
         Cologne8 & 3   & \textbf{0.606$\pm$0.010}            & 0.256$\pm$0.002          & 0.252$\pm$0.001 & $\mathbf{+35.0\pm0.9}$ \\
-        Cologne8 & 5   & \textbf{0.259$\pm$0.007}            & 0.115$\pm$0.001          & 0.107$\pm$0.002 & $\mathbf{+14.4\pm0.6}$ \\
+        % Cologne8 & 5 & 0.259$\pm$0.007                     & 0.115$\pm$0.001          & 0.107$\pm$0.002 & +14.4$\pm$0.6          \\
         % Ingolstadt21 & 4   & \multicolumn{4}{c}{not estimable}                                                     \\
         % Ingolstadt21 & 5   & \multicolumn{4}{c}{not estimable}                                                     \\
         \bottomrule
@@ -1136,8 +1191,8 @@ downstream benefit tracking $\Psi(D^G)$ rather than $\Phi$.
 \end{table}
 
 $D^{\mathrm{MI}}$ and $D^{G}$ bracket the question this instrument settles.
-The model-free instrument matches the flow ordering in four blocks of four;
-the attention-policy Jacobian matches it in two.
+The model-free instrument matches the flow ordering in three blocks of
+three; the attention-policy Jacobian matches it in two of three.
 $D^{Q}$ sits between them: model-derived like $D^{G}$, but read from the
 centralized critic, the mechanism that consumes the partition at L2, so
 $\Psi(D^{Q})$ measures the value-relevant dependency partitioning removes
@@ -1154,15 +1209,15 @@ for dependency its own architecture forces to zero.
 This is why Ingolstadt21, where every available MAPPO checkpoint is
 regional, is not estimable here.
 
-Table~\ref{tab:psi-dq} reports the result for Cologne8.
+Table~\ref{tab:psi-dq} reports the result for Cologne8 $k=3$, the only
+module count with a global MAPPO critic checkpoint available.
 Flow retains $35.04\pm0.91$ points more critic-relevant dependency than
-METIS at $k=3$ and $14.40\pm0.62$ points more at $k=5$, positive in all six
-seed-level comparisons and an order of magnitude larger than the seed
-dispersion.
-$\Psi(D^{Q})$ sides with $D^{\mathrm{MI}}$'s ordering over $D^{G}$'s $k=5$
-reversal, and it agrees with how L2 actually trains: MAPPO's Cologne8 delay
-reduction of $23.6\%$ (Table~\ref{tab:wait-gains}) sits on a critic that
-demonstrably retains more value-relevant input under Flow.
+METIS, positive in all three seed-level comparisons and an order of
+magnitude larger than the seed dispersion.
+$\Psi(D^{Q})$ agrees with $D^{\mathrm{MI}}$'s ordering at this cell, and with
+how L2 actually trains: MAPPO's Cologne8 delay reduction of $23.6\%$
+(Table~\ref{tab:wait-gains}) sits on a critic that demonstrably retains more
+value-relevant input under Flow.
 Ingolstadt21 MAPPO favors Flow by $9.5\%$ (Table~\ref{tab:wait-gains}) with
 no critic-level counterpart to check it against, since its available
 checkpoints use a regional rather than global critic; on that network the
@@ -1299,19 +1354,19 @@ fixed and varying only the partition.
 
     \begin{tabular}{llrrrr}
         \toprule
-        Map  & Learner         & $k$ & Flow                     & METIS                    & $\Delta\%$        \\
+        Map & Learner         & $k$ & Flow                      & METIS                      & $\Delta\%$       \\
         \midrule
-        C8   & IPPO            & 3   & \textbf{57.46$\pm$11.48} & 72.93$\pm$10.22          & $\mathbf{-21.2}$  \\
-        I21  & IPPO            & 4   & 194.22$\pm$26.83         & \textbf{192.52$\pm$22.94} & $+0.9$           \\
+        C8  & IPPO            & 3   & \textbf{57.46$\pm$11.48}  & 72.93$\pm$10.22            & $\mathbf{-21.2}$ \\
+        I21 & IPPO            & 4   & 194.22$\pm$26.83          & \textbf{192.52$\pm$22.94}  & $+0.9$           \\
         \addlinespace
-        C8   & MAPPO           & 3   & \textbf{50.7$\pm$7.0}    & 66.4$\pm$12.1            & $\mathbf{-23.6}$  \\
-        I21  & MAPPO           & 4   & \textbf{184.44$\pm$31.26} & 203.72$\pm$26.71        & $\mathbf{-9.5}$   \\
+        C8  & MAPPO           & 3   & \textbf{50.7$\pm$7.0}     & 66.4$\pm$12.1              & $\mathbf{-23.6}$ \\
+        I21 & MAPPO           & 4   & \textbf{184.44$\pm$31.26} & 203.72$\pm$26.71           & $\mathbf{-9.5}$  \\
         \addlinespace
-        C8   & CoLight         & 3   & 22.36$\pm$0.49           & \textbf{21.42$\pm$0.06}  & $+4.4$            \\
-        I21  & CoLight         & 4   & 349.20$\pm$10.03         & \textbf{293.17$\pm$46.86} & $+19.1$          \\
+        C8  & CoLight         & 3   & 22.36$\pm$0.49            & \textbf{21.42$\pm$0.06}    & $+4.4$           \\
+        I21 & CoLight         & 4   & 349.20$\pm$10.03          & \textbf{293.17$\pm$46.86}  & $+19.1$          \\
         \addlinespace
-        C8   & FMA2C$^\dagger$ & 3   & 339.11$\pm$243.50        & \textbf{260.78$\pm$166.09} & $+30.0$         \\
-        I21  & FMA2C$^\dagger$ & 4   & 361.31$\pm$95.24         & \textbf{355.29$\pm$28.23} & $+1.7$           \\
+        C8  & FMA2C$^\dagger$ & 3   & 339.11$\pm$243.50         & \textbf{260.78$\pm$166.09} & $+30.0$          \\
+        I21 & FMA2C$^\dagger$ & 4   & 361.31$\pm$95.24          & \textbf{355.29$\pm$28.23}  & $+1.7$           \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -1376,14 +1431,14 @@ configuration.
 Section~\ref{sec:method}'s criterion and Section~\ref{sec:construction}'s
 construction meet their empirical test here: four measurements were taken on
 the same partitions, and the useful summary is how far they agree.
-Flow retention and model-free dependency retention agree completely: four
-matched blocks out of four, twelve seed-level comparisons out of twelve.
-Critic-level dependency retention, estimable only on Cologne8, agrees just
-as cleanly, Flow ahead of METIS at both module counts and in all six
-seed-level comparisons; at $k=3$ that agreement extends to the one
-downstream MAPPO cell with a critic-level retention estimate to check it
-against, Cologne8's $23.6\%$ delay reduction sitting on a critic that
-demonstrably keeps more value-relevant input under Flow.
+Flow retention and model-free dependency retention agree completely: three
+matched blocks out of three, nine seed-level comparisons out of nine.
+Critic-level dependency retention, estimable only on Cologne8 $k=3$, agrees
+just as cleanly, Flow ahead of METIS in all three seed-level comparisons;
+that agreement extends to the one downstream MAPPO cell with a critic-level
+retention estimate to check it against, Cologne8's $23.6\%$ delay reduction
+sitting on a critic that demonstrably keeps more value-relevant input under
+Flow.
 Downstream training agrees least cleanly: Flow leads only three of the eight
 matched cells (Table~\ref{tab:wait-gains}), and in every one of the three a
 coordination mechanism reduces the partition to a single aggregated signal,
@@ -1391,7 +1446,7 @@ a regional reward mean for IPPO on Cologne8 and a regional critic input for
 MAPPO on both networks; CoLight and FMA2C favor METIS on both networks, and
 the remaining IPPO cell is a near-tie.
 Retention measured on a trained model's Jacobian agrees least of all,
-matching the flow ordering in two blocks of four and, on Ingolstadt21 at
+matching the flow ordering in two blocks of three and, on Ingolstadt21 at
 $k=5$ (single seed on both sides), pointing opposite the trained regional
 model's own behavior.
 The pattern is the finding: what a partition retains of raw traffic and raw
@@ -1455,7 +1510,7 @@ flow-based method for constructing traffic-signal coordination regions, and
 tested empirically whether the retention the framework measures predicts
 downstream MARL performance.
 Building coordination modules from an OD-induced route-flow graph rather than
-from road geometry produces partitions that retain 15.4 to 32.5 percentage
+from road geometry produces partitions that retain 15.7 to 32.5 percentage
 points more observed route flow and 2.7 to 34.4 percentage points more state
 dependency than same-$k$ METIS partitions, on every tested network, module
 count, and traffic seed.
