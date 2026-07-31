@@ -66,7 +66,7 @@ Duong Tran Hai
     rather than road geometry alone, is the basis for regional MARL
     coordination.
     Third, across two SUMO networks, flow-based partitions retain more
-    route flow and state dependency than topology-based METIS partitions
+    route flow and state dependency than topology-based partitions
     at every matched module count, and the higher-retention partition
     reaches a lower best-checkpoint delay in six of eight matched MARL
     training comparisons.
@@ -172,7 +172,8 @@ Our three contributions, with evidentiary status stated explicitly:
     \item \textbf{Empirical evidence linking retention to MARL performance}
           (Sections~\ref{sec:exp-phi}--\ref{sec:exp-perf}): across both
           tested networks, flow-based partitions retain more route flow and
-          state dependency than matched METIS partitions at every module
+          state dependency than matched topology-based partitions at every
+          module
           count, and higher flow retention consistently corresponds to
           higher state-dependency retention.
           The higher-retention partition also reaches a lower
@@ -243,7 +244,7 @@ itself~\citep{rosvall2008maps,rosvall2009mapequation,delvenne2010stability,lambi
 
 \paragraph{Partitioning families and baselines.}
 Partitioners for this task divide into two families by what they optimize.
-\emph{Structure-based} methods score a cut or a density contrast on the graph
+\emph{Topology-based} methods score a cut or a density contrast on the graph
 itself: normalized cut~\citep{shimalik2000},
 Leiden~\citep{traag2019leiden,traag2011cpm}, and
 METIS~\citep{karypis1998metis}.
@@ -251,9 +252,12 @@ METIS~\citep{karypis1998metis}.
 graph, so edge weights enter as movement rather than affinity: the map
 equation~\citep{rosvall2008maps} and Markov
 stability~\citep{delvenne2010stability,lambiotte2014multiscale}.
-Because our question is which \emph{criterion} to optimize rather than which
-implementation wins, the main comparisons use one representative per family,
-METIS and InfoMap.
+Multiple algorithms instantiate each family; because our question is which
+\emph{criterion} to optimize rather than which implementation wins, the main
+comparisons use one widely-adopted representative per family, METIS for
+topology and directed InfoMap for flow, and results below are reported under
+each family's name, Topology and Flow, rather than the specific
+implementation.
 
 % ============================================================
 \section{Retention Framework}
@@ -729,9 +733,12 @@ We evaluate on two SUMO networks: Cologne8, with 8 signalized intersections
 and a 30-dimensional total network state, and Ingolstadt21, with 21
 signalized intersections and an 85-dimensional total network state.
 For each network we compare one representative of each partitioning family at
-matched module count, InfoMap flow partitions against METIS structure-based
-partitions, together with a reproducible size-balanced random partition:
+matched module count: directed InfoMap for the Flow candidate and METIS for
+the Topology candidate (Section~\ref{sec:related}), together with a
+reproducible size-balanced random partition:
 $k=3$ on Cologne8 and $k\in\{4,5\}$ on Ingolstadt21.
+Results below are reported under each family's name, Flow and Topology,
+rather than the specific implementation.
 $D^{\mathrm{MI}}$ uses three stochastic warm-up seeds per network; $D^G$
 uses one seed-7 global CoLight checkpoint per network and therefore has no
 checkpoint uncertainty estimate; $D^Q$ uses three independently trained
@@ -815,7 +822,7 @@ named baseline.
         \toprule
                      &     & \multicolumn{3}{c}{Raw $\Phi$} & \multicolumn{2}{c}{Flow gain (pp)}                           \\
         \cmidrule(lr){3-5}\cmidrule(lr){6-7}
-        Map          & $k$ & Flow                           & METIS                              & Random & METIS & Random \\
+        Map          & $k$ & Flow                           & Topology                              & Random & Topology & Random \\
         \midrule
         Cologne8     & 3   & 0.939                          & 0.614                              & 0.136  & +32.5 & +80.3  \\
         % Cologne8   & 5   & 0.569                          & 0.416                              & 0.261  & +15.4 & +30.9  \\
@@ -832,11 +839,11 @@ The underlying counts are 1{,}781 signal-to-signal vehicle transitions over
 the fractions are computed on tens of thousands of movements, not on a
 handful.
 The flow partition keeps between 79\% and 94\% of observed route flow inside
-modules, METIS between 61\% and 64\%, and the random assignment between 14\%
+modules, Topology between 61\% and 64\%, and the random assignment between 14\%
 and 34\%.
-The ordering Flow $>$ METIS $>$ Random holds at every matched module count.
-METIS sits well above random, so road topology does carry real flow
-structure; the additional 15.7 to 32.5 points Flow gains over METIS is the
+The ordering Flow $>$ Topology $>$ Random holds at every matched module count.
+Topology sits well above random, so road adjacency does carry real flow
+structure; the additional 15.7 to 32.5 points Flow gains over Topology is the
 part attributable to using movement rather than geometry as the substrate.
 The margin is largest on Cologne8 at $k=3$, where the flow partition is
 nearly lossless ($\Phi=0.939$) with a $6/1/1$ module profile, a combination
@@ -853,7 +860,7 @@ topology-based partitioning leaves on the table.
         Table~\ref{tab:phi}.
         The Cologne8 block sweeps Infomap's Bayesian regularization strength
         at fixed $k=3$: weaker regularization favors flow cohesion, stronger
-        regularization favors balance; \emph{Flow} and \emph{METIS} are the
+        regularization favors balance; \emph{Flow} and \emph{Topology} are the
         partitions actually carried into Table~\ref{tab:wait-gains}, and
         \emph{compromise}/\emph{balanced} are exploratory intermediate
         candidates, not trained downstream.
@@ -874,13 +881,13 @@ topology-based partitioning leaves on the table.
         Flow             & 3   & 6, 1, 1       & 0.884 & 0.939  & 9 / 11    \\
         Flow, compromise & 3   & 4, 3, 1       & 0.468 & 0.737  & 5 / 11    \\
         Flow, balanced   & 3   & 3, 3, 2       & 0.177 & 0.614  & 6 / 11    \\
-        METIS            & 3   & 3, 3, 2       & 0.177 & 0.614  & 6 / 11    \\
+        Topology            & 3   & 3, 3, 2       & 0.177 & 0.614  & 6 / 11    \\
         \addlinespace
         \multicolumn{6}{@{}l}{\textit{Ingolstadt21, deployed partitions}}   \\
         Flow             & 4   & 7, 4, 3, 7    & 0.340 & 0.817  & 24 / 33   \\
-        METIS            & 4   & 5, 5, 5, 6    & 0.082 & 0.643  & 22 / 33   \\
+        Topology            & 4   & 5, 5, 5, 6    & 0.082 & 0.643  & 22 / 33   \\
         Flow             & 5   & 7, 2, 3, 2, 7 & 0.551 & 0.792  & 23 / 33   \\
-        METIS            & 5   & 4, 4, 4, 4, 5 & 0.095 & 0.636  & 19 / 33   \\
+        Topology            & 5   & 4, 4, 4, 4, 5 & 0.095 & 0.636  & 19 / 33   \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -890,21 +897,21 @@ trade-off rather than a fixed difference between two algorithms.
 Raising the regularization strength on the flow candidate moves it from
 $6/1/1$ (CV $0.884$, $\Phi=0.939$) through $4/3/1$ (CV $0.468$,
 $\Phi=0.737$) to $3/3/2$ (CV $0.177$, $\Phi=0.614$), and at that balanced
-end Infomap's own module membership is identical to METIS's, up to
+end Infomap's own module membership is identical to Topology's, up to
 region-label permutation.
 The balanced-Infomap row is therefore Infomap converging to the
 topology-balanced solution under regularization, not an independent flow
 advantage at that size profile: retention and balance trade off along one
-frontier, and METIS sits at its balanced extreme.
+frontier, and Topology sits at its balanced extreme.
 A more balanced $4/2/2$ profile is not a free improvement on this
 frontier: exhaustive enumeration over the connected, size-bounded candidate
 space finds only four connected $4/2/2$ partitions at $k=3$, and the best of
 them retains $57.43\%$ of flow, below the deployed $3/3/2$ candidate's
 $61.43\%$.
 
-Flow is more size-imbalanced than METIS in every deployed row, from
+Flow is more size-imbalanced than Topology in every deployed row, from
 $4.1\times$ (Ingolstadt21 $k=4$) to $5.8\times$ (Ingolstadt21 $k=5$) by CV,
-and METIS's sizes are the maximally even split of $n$ into $k$ parts at
+and Topology's sizes are the maximally even split of $n$ into $k$ parts at
 every deployed $k$.
 The Cologne8 $k=3$ cell is the extreme case already noted for
 Table~\ref{tab:phi}: the $6/1/1$ split that makes Flow nearly lossless in
@@ -912,7 +919,7 @@ retained route flow also leaves two modules as a single TLS with no
 neighbor to attend to.
 That is a structural fact about the partition, not a trend read off this
 table.
-Section~\ref{sec:exp-perf} finds METIS ahead of Flow in only one of the four
+Section~\ref{sec:exp-perf} finds Topology ahead of Flow in only one of the four
 CoLight/FMA2C cells, Cologne8 CoLight ($+4.4\%$), and behind Flow in the
 other three, Ingolstadt21 CoLight ($-14.0\%$), Cologne8 FMA2C ($-16.0\%$),
 and Ingolstadt21 FMA2C ($-4.9\%$) (Table~\ref{tab:wait-gains}); the CV
@@ -930,7 +937,7 @@ any learner that trains it under a shared architecture and budget, since
 complexity results for localized actor-critic MARL scale with the
 state-action size of the \emph{largest} coordination neighborhood rather
 than the network total~\citep{qu2022scalable}.
-Flow's deployed partitions have a larger maximum module than METIS's at
+Flow's deployed partitions have a larger maximum module than Topology's at
 every module count in this study ($\max_k|P_k|=6$ against $3$ on Cologne8,
 $7$ against $5$--$6$ on Ingolstadt21), so training every module for the same
 episode budget and hyperparameters, as Table~\ref{tab:wait-gains} does, need
@@ -947,8 +954,8 @@ the study's largest module ($7$ agents).
 \begin{table}[t]
     \centering
     \caption{State-MI dependency retention $\Psi(D^{\mathrm{MI}})$. Raw values
-        are mean $\pm$ sample SD over three traffic seeds; the METIS gain SD
-        is the paired seed-wise Flow--METIS difference.}
+        are mean $\pm$ sample SD over three traffic seeds; the Topology gain SD
+        is the paired seed-wise Flow--Topology difference.}
     \label{tab:psi-mi}
     \scriptsize
     \setlength{\tabcolsep}{2.5pt}
@@ -956,7 +963,7 @@ the study's largest module ($7$ agents).
         \toprule
                      &     & \multicolumn{3}{c}{Raw $\Psi(D^{\mathrm{MI}})$} & \multicolumn{2}{c}{Gain (pp)}                                            \\
         \cmidrule(lr){3-5}\cmidrule(lr){6-7}
-        Map          & $k$ & Flow                                            & METIS                         & Random          & METIS         & Random \\
+        Map          & $k$ & Flow                                            & Topology                         & Random          & Topology         & Random \\
         \midrule
         Cologne8     & 3   & 0.641$\pm$0.009                                 & 0.296$\pm$0.007               & 0.244$\pm$0.005 & +34.4$\pm$1.7 & +39.6  \\
         % Cologne8   & 5   & 0.280$\pm$0.009                                 & 0.126$\pm$0.005               & 0.112$\pm$0.003 & +15.4$\pm$1.4 & +16.9  \\
@@ -967,22 +974,22 @@ the study's largest module ($7$ agents).
 \end{table}
 
 Table~\ref{tab:psi-mi} is the most replicated result in the paper.
-The flow partition retains more model-free state dependency than METIS in
+The flow partition retains more model-free state dependency than Topology in
 every same-$k$ comparison and, since each cell is measured on three
 independent traffic seeds, in all nine seed-level comparisons individually.
 Seed-to-seed variation is small relative to the gaps: the largest sample
 standard deviation anywhere in the table is $0.0094$, the smallest
-Flow--METIS gap $0.027$.
+Flow--Topology gap $0.027$.
 Magnitudes differ sharply by network.
 Cologne8's $k=3$ gap is $34.4$ points; on Ingolstadt21 the gaps are much
 smaller, $2.7$ at $k=4$ and $5.3$ at $k=5$.
 On the larger network the choice of partition moves retained state dependency
 by a few percentage points, not tens.
 
-At Ingolstadt21 $k=4$, METIS retains $0.2181$ against the random assignment's
+At Ingolstadt21 $k=4$, Topology retains $0.2181$ against the random assignment's
 $0.2166$, a margin smaller than the seed-to-seed spread and effectively a
 tie, while Flow clears random by $2.9$ points.
-Where structure-based partitioning fails to separate from chance on this
+Where topology-based partitioning fails to separate from chance on this
 instrument, flow-based partitioning still does.
 
 The raw within- and cross-module means explain why the aggregate score and a
@@ -991,7 +998,7 @@ On Cologne8 $k=3$ the flow partition has a mean within-module MI of $0.542$
 against $0.351$ across modules, a visible spatial separation.
 On Ingolstadt21 the two means sit near $0.51$ and $0.50$ for every partition
 including random, so no partition separates pairs on average, yet the total
-dependency mass retained still orders Flow above METIS above random.
+dependency mass retained still orders Flow above Topology above random.
 The aggregate is the quantity $\Psi$ is defined on and the quantity the
 learner's regional reward or critic actually consumes; the pairwise means are
 reported because they show the aggregate is not being driven by a difference
@@ -1005,7 +1012,7 @@ $\rho=0.031$ on Ingolstadt21, so the full per-agent state slice is the
 headline instrument and the queue-only variant is a sensitivity check.
 $\Psi(D^{\mathrm{MI}})$ is the pre-training evaluation framework
 (contribution 1, Section~\ref{sec:method}) doing its job: computed before any
-controller trains, it already separates Flow from METIS in all nine
+controller trains, it already separates Flow from Topology in all nine
 seed-level comparisons.
 
 \subsection{Result 3: How Flow Retention and Dependency Retention Relate}
@@ -1034,7 +1041,7 @@ seed-level comparisons.
         \node[font=\scriptsize,rotate=90] at (-0.10,0.36)
         {dependency retention $\Psi(D^{\mathrm{MI}})$};
 
-        % series: Random -> METIS -> Flow within each matched block
+        % series: Random -> Topology -> Flow within each matched block
         \draw[ser] (0.136,0.244) -- (0.614,0.296) -- (0.939,0.641);
         % Cologne8 k=5 series commented out
         % \draw[ser] (0.261,0.112) -- (0.416,0.126) -- (0.569,0.280);
@@ -1062,7 +1069,7 @@ seed-level comparisons.
         \node[circle,draw=black!70,fill=white,inner sep=1.1pt] at (0.10,0.68) {};
         \node[tk,anchor=west] at (0.125,0.68) {Random};
         \node[rectangle,draw=black!70,fill=black!25,inner sep=1.1pt] at (0.34,0.68) {};
-        \node[tk,anchor=west] at (0.365,0.68) {METIS};
+        \node[tk,anchor=west] at (0.365,0.68) {Topology};
         \node[circle,draw=black!80,fill=black!80,inner sep=1.2pt] at (0.55,0.68) {};
         \node[tk,anchor=west] at (0.575,0.68) {Flow};
     \end{tikzpicture}
@@ -1082,7 +1089,7 @@ subsection asks whether they agree, which is hypothesis H1.
 They do, in ranking.
 Within each of the three matched map and module-count blocks, $\Phi$ and
 $\Psi(D^{\mathrm{MI}})$ order the three candidates identically, Flow above
-METIS above Random, giving three out of three blocks and, at the seed level,
+Topology above Random, giving three out of three blocks and, at the seed level,
 nine out of nine.
 Fig.~\ref{fig:phi-psi} shows this directly: every block traces a monotonically
 rising path.
@@ -1112,7 +1119,7 @@ The likely cause is the confound named in Section~\ref{sec:transfer}: common
 demand correlates queues at intersections that exchange few vehicles, raising
 $\Psi$ for every partition and compressing the differences between them.
 This is consistent with the weaker flow--MI alignment on Ingolstadt21
-($\rho=0.141$ against $0.514$) and with METIS and random tying at $k=4$.
+($\rho=0.141$ against $0.514$) and with Topology and random tying at $k=4$.
 Common demand cannot account for the whole effect, since a size-matched
 random assignment would then retain comparably and does not in any block.
 The compression is nonetheless real, and H1 holds as an ordering claim rather
@@ -1136,7 +1143,7 @@ tested here.
         \toprule
                      &     & \multicolumn{3}{c}{Raw $\Psi(D^G)$} & \multicolumn{1}{c}{Flow gain}                            \\
         \cmidrule(lr){3-5}\cmidrule(lr){6-6}
-        Map          & $k$ & Flow                                & METIS                         & Random & vs.\ METIS (pp) \\
+        Map          & $k$ & Flow                                & Topology                         & Random & vs.\ Topology (pp) \\
         \midrule
         Cologne8     & 3   & 0.754                               & 0.591                         & 0.247  & $+16.4$         \\
         % Cologne8   & 5   & 0.370                               & 0.476                         & 0.311  & $-10.6$         \\
@@ -1159,7 +1166,7 @@ traffic does.
 Yet Table~\ref{tab:psi-dg} shows the flow partition winning only two of the
 three blocks.
 At the coarser module count on each network it retains $12.9$ to $16.4$ more
-points of learned dependency than METIS; at Ingolstadt21 $k=5$ it retains
+points of learned dependency than Topology; at Ingolstadt21 $k=5$ it retains
 $3.2$ points fewer.
 So $\Phi$ and $\Psi$ share a ranking under $D^{\mathrm{MI}}$ in three blocks
 out of three, and under $D^G$ in two out of three.
@@ -1206,7 +1213,7 @@ downstream benefit tracking $\Psi(D^G)$ rather than $\Phi$.
         \toprule
                  &     & \multicolumn{3}{c}{Raw $\Psi(D^Q)$} & \multicolumn{1}{c}{Gain}                                            \\
         \cmidrule(lr){3-5}\cmidrule(lr){6-6}
-        Map      & $k$ & Flow                                & METIS                    & Random          & vs.\ METIS (pp)        \\
+        Map      & $k$ & Flow                                & Topology                    & Random          & vs.\ Topology (pp)        \\
         \midrule
         Cologne8 & 3   & \textbf{0.606$\pm$0.010}            & 0.256$\pm$0.002          & 0.252$\pm$0.001 & $\mathbf{+35.0\pm0.9}$ \\
         % Cologne8 & 5 & 0.259$\pm$0.007                     & 0.115$\pm$0.001          & 0.107$\pm$0.002 & +14.4$\pm$0.6          \\
@@ -1238,7 +1245,7 @@ regional, is not estimable here.
 Table~\ref{tab:psi-dq} reports the result for Cologne8 $k=3$, the only
 module count with a global MAPPO critic checkpoint available.
 Flow retains $35.04\pm0.91$ points more critic-relevant dependency than
-METIS, positive in all three seed-level comparisons and an order of
+Topology, positive in all three seed-level comparisons and an order of
 magnitude larger than the seed dispersion.
 $\Psi(D^{Q})$ agrees with $D^{\mathrm{MI}}$'s ordering at this cell, and with
 how L2 actually trains: MAPPO's Cologne8 delay reduction of $23.6\%$
@@ -1372,14 +1379,14 @@ fixed and varying only the partition.
 
 \begin{table}[t]
     \centering
-    \caption{Downstream training delay (s/veh; lower is better), best evaluation checkpoint per (map, learner, $k$) pair, holding learner and module count fixed and varying only the partition. $\Delta\%=100(\text{Flow}-\text{METIS})/\text{METIS}$; negative favors Flow.}
+    \caption{Downstream training delay (s/veh; lower is better), best evaluation checkpoint per (map, learner, $k$) pair, holding learner and module count fixed and varying only the partition. $\Delta\%=100(\text{Flow}-\text{Topology})/\text{Topology}$; negative favors Flow.}
     \label{tab:wait-gains}
     \scriptsize
     \setlength{\tabcolsep}{2.5pt}
 
     \begin{tabular}{llrrrr}
         \toprule
-        Map & Learner         & $k$ & Flow                      & METIS                     & $\Delta\%$       \\
+        Map & Learner         & $k$ & Flow                      & Topology                     & $\Delta\%$       \\
         \midrule
         C8  & IPPO            & 3   & \textbf{57.46$\pm$11.48}  & 72.93$\pm$10.22           & $\mathbf{-21.2}$ \\
         I21 & IPPO            & 4   & 194.22$\pm$26.83          & \textbf{192.52$\pm$22.94} & $+0.9$           \\
@@ -1399,7 +1406,7 @@ fixed and varying only the partition.
 Across the eight matched cells in Table~\ref{tab:wait-gains}, Flow leads
 six (Cologne8 IPPO, Cologne8 MAPPO, Ingolstadt21 MAPPO, Ingolstadt21
 CoLight, Cologne8 FMA2C, Ingolstadt21 FMA2C), is within two percentage
-points of METIS in one more (Ingolstadt21 IPPO), and trails clearly in one
+points of Topology in one more (Ingolstadt21 IPPO), and trails clearly in one
 (Cologne8 CoLight).
 
 \paragraph{IPPO.}
@@ -1425,7 +1432,7 @@ Ingolstadt21, where every available checkpoint uses a regional rather than
 a global critic.
 
 \paragraph{CoLight.}
-METIS favors Cologne8 by $4.4\%$ ($22.36\pm0.49$ against $21.42\pm0.06$\,s);
+Topology favors Cologne8 by $4.4\%$ ($22.36\pm0.49$ against $21.42\pm0.06$\,s);
 Flow favors Ingolstadt21 by $14.0\%$ ($252.04\pm10.03$ against
 $293.17\pm46.86$\,s).
 The Cologne8 flow partition splits two of its three modules into single
@@ -1464,13 +1471,13 @@ measurement.
     \caption{Ingolstadt21 FMA2C manager reward (L4 instrument) and delay,
         mean $\pm$ sample SD over 3 seed/$k$ cohorts ($k\in\{4,5\}$, seed 7)
         at time of measurement. Flow delay gain is the percent delay
-        reduction of Flow relative to METIS (positive favors Flow).}
+        reduction of Flow relative to Topology (positive favors Flow).}
     \label{tab:fma2c-manager}
     \scriptsize
     \setlength{\tabcolsep}{3pt}
     \begin{tabular}{rrrrr}
         \toprule
-        Flow reward   & METIS reward  & Flow delay        & METIS delay       & Flow delay gain \\
+        Flow reward   & Topology reward  & Flow delay        & Topology delay       & Flow delay gain \\
         \midrule
         5.60$\pm$2.07 & 5.17$\pm$2.62 & 470.81$\pm$113.63 & 519.34$\pm$152.10 & $9.35\pm2.40\%$ \\
         \bottomrule
@@ -1483,7 +1490,7 @@ Both instruments favor Flow.
 
 \begin{table}[t]
     \centering
-    \caption{Delay (s/veh; lower is better) vs. non-partitioned literature baselines and regional learners. RESCO baselines are reported mean $\pm$ SD over evaluation episodes; the RESCO FMA2C row is a single-region baseline. $k{=}1$ rows use the all-network partition; Flow and METIS rows repeat Table~\ref{tab:wait-gains}.}
+    \caption{Delay (s/veh; lower is better) vs. non-partitioned literature baselines and regional learners. RESCO baselines are reported mean $\pm$ SD over evaluation episodes; the RESCO FMA2C row is a single-region baseline. $k{=}1$ rows use the all-network partition; Flow and Topology rows repeat Table~\ref{tab:wait-gains}.}
     \label{tab:baselines}
     \scriptsize
     \setlength{\tabcolsep}{4pt}
@@ -1498,19 +1505,19 @@ Both instruments favor Flow.
         \addlinespace
         IPPO          & Baseline ($k{=}1$) & 53.44$\pm$15.61 & 245.77$\pm$126.09 \\
         IPPO          & Flow               & 57.46$\pm$11.48 & 194.22$\pm$26.83  \\
-        IPPO          & METIS              & 72.93$\pm$10.22 & 192.52$\pm$22.94  \\
+        IPPO          & Topology              & 72.93$\pm$10.22 & 192.52$\pm$22.94  \\
         \addlinespace
         MAPPO         & Baseline ($k{=}1$) & 79.59$\pm$27.78 & 276.91$\pm$28.52  \\
         MAPPO         & Flow               & 50.7$\pm$7.0    & 184.44$\pm$31.26  \\
-        MAPPO         & METIS              & 66.4$\pm$12.1   & 203.72$\pm$26.71  \\
+        MAPPO         & Topology              & 66.4$\pm$12.1   & 203.72$\pm$26.71  \\
         \addlinespace
         CoLight       & Baseline ($k{=}1$) & 22.38$\pm$0.33  & 327.06$\pm$35.78  \\
         CoLight       & Flow               & 22.36$\pm$0.49  & 252.04$\pm$10.03  \\
-        CoLight       & METIS              & 21.42$\pm$0.06  & 293.17$\pm$46.86  \\
+        CoLight       & Topology              & 21.42$\pm$0.06  & 293.17$\pm$46.86  \\
         \addlinespace
         FMA2C         & Baseline ($k{=}1$) & 60.14$\pm$3.90  & 377.43$\pm$64.95  \\
         FMA2C         & Flow               & 49.3$\pm$0.0    & 328.37$\pm$91.62  \\
-        FMA2C         & METIS              & 58.7$\pm$0.0    & 345.22$\pm$90.78  \\
+        FMA2C         & Topology              & 58.7$\pm$0.0    & 345.22$\pm$90.78  \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -1528,7 +1535,7 @@ the same partitions, and the useful summary is how far they agree.
 Flow retention and model-free dependency retention agree completely: three
 matched blocks out of three, nine seed-level comparisons out of nine.
 Critic-level dependency retention, estimable only on Cologne8 $k=3$, agrees
-just as cleanly, Flow ahead of METIS in all three seed-level comparisons;
+just as cleanly, Flow ahead of Topology in all three seed-level comparisons;
 that agreement extends to the one downstream MAPPO cell with a critic-level
 retention estimate to check it against, Cologne8's $23.6\%$ delay reduction
 sitting on a critic that demonstrably keeps more value-relevant input under
@@ -1536,7 +1543,7 @@ Flow.
 Downstream training agrees with the retention ordering in six of the eight
 matched cells (Table~\ref{tab:wait-gains}): Flow leads Cologne8 IPPO,
 Cologne8 MAPPO, Ingolstadt21 MAPPO, Ingolstadt21 CoLight, Cologne8 FMA2C,
-and Ingolstadt21 FMA2C; Cologne8 CoLight favors METIS; Ingolstadt21 IPPO is
+and Ingolstadt21 FMA2C; Cologne8 CoLight favors Topology; Ingolstadt21 IPPO is
 a near-tie.
 The three aggregated-signal cells identified in Section~\ref{sec:exp-perf},
 a regional reward mean for IPPO on Cologne8 and a regional critic input for
@@ -1587,16 +1594,16 @@ The Ingolstadt21 CoLight runs also stopped at unequal, sub-plateau episode
 counts.
 Table~\ref{tab:wait-gains} is one training run per cell; repeating it over
 training seeds remains outstanding, particularly for Ingolstadt21 FMA2C,
-where the observed Flow--METIS gap is already smaller than either arm's own
+where the observed Flow--Topology gap is already smaller than either arm's own
 evaluation-seed SD.
 Section~\ref{sec:exp-phi} raises a second confound this study does not
-separate: whether CoLight's split cell-level outcome, favoring METIS on
+separate: whether CoLight's split cell-level outcome, favoring Topology on
 Cologne8 and Flow on Ingolstadt21, traces to flow-based module membership or
 to module-size imbalance; the same question applies to why FMA2C's
 Ingolstadt21 margin is an order of magnitude smaller and noisier than its
 Cologne8 margin, even though both now favor Flow.
 A size-sequence-controlled flow partition, one that maximizes $\Phi_W$
-subject to its module sizes matching METIS's multiset exactly, would
+subject to its module sizes matching Topology's multiset exactly, would
 isolate flow-based membership from size imbalance and is the natural next
 step for that question.
 A higher-demand arm is the decisive next experiment for causal spill-back:
@@ -1615,7 +1622,7 @@ downstream MARL performance.
 Building coordination modules from an OD-induced route-flow graph rather than
 from road geometry produces partitions that retain 15.7 to 32.5 percentage
 points more observed route flow and 2.7 to 34.4 percentage points more state
-dependency than same-$k$ METIS partitions, on every tested network, module
+dependency than same-$k$ Topology partitions, on every tested network, module
 count, and traffic seed.
 
 The framework's value is in the relationships it exposes.
@@ -1629,7 +1636,7 @@ cells, a regional reward mean for IPPO or a regional critic input for MAPPO,
 corroborated on Cologne8 by directly measured critic-level dependency
 retention, plus Ingolstadt21 CoLight and both FMA2C cells, whose mechanisms
 do not aggregate the partition into one signal.
-Cologne8 CoLight favors METIS, and Ingolstadt21 IPPO is a near-tie.
+Cologne8 CoLight favors Topology, and Ingolstadt21 IPPO is a near-tie.
 The loss is informative regardless of magnitude: the partition with the
 highest flow retention in the study achieves it with two singleton modules,
 so retention must be scored inside the deployment's size and connectivity
