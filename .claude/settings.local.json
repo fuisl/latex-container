@@ -93,7 +93,8 @@
       "Bash(pdftotext -f 9 -l 9 main.pdf -)",
       "Bash(sed -i '282s/xshift=2.05cm/xshift=2.75cm/; 294s/xshift=4.1cm/xshift=5.5cm/' src/main.tex)",
       "Bash(sed -i '279s/-0.72/-0.62/; 291s/-0.72/-0.62/; 304s/-0.72/-0.62/' src/main.tex)",
-      "mcp__wandb__get_run_history_tool"
+      "mcp__wandb__get_run_history_tool",
+      "Read(//root/.claude/plugins/marketplaces/academic-research-skills/academic-paper/**)"
     ]
   }
 }
