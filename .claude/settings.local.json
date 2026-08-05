@@ -100,7 +100,10 @@
       "Bash(lualatex -interaction=nonstopmode -output-directory=/workspace/out main.tex)",
       "Bash(ls ../out)",
       "Bash(grep -n \"^\\\\\\\\\\\\\\\\usepackage\\\\|out/\" ../Makefile)",
-      "Bash(lualatex -interaction=nonstopmode -output-directory=../out main.tex)"
+      "Bash(lualatex -interaction=nonstopmode -output-directory=../out main.tex)",
+      "Read(//root/.claude/plugins/cache/academic-research-skills/academic-research-skills/**)",
+      "Read(//root/.claude/plugins/cache/academic-research-skills/**)",
+      "Bash(git log *)"
     ]
   }
 }
