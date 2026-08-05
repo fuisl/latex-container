@@ -342,14 +342,8 @@ The main hypothesis of Section~\ref{sec:intro} is a chain: retained flow to reta
     \end{tikzpicture}
     \caption{The measured chain. All four quantities are computed on the same
         partitions, the top two before any training. The first arrow is an
-        identity for the stationary walk (Eq.~\eqref{eq:qphi}). H1 and H2 are
-        the two links of the main
-        hypothesis, tested in Section~\ref{sec:experiments} rather than
-        proved; each is annotated with the confound that would produce the
-        same reading without the mechanism. The relation is one-directional:
-        high retention
-        is a reason to expect a partition to do well, while low retention does
-        not prove it will do badly.}
+        identity for the stationary walk (Eq.~\eqref{eq:qphi}). H1 and H2 label
+        the chain's two links.}
     \label{fig:chain}
 \end{figure}
 
@@ -499,8 +493,7 @@ Table~\ref{tab:phi} confirms that the constructed candidate realizes the criteri
     \caption{Module size imbalance and retained flow, extending
         Table~\ref{tab:phi}.
         The Cologne8 block sweeps InfoMap's Bayesian regularization strength
-        at fixed $k=3$: weaker regularization favors flow cohesion, stronger
-        regularization favors balance; \emph{Flow} and \emph{Topology} are the
+        at fixed $k=3$; \emph{Flow} and \emph{Topology} are the
         partitions actually carried into Table~\ref{tab:wait-gains}, and
         \emph{compromise}/\emph{balanced} are exploratory intermediate
         candidates, not trained downstream.
@@ -666,11 +659,7 @@ seed-level comparisons.
     \end{tikzpicture}
     \caption{Retained flow against retained state dependency for all nine
         partitions. Each line joins the three candidates within one matched
-        map and module-count block. Every block rises monotonically, so within
-        a block the two training-free scores induce the same ranking. The
-        blocks do not lie on a common curve: the attainable level of $\Psi$ is
-        set by the network and module count, so $\Phi$ ranks candidates for a
-        given deployment rather than predicting $\Psi$ across deployments.}
+        map and module-count block.}
     \label{fig:phi-psi}
 \end{figure}
 
@@ -894,7 +883,7 @@ Direct action-level causal coupling is therefore not resolvable at the effect si
 \subsection{Result 7: Downstream Training}
 \label{sec:exp-perf}
 
-Hypothesis H2, and contribution 3's central claim, ask whether the partition that retains more also trains better. Table~\ref{tab:wait-gains} reports the best evaluation checkpoint, averaged over independently trained seeds, for each learner, network, and module count, holding all three fixed and varying only the partition.
+Hypothesis H2, and contribution 3's central claim, ask whether the partition that retains more also trains better.
 
 \begin{table}[t]
     \centering
