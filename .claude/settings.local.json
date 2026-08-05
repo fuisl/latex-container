@@ -95,7 +95,8 @@
       "Bash(sed -i '279s/-0.72/-0.62/; 291s/-0.72/-0.62/; 304s/-0.72/-0.62/' src/main.tex)",
       "mcp__wandb__get_run_history_tool",
       "Read(//root/.claude/plugins/marketplaces/academic-research-skills/academic-paper/**)",
-      "Bash(find / -iname \"SKILL.md\" -path \"*academic-paper*\")"
+      "Bash(find / -iname \"SKILL.md\" -path \"*academic-paper*\")",
+      "WebFetch(domain:sumo.dlr.de)"
     ]
   }
 }
