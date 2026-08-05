@@ -96,7 +96,8 @@
       "mcp__wandb__get_run_history_tool",
       "Read(//root/.claude/plugins/marketplaces/academic-research-skills/academic-paper/**)",
       "Bash(find / -iname \"SKILL.md\" -path \"*academic-paper*\")",
-      "WebFetch(domain:sumo.dlr.de)"
+      "WebFetch(domain:sumo.dlr.de)",
+      "Bash(lualatex -interaction=nonstopmode -output-directory=/workspace/out main.tex)"
     ]
   }
 }
