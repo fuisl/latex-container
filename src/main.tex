@@ -64,41 +64,41 @@ Duong Tran Hai
 
 Urban traffic signal control (TSC) is a canonical large-scale coordination problem: each signal acts on local observations, but a phase decision at one intersection reshapes arrival patterns and queue spill-back at its neighbors, so signals must be controlled jointly, naturally posing TSC as a multi-agent reinforcement learning (MARL) problem. Yet exact joint control requires evaluating a joint action space that grows exponentially with the number of intersections, which is intractable beyond a handful of agents~\citep{nair2005ndpomdp,kok2006ndpomdp,oliehoek2012ndpomdp}. This is why regional decomposition is the paradigm that makes MARL practical at scale~\citep{qu2020average,qu2022scalable}: the systems partition the network into coordination modules, whether explicit regions or implicit neighborhoods, and coordinate \emph{within} them, by shared rewards, centralized critics, communication, or hierarchy~\citep{ma2020fma2c,wei2019colight,xu2021hilight,zhu2026halo}. Every such system thus contains a \emph{coordination graph} fixed before training: a decision about which agents share coordination machinery. Because those mechanisms operate only within a module, any dependency the graph does not group together is invisible to the learner, so the partition itself determines what a system can coordinate. Unlike domains where physics dictates the interaction structure, in TSC this graph is a free design variable, and its design has received far less attention than the learning algorithms that run on top of it.
 
-When the coordination graph is designed at all, it is typically inherited from general-purpose partitioners applied to road \emph{topology}, learned end-to-end for control return without stating what a good partition should retain, or borrowed from transport-planning zoning that is not connected to what learning agents require of a partition~\citep{laplacian2009ieee,communitydetection2021plosone,liu2023gplight,ma2022feudal,odflow2019partition,mfdpartition2020}.
+This design choice is rarely made deliberately: the coordination graph is typically inherited from general-purpose partitioners applied to road \emph{topology}, learned end-to-end for control return without stating what a good partition should retain, or borrowed from transport-planning zoning that is not connected to what learning agents require of a partition~\citep{laplacian2009ieee,communitydetection2021plosone,liu2023gplight,ma2022feudal,odflow2019partition,mfdpartition2020}.
 Attention-based MARL~\citep{jiang2018atoc,wei2019colight} learns interaction structure implicitly instead, but gives no account of which dependencies are preserved or severed when attention is restricted to modules.
 The gap spanning all three lines of work is measurement: \emph{partition choice is consequential and routinely made, but what a given partition keeps or discards is almost never quantified before training}, so competing choices cannot be compared except by running a full training loop on each, the most expensive step in the pipeline they are meant to precede.
 
 This paper addresses that gap with three linked moves, detailed below: a training-free criterion for what a partition retains, a flow-based construction method that instantiates it, and an empirical test of the link between them.
 
 \noindent\textbf{Main hypothesis.}
-\emph{A partition that retains more of the vehicle flow carrying coordination pressure retains more of the inter-agent dependency a learner can use, and a partition that retains more of that dependency supports better regional MARL.}
+\emph{Among partitions of the same network at the same module count, higher flow retention is associated with higher inter-agent dependency retention, and higher retention tends to be associated with better regional MARL performance.}
 Every measurement in this paper is organized around that claim. Section~\ref{sec:transfer} splits it into its two links, H1 from flow retention to dependency retention and H2 from dependency retention to learning outcomes, and Section~\ref{sec:experiments} tests each in turn.
 
 We make three contributions:
 \begin{itemize}
-    \item \textbf{A way to score partitions before training}
-          (Section~\ref{sec:method}): a training-free criterion that
-          measures how much observed route flow ($\Phi$) and inter-agent
-          dependency ($\Psi$, measured three different ways) a candidate
-          partition keeps, so partitions can be compared before any
-          controller is trained.
-    \item \textbf{A way to build coordination regions from flow}
-          (Section~\ref{sec:construction}): we build coordination modules
-          from a graph of vehicle trips between signals, rather than from
-          road adjacency, and partition it with the map equation under
-          size and connectivity limits. The resulting modules can be used
-          by shared rewards, a shared critic, shared attention, or a
+    \item \textbf{A training-free partition score}
+          (Section~\ref{sec:method}): a criterion that scores a candidate
+          partition by how much observed route flow ($\Phi$) and
+          inter-agent dependency ($\Psi$, measured three ways) it
+          retains, so partitions can be compared before any controller
+          is trained.
+    \item \textbf{A flow-based construction method}
+          (Section~\ref{sec:construction}): coordination modules built
+          from a graph of vehicle trips between signals, not road
+          adjacency, and partitioned with the map equation under size
+          and connectivity limits. The resulting modules work with
+          shared rewards, a shared critic, shared attention, or a
           feudal manager.
     \item \textbf{Evidence that retention predicts performance}
           (Sections~\ref{sec:exp-phi}--\ref{sec:exp-perf}): on both
-          networks, flow-based partitions keep more route flow and more
-          state dependency than matched topology-based partitions, at
-          every module count we tested, and partitions that keep more
-          flow also keep more dependency. The partition that keeps more
-          also trains to a lower delay in six of eight matched comparisons
-          (Table~\ref{tab:wait-gains}): retained flow works as a signal
-          for picking a coordination partition, but not for every learner
-          and network we tested.
+          networks, flow-based partitions retain more route flow and
+          state dependency than matched topology-based partitions at
+          every module count tested, and higher flow retention tracks
+          higher dependency retention. The higher-retention partition
+          also trains to a lower delay in six of eight matched
+          comparisons (Table~\ref{tab:wait-gains}), so retained flow is
+          a useful signal for choosing a coordination partition, though
+          not for every learner and network we tested.
 \end{itemize}
 
 % ============================================================
