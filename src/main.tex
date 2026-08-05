@@ -138,23 +138,23 @@ Table~\ref{tab:notation} collects the symbols this section defines, for referenc
     \footnotesize
     \begin{tabular}{ll}
         \toprule
-        Symbol                                                  & Meaning                                              \\
+        Symbol                                                             & Meaning                                           \\
         \midrule
-        $\mathcal{G}_C=(\mathcal{V},\mathcal{E}_C)$             & coordination graph                                   \\
-        $\mathcal{G}_{\mathrm{flow}}=(\mathcal{V},\mathcal{E},\mathbf{W})$ & OD-induced signal-transition flow graph      \\
-        $W_{ij}$                                                & OD flow, signal $i$ to signal $j$                    \\
-        $\mathcal{P}=\{P_1,\ldots,P_K\}$                        & partition into $K$ modules                           \\
-        $\Phi_W(\mathcal{P})$                                   & OD-flow retention (Eq.~\eqref{eq:phi})               \\
-        $\Phi_\pi(\mathcal{P})$                                 & stationary-walk retention (Eq.~\eqref{eq:qphi})      \\
-        $\pi_i$, $P_{ij}$                                       & stationary mass, transition prob.\ (map equation)    \\
-        $q_{\circlearrowleft}$                                  & escape probability, map equation                     \\
-        $\mathbf{D}$                                            & generic pairwise dependency matrix                   \\
-        $\Psi(\mathcal{P},\mathbf{D})$                          & dependency retention (Eq.~\eqref{eq:psi})            \\
-        $D^{\mathrm{MI}}$                                       & lagged mutual information (regional reward, L1)      \\
-        $D^{G}$                                                 & global-model Jacobian (regional attention, L3)       \\
-        $D^{Q}$                                                 & centralized-critic Jacobian (regional critic, L2)    \\
-        $D^{\mathrm{CMI}}$                                      & conditional mutual information (diagnostic only)     \\
-        $\tau$                                                  & MI lag, $\tau\in\{1,5,15,30\}$                       \\
+        $\mathcal{G}_C=(\mathcal{V},\mathcal{E}_C)$                        & coordination graph                                \\
+        $\mathcal{G}_{\mathrm{flow}}=(\mathcal{V},\mathcal{E},\mathbf{W})$ & OD-induced signal-transition flow graph           \\
+        $W_{ij}$                                                           & OD flow, signal $i$ to signal $j$                 \\
+        $\mathcal{P}=\{P_1,\ldots,P_K\}$                                   & partition into $K$ modules                        \\
+        $\Phi_W(\mathcal{P})$                                              & OD-flow retention (Eq.~\eqref{eq:phi})            \\
+        $\Phi_\pi(\mathcal{P})$                                            & stationary-walk retention (Eq.~\eqref{eq:qphi})   \\
+        $\pi_i$, $P_{ij}$                                                  & stationary mass, transition prob.\ (map equation) \\
+        $q_{\circlearrowleft}$                                             & escape probability, map equation                  \\
+        $\mathbf{D}$                                                       & generic pairwise dependency matrix                \\
+        $\Psi(\mathcal{P},\mathbf{D})$                                     & dependency retention (Eq.~\eqref{eq:psi})         \\
+        $D^{\mathrm{MI}}$                                                  & lagged mutual information (regional reward, L1)   \\
+        $D^{G}$                                                            & global-model Jacobian (regional attention, L3)    \\
+        $D^{Q}$                                                            & centralized-critic Jacobian (regional critic, L2) \\
+        $D^{\mathrm{CMI}}$                                                 & conditional mutual information (diagnostic only)  \\
+        $\tau$                                                             & MI lag, $\tau\in\{1,5,15,30\}$                    \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -443,7 +443,7 @@ We evaluate on two SUMO networks: Cologne8, with 8 signalized intersections and 
 $D^{\mathrm{MI}}$ uses three stochastic warm-up seeds per network; $D^G$ uses one seed-7 global CoLight checkpoint per network and therefore has no checkpoint uncertainty estimate; $D^Q$ uses three independently trained global MAPPO critic seeds on Cologne8 and is not estimable on Ingolstadt21, where no completed checkpoint uses a global rather than a regional critic (Section~\ref{sec:exp-dq}). The state-MI matrices are estimated from per-agent state slices of 361-step warm-up trajectories with KSG $k=3$ and lags 1, 5, 15, and 30. Because KSG on autocorrelated traffic traces is noisy, the evidence uses partition-level retained mass and seed-wise ordering rather than isolated pairwise MI magnitudes. The learned-dependency matrices use the same partition-independent rule on both networks: take a global CoLight checkpoint, differentiate valid target outputs with respect to every source agent's input features, and aggregate absolute sensitivities into a directed non-negative matrix. A separate action-level perturbation probe (Section~\ref{sec:exp-perturb}) freezes the global CoLight policy and randomizes actions at execution time to test closed-loop causal influence without retraining.
 
 \paragraph{Downstream training}
-Downstream training evidence covers multiple independently trained seeds per (network, learner, module count) pair, covering IPPO, MAPPO, and CoLight on Cologne8 at $k=3$ and on Ingolstadt21 at $k=4$. FMA2C's hyperparameters were still being searched when these runs were collected, so its two rows (Section~\ref{sec:exp-perf}) compare partitions inside one fixed, not fully tuned, configuration rather than an optimized one. Each run is scored by its best evaluation checkpoint, the minimum delay per vehicle over its logged evaluation episodes~\citep{henderson2018matters,agarwal2021rliable}. Delay per vehicle is SUMO's time loss, the travel time accrued beyond free-flow, and is the control metric throughout. The benchmark uses 10 stochastic-policy episodes at each of 5 traffic seeds per network, split chronologically into construction, validation, and held-out test traces; every reported delay is a mean $\pm$ SD across independently trained seeds, each scored at its best checkpoint over the 5 held-out traffic seeds.
+Downstream training evidence covers multiple independently trained seeds per (network, learner, module count) pair, covering IPPO, MAPPO, and CoLight on Cologne8 at $k=3$ and on Ingolstadt21 at $k=4$. Each run is scored by its best evaluation checkpoint, the minimum delay per vehicle over its logged evaluation episodes~\citep{henderson2018matters,agarwal2021rliable}. Delay per vehicle is SUMO's time loss, the travel time accrued beyond free-flow, and is the control metric throughout. The benchmark uses 10 stochastic-policy episodes at each of 5 traffic seeds per network, split chronologically into construction, validation, and held-out test traces; every reported delay is a mean $\pm$ SD across independently trained seeds, each scored at its best checkpoint over the 5 held-out traffic seeds.
 
 \paragraph{Random baseline}
 The Random baseline is a single reproducible round-robin assignment after a seeded shuffle, so it gives a fixed chance floor rather than a distribution over random partitions.
@@ -740,7 +740,7 @@ tested here.
         Map          & $k$ & Flow                                & Topology                      & Random & vs.\ Topology (pp) \\
         \midrule
         Cologne8     & 3   & \textbf{0.754}                      & 0.591                         & 0.247  & $+16.4$            \\
-        Cologne8     & 5   & 0.370                               & \textbf{0.476}                & 0.311  & $-10.6$            \\
+        % Cologne8     & 5   & 0.370                               & \textbf{0.476}                & 0.311  & $-10.6$            \\
         Ingolstadt21 & 4   & \textbf{0.798}                      & 0.669                         & 0.246  & $+12.9$            \\
         Ingolstadt21 & 5   & 0.700                               & \textbf{0.731}                & 0.255  & $-3.2$             \\
         \bottomrule
@@ -897,26 +897,26 @@ Hypothesis H2, and contribution 3's central claim, ask whether the partition tha
 
 \begin{table}[t]
     \centering
-    \caption{Downstream training delay (s/veh; lower is better), mean $\pm$ SD over independently trained seeds at the best evaluation checkpoint, per (map, learner, $k$) pair, holding learner and module count fixed and varying only the partition. $\Delta\%=100(\text{Flow}-\text{Topology})/\text{Topology}$; negative favors Flow. $^\dagger$FMA2C's hyperparameters were still being searched when these runs were collected (Section~\ref{sec:setup}), so its two rows compare partitions inside one fixed, not fully tuned, configuration.}
+    \caption{Downstream training delay (s/veh; lower is better), mean $\pm$ SD over independently trained seeds at the best evaluation checkpoint, per (map, learner, $k$) pair, holding learner and module count fixed and varying only the partition. $\Delta\%=100(\text{Flow}-\text{Topology})/\text{Topology}$; negative favors Flow.}
     \label{tab:wait-gains}
     \scriptsize
     \setlength{\tabcolsep}{2.5pt}
 
     \begin{tabular}{llrrrr}
         \toprule
-        Map & Learner         & $k$ & Flow                      & Topology                  & $\Delta\%$       \\
+        Map & Learner & $k$ & Flow                      & Topology                  & $\Delta\%$       \\
         \midrule
-        C8  & IPPO            & 3   & $\mathbf{57.46\pm11.48}$  & $72.93\pm10.22$           & $\mathbf{-21.2}$ \\
-        I21 & IPPO            & 4   & $194.22\pm26.83$          & $\mathbf{192.52\pm22.94}$ & $+0.9$           \\
+        C8  & IPPO    & 3   & $\mathbf{57.46\pm11.48}$  & $72.93\pm10.22$           & $\mathbf{-21.2}$ \\
+        I21 & IPPO    & 4   & $194.22\pm26.83$          & $\mathbf{192.52\pm22.94}$ & $+0.9$           \\
         \addlinespace
-        C8  & MAPPO           & 3   & $\mathbf{50.7\pm7.0}$     & $66.4\pm12.1$             & $\mathbf{-23.6}$ \\
-        I21 & MAPPO           & 4   & $\mathbf{184.44\pm31.26}$ & $203.72\pm26.71$          & $\mathbf{-9.5}$  \\
+        C8  & MAPPO   & 3   & $\mathbf{50.7\pm7.0}$     & $66.4\pm12.1$             & $\mathbf{-23.6}$ \\
+        I21 & MAPPO   & 4   & $\mathbf{184.44\pm31.26}$ & $203.72\pm26.71$          & $\mathbf{-9.5}$  \\
         \addlinespace
-        C8  & CoLight         & 3   & $22.36\pm0.49$            & $\mathbf{21.42\pm0.06}$   & $+4.4$           \\
-        I21 & CoLight         & 4   & $\mathbf{252.04\pm10.03}$ & $293.17\pm46.86$          & $-14.0$          \\
+        C8  & CoLight & 3   & $22.36\pm0.49$            & $\mathbf{21.42\pm0.06}$   & $+4.4$           \\
+        I21 & CoLight & 4   & $\mathbf{252.04\pm10.03}$ & $293.17\pm46.86$          & $-14.0$          \\
         \addlinespace
-        C8  & FMA2C$^\dagger$ & 3   & $\mathbf{52.28\pm13.53}$  & $61.21\pm17.14$           & $\mathbf{-14.6}$ \\
-        I21 & FMA2C$^\dagger$ & 4   & $\mathbf{328.37\pm91.62}$ & $345.22\pm90.78$          & $\mathbf{-4.9}$  \\
+        C8  & FMA2C   & 3   & $\mathbf{52.28\pm13.53}$  & $61.21\pm17.14$           & $\mathbf{-14.6}$ \\
+        I21 & FMA2C   & 4   & $\mathbf{328.37\pm91.62}$ & $345.22\pm90.78$          & $\mathbf{-4.9}$  \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -935,7 +935,7 @@ Topology favors Cologne8 by $4.4\%$ ($22.36\pm0.49$ against $21.42\pm0.06$\,s); 
 The Cologne8 flow partition splits two of its three modules into single intersections with no neighbor to attend to, undercutting the attention mechanism CoLight coordinates through even though it is the highest-$\Phi$ candidate in the study ($\Phi=0.939$); graph-attention controllers of this kind are known to weight only instantaneous, spatially local neighbor features rather than historical context~\citep{lu2023dualight}. That mechanism does not extend to Ingolstadt21, where Flow's modules are all size four or larger and Flow trains better; the two networks disagree and we do not have a mechanism that explains both cells. Retention maximized by an operationally unusable partition must be scored under the size and connectivity constraints of Section~\ref{sec:workflow}.
 
 \paragraph{FMA2C}
-An FMA2C manager's span of control \emph{is} a module, and its hyperparameters were still under search when these runs were collected. Flow favors both networks: Cologne8 by $14.6\%$ ($52.28\pm13.53$ against $61.21\pm17.14$\,s) and Ingolstadt21 by $4.9\%$ ($328.37\pm91.62$ against $345.22\pm90.78$\,s), though the Ingolstadt21 gap is well inside either arm's own training-seed SD and not distinguishable from noise at this configuration.
+An FMA2C manager's span of control \emph{is} a module. Flow favors both networks: Cologne8 by $14.6\%$ ($52.28\pm13.53$ against $61.21\pm17.14$\,s) and Ingolstadt21 by $4.9\%$ ($328.37\pm91.62$ against $345.22\pm90.78$\,s), though the Ingolstadt21 gap is well inside either arm's own training-seed SD and not distinguishable from noise at this configuration.
 
 L4's own instrument is manager reward, not a pairwise dependency matrix (Table~\ref{tab:levels}).
 Table~\ref{tab:fma2c-manager} reports it as the whole-training-run average regional reward, the per-step mean of every worker agent's reward signal, manager reward excluded, averaged over each completed run, pooled over all three matched scenarios (Cologne8 $k=3$, Ingolstadt21 $k=4$, $k=5$) rather than the best-epoch snapshot used elsewhere.

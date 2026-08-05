@@ -97,7 +97,9 @@
       "Read(//root/.claude/plugins/marketplaces/academic-research-skills/academic-paper/**)",
       "Bash(find / -iname \"SKILL.md\" -path \"*academic-paper*\")",
       "WebFetch(domain:sumo.dlr.de)",
-      "Bash(lualatex -interaction=nonstopmode -output-directory=/workspace/out main.tex)"
+      "Bash(lualatex -interaction=nonstopmode -output-directory=/workspace/out main.tex)",
+      "Bash(ls ../out)",
+      "Bash(grep -n \"^\\\\\\\\\\\\\\\\usepackage\\\\|out/\" ../Makefile)"
     ]
   }
 }
