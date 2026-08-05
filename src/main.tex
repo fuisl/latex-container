@@ -76,30 +76,26 @@ Every measurement in this paper is organized around that claim. Section~\ref{sec
 
 We make three contributions:
 \begin{itemize}
-    \item \textbf{A training-free partition score}
-          (Section~\ref{sec:method}): a criterion that scores a candidate
-          partition by how much observed route flow ($\Phi$) and
-          inter-agent dependency ($\Psi$, measured three ways) it
-          retains, so partitions can be compared before any controller
-          is trained.
-    \item \textbf{A flow-based construction method}
-          (Section~\ref{sec:construction}): coordination modules built
-          from a graph of vehicle trips between signals, not road
-          adjacency, and partitioned with the map equation under size
-          and connectivity limits. The resulting modules work with
-          shared rewards, a shared critic, shared attention, or a
-          feudal manager.
-    \item \textbf{Evidence that retention predicts performance}
-          (Sections~\ref{sec:exp-phi}--\ref{sec:exp-perf}): on both
-          networks, flow-based partitions retain more route flow and
-          state dependency than matched topology-based partitions at
-          every module count tested, and higher flow retention tracks
-          higher dependency retention. The higher-retention partition
-          also trains to a lower delay in six of eight matched
-          comparisons (Table~\ref{tab:wait-gains}), one of the six within
-          its own training-seed noise floor, so retained flow is
-          a useful signal for choosing a coordination partition, though
-          not for every learner and network we tested.
+    \item \textbf{A pre-training way to evaluate traffic-signal partitions}
+          (Section~\ref{sec:method}): a framework for checking whether a
+          regional partition is suitable for MARL before any controller
+          is trained, by measuring how much vehicle flow a partition
+          keeps inside regions, how much inter-agent dependency it
+          preserves, and whether that retention remains meaningful under
+          size and connectivity constraints.
+    \item \textbf{A flow-based method for constructing coordination
+          regions} (Section~\ref{sec:construction}): instead of
+          partitioning the road network by physical adjacency alone, we
+          build a signal-to-signal flow graph from OD trip movements and
+          use it to generate candidate coordination modules, making
+          vehicle movement, rather than road geometry alone, the basis
+          for regional MARL coordination.
+    \item \textbf{Empirical evidence linking retention to MARL
+          performance} (Sections~\ref{sec:exp-phi}--\ref{sec:exp-perf}):
+          flow-based partitions retain more route flow and state
+          dependency than topology-based (METIS) partitions on both
+          SUMO networks tested, and the higher-retention partition also
+          trains to a lower delay in most matched MARL comparisons.
 \end{itemize}
 
 % ============================================================
@@ -109,7 +105,7 @@ We make three contributions:
 This section reviews prior work on traffic-network partitioning, MARL coordination topology, and inter-agent dependency measurement, and clarifies the gap addressed by our framework.
 
 \paragraph{Network partitioning for traffic control}
-Partitioning is already standard machinery in large-scale TSC, but the criterion is almost always structural or geometric: spectral partitioning of the road graph~\citep{laplacian2009ieee}, a manually assumed region decomposition in feudal MARL~\citep{ma2020fma2c}, adjacency-constrained star-topology regions~\citep{regionlight2024}, or congestion-feature and learned-similarity clustering~\citep{communitydetection2021plosone,liu2023gplight}. The closest departure, \citet{ma2022feudal}, learns a flow-based decomposition end-to-end for a feudal learner, but optimizes directly for control return, yielding no criterion that can be stated or audited independently of the learner. Flow-aware partitioning exists in the transport literature~\citep{odflow2019partition,mfdpartition2020}, but serves zoning and macroscopic modeling, not learning agents. Our gap claim is narrow: no prior work provides an \emph{explicit partition-quality criterion}, statable before training and independent of any learner, for what a coordination-graph designer should optimize. This is a criterion-level claim, not a performance claim against \citet{ma2022feudal}'s learned decomposition specifically; we do not run that method as a baseline, so we make no claim that an auditable criterion matches or exceeds what an end-to-end learned partition would achieve.
+Partitioning is already standard machinery in large-scale TSC, but the criterion is almost always structural or geometric: spectral partitioning of the road graph~\citep{laplacian2009ieee}, a manually assumed region decomposition in feudal MARL~\citep{ma2020fma2c}, adjacency-constrained star-topology regions~\citep{regionlight2024}, or congestion-feature and learned-similarity clustering~\citep{communitydetection2021plosone,liu2023gplight}. The closest departure, \citet{ma2022feudal}, learns a flow-based decomposition end-to-end for a feudal learner, but optimizes directly for control return, yielding no criterion that can be stated or audited independently of the learner. Flow-aware partitioning exists in the transport literature~\citep{odflow2019partition,mfdpartition2020}, but serves zoning and macroscopic modeling, not learning agents. Our gap claim is narrow: no prior work provides an \emph{explicit partition-quality criterion}, statable before training and independent of any learner, for what a coordination-graph designer should optimize. This is a criterion-level claim: we do not run \citet{ma2022feudal}'s learned decomposition as a baseline, so we make no performance claim against it.
 
 \paragraph{Coordination topology in MARL}
 A complementary literature learns or fixes interaction structure inside the learner instead of the coordination graph outside it: attentional and inferred communication~\citep{jiang2018atoc,i2c2021,peng2020structured,aamas2021correlated}, graph attention over road topology~\citep{wei2019colight}, and information-bottleneck or scalability-oriented topologies~\citep{hetib2025,sun2026ibvq,wang2020imac,expocomm2025,li2025topology,zhu2026halo}, which discover useful structure implicitly but give no external account of what is preserved or severed, since it lives inside the model and cannot be audited before training. Our approach fixes the partition from a training-free criterion, then uses the trained models' own dependency structure (Section~\ref{sec:psi}) to evaluate that partition after the fact.
@@ -249,7 +245,7 @@ For a partition $\mathcal{P}=\{P_1,\ldots,P_K\}$, define empirical OD-flow reten
 \end{equation}
 We write $\Phi$ for $\Phi_W$ in the empirical tables. For another non-negative edge-weight matrix $\mathbf{X}$, $\Phi_W(\mathcal{P};\mathbf{X})$ denotes Eq.~\eqref{eq:phi} with $\mathbf{W}$ replaced by $\mathbf{X}$.
 
-Eq.~\eqref{eq:phi} is a scoring rule. Any partitioner whose objective is defined on movement over $\mathbf{W}$, rather than on the geometry of the cut, is a candidate for scoring well under it; this is the flow-based family of Section~\ref{sec:related}. We work with the map equation~\citep{rosvall2008maps,rosvall2009mapequation} because its \emph{escape term}, the probability that a random walker leaves its current module on the next step, equals the complement of retained \emph{stationary} flow (Eq.~\eqref{eq:qphi}), so that link is an identity, not an approximation, for the stationary quantity $\Phi_\pi$ specifically; $\Phi_\pi$ itself is not identical to the empirical $\Phi_W$ we report below (see the qualification after Eq.~\eqref{eq:qphi}). The map equation still only rewards partitions that compress a random walk's description well, so it favors the flow-retentive structure this hypothesis wants to preserve without uniquely optimizing it.
+Eq.~\eqref{eq:phi} is a scoring rule. Any partitioner whose objective is defined on movement over $\mathbf{W}$, rather than on the geometry of the cut, is a candidate for scoring well under it; this is the flow-based family of Section~\ref{sec:related}. We work with the map equation~\citep{rosvall2008maps,rosvall2009mapequation} because its \emph{escape term}, the probability that a random walker leaves its current module on the next step, equals the complement of retained \emph{stationary} flow (Eq.~\eqref{eq:qphi}), so that link is an identity, not an approximation, for the stationary quantity $\Phi_\pi$ specifically. The map equation still only rewards partitions that compress a random walk's description well, so it favors the flow-retentive structure this hypothesis wants to preserve without uniquely optimizing it.
 For the random walk used by the map equation,
 \begin{align}
     L(\mathcal{P})
@@ -262,7 +258,7 @@ For the random walk used by the map equation,
     1-\Phi_\pi(\mathcal{P})
     \label{eq:qphi}
 \end{align}
-where $\Phi_\pi(\mathcal{P})=\sum_{c(i)=c(j)}\pi_iP_{ij}$ is within-module stationary-walk mass. The identity $q_{\circlearrowleft}=1-\Phi_\pi(\mathcal{P})$ holds exactly for this stationary edge measure, by construction of the map equation's escape term. The empirical $\Phi_W$ in Eq.~\eqref{eq:phi} equals $\Phi_\pi$ only when the OD edge measure matches the stationary edge measure. Our InfoMap runs use teleportation, since $\mathcal{G}_{\mathrm{flow}}$ is not strongly connected on either network, which breaks that match: teleportation mass is spread independently of $\mathbf{W}$, so $\Phi_\pi$ and $\Phi_W$ can diverge, and we do not report $\Phi_\pi$ itself or bound the gap between the two. The $q_{\circlearrowleft}=1-\Phi_\pi(\mathcal{P})$ identity is therefore exact for $\Phi_\pi$, but the $\Phi_W$ values in every table below are the empirical, not the stationary, quantity, and should be read as such. The entropy terms in Eq.~\eqref{eq:mapeq} prevent the trivial solution of one giant module, while the measured $\Phi_W$ reports how much observed traffic the final modules actually retain.
+where $\Phi_\pi(\mathcal{P})=\sum_{c(i)=c(j)}\pi_iP_{ij}$ is within-module stationary-walk mass. The identity $q_{\circlearrowleft}=1-\Phi_\pi(\mathcal{P})$ holds exactly for this stationary edge measure, by construction of the map equation's escape term. The empirical $\Phi_W$ in Eq.~\eqref{eq:phi} equals $\Phi_\pi$ only when the OD edge measure matches the stationary edge measure. Our InfoMap runs use teleportation, since $\mathcal{G}_{\mathrm{flow}}$ is not strongly connected on either network, which breaks that match, so $\Phi_\pi$ and $\Phi_W$ can diverge; we neither report $\Phi_\pi$ nor bound the gap, and every $\Phi_W$ value below is the empirical, not the stationary, quantity. The entropy terms in Eq.~\eqref{eq:mapeq} prevent the trivial solution of one giant module, while the measured $\Phi_W$ reports how much observed traffic the final modules actually retain.
 
 \subsection{Dependency Retention}
 \label{sec:psi}
@@ -439,7 +435,7 @@ We evaluate on two SUMO~\citep{lopez2018sumo} networks: Cologne8, with 8 signali
 $D^{\mathrm{MI}}$ uses three stochastic warm-up seeds per network; $D^G$ uses one seed-7 global CoLight checkpoint per network and therefore has no checkpoint uncertainty estimate; $D^Q$ uses three independently trained global MAPPO critic seeds on Cologne8 and is not estimable on Ingolstadt21, where no completed checkpoint uses a global rather than a regional critic (Section~\ref{sec:exp-dq}). The state-MI matrices are estimated from per-agent state slices of 361-step warm-up trajectories with KSG $k=3$ and lags 1, 5, 15, and 30. Because KSG on autocorrelated traffic traces is noisy, the evidence uses partition-level retained mass and seed-wise ordering rather than isolated pairwise MI magnitudes. The learned-dependency matrices use the same partition-independent rule on both networks: take a global CoLight checkpoint, differentiate valid target outputs with respect to every source agent's input features, and aggregate absolute sensitivities into a directed non-negative matrix. A separate action-level perturbation probe (Section~\ref{sec:exp-perturb}) freezes the global CoLight policy and randomizes actions at execution time to test closed-loop causal influence without retraining.
 
 \paragraph{Downstream training}
-Downstream training evidence covers five independently trained seeds per (network, learner, module count) pair, covering IPPO, MAPPO, and CoLight on Cologne8 at $k=3$ and on Ingolstadt21 at $k=4$. Each run's checkpoint is selected by minimum delay per vehicle over its logged evaluation episodes on the validation traces~\citep{henderson2018matters,agarwal2021rliable}; the delay reported for that run is the selected checkpoint's performance on the held-out traces, so checkpoint selection and reported evaluation never draw from the same episodes. Delay per vehicle is SUMO's time loss, the travel time accrued beyond free-flow, and is the control metric throughout. The benchmark uses 10 stochastic-policy episodes at each of 5 traffic seeds per network, split chronologically into construction, validation, and held-out test traces; every reported delay is a mean $\pm$ SD across those five independently trained seeds, each evaluated at its selected checkpoint over the 5 held-out traffic seeds.
+Downstream training evidence covers five independently trained seeds per (network, learner, module count) pair, covering IPPO, MAPPO, and CoLight on Cologne8 at $k=3$ and on Ingolstadt21 at $k=4$. Each run's checkpoint is selected by minimum delay per vehicle over its logged evaluation episodes on the validation traces~\citep{henderson2018matters,agarwal2021rliable}; the delay reported for that run is the selected checkpoint's performance on the held-out traces. Delay per vehicle is SUMO's time loss, the travel time accrued beyond free-flow, and is the control metric throughout. The benchmark uses 10 stochastic-policy episodes at each of 5 traffic seeds per network, split chronologically into construction, validation, and held-out test traces; every reported delay is a mean $\pm$ SD across those five independently trained seeds, each evaluated at its selected checkpoint over the 5 held-out traffic seeds.
 
 \paragraph{Random baseline}
 The Random baseline is a single reproducible round-robin assignment after a seeded shuffle, so it gives a fixed chance floor rather than a distribution over random partitions.
@@ -749,7 +745,7 @@ So $\Phi$ and $\Psi$ share a ranking under $D^{\mathrm{MI}}$ in four blocks out 
 The reversal has a mechanical reading, and it now replicates on both networks: Flow leads at the coarser module count and trails at the finer one on Cologne8 as well as Ingolstadt21.
 The analyzed CoLight checkpoints carry nonzero Jacobian influence only at hops $0$ and $1$: the model depends on its immediate neighborhood.
 A partition maximizing retained corridor flow will separate two physically adjacent intersections that exchange little traffic, which costs nothing under $D^{\mathrm{MI}}$ and costs a live message path under $D^G$.
-As $k$ grows and modules shrink toward the one-hop radius, that trade turns against flow, which is what both networks now show.
+As $k$ grows and modules shrink toward the one-hop radius, that trade turns against flow.
 Both structured partitions stay far above Random in every block, including the two reversed ones, so the effect is second-order between two sensible methods.
 
 Each $D^G$ value comes from one seed-7 checkpoint and one evaluated observation, so unlike Table~\ref{tab:psi-mi} it carries no replication.
@@ -955,7 +951,7 @@ An FMA2C manager's span of control \emph{is} a module. Flow favors both networks
 
 \begin{table}[t]
     \centering
-    \caption{Delay (s/veh; lower is better) vs. non-partitioned literature baselines and regional learners. RESCO baselines are reported mean $\pm$ SD over evaluation episodes; the RESCO FMA2C row is a single-region baseline. $k{=}1$ rows use the all-network partition and, like the Flow and Topology rows repeated from Table~\ref{tab:wait-gains}, report SD across independently trained seeds, not episodes.}
+    \caption{Delay (s/veh; lower is better) vs. non-partitioned literature baselines and regional learners. RESCO baselines are reported mean $\pm$ SD over evaluation episodes; FMA2C is inherently regional, so both its RESCO row and its own Baseline row use RESCO's fixed default management split (2 regions on Cologne8, 5 on Ingolstadt21) rather than an all-network partition. $k{=}1$ rows for IPPO, MAPPO, and CoLight use the all-network partition and, like the Flow and Topology rows repeated from Table~\ref{tab:wait-gains}, report SD across independently trained seeds, not episodes.}
     \label{tab:baselines}
     \scriptsize
     \setlength{\tabcolsep}{4pt}
@@ -980,14 +976,14 @@ An FMA2C manager's span of control \emph{is} a module. Flow favors both networks
         CoLight       & Flow               & 22.36$\pm$0.49  & 252.04$\pm$10.03  \\
         CoLight       & Topology           & 21.42$\pm$0.06  & 293.17$\pm$46.86  \\
         \addlinespace
-        FMA2C         & Baseline ($k{=}1$) & 60.14$\pm$3.90  & 377.43$\pm$64.95  \\
+        FMA2C         & Baseline (RESCO default) & 60.14$\pm$3.90  & 377.43$\pm$64.95  \\
         FMA2C         & Flow               & 52.28$\pm$13.53 & 328.37$\pm$91.62  \\
         FMA2C         & Topology           & 61.21$\pm$17.14 & 345.22$\pm$90.78  \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-Table~\ref{tab:baselines} places Table~\ref{tab:wait-gains} against the wider literature. It also carries an unpartitioned Baseline ($k{=}1$) row per learner, and on Cologne8 that row is competitive with the best partition tested for two of the four learners: IPPO's baseline ($53.44\pm15.61$) sits inside Flow's own SD ($57.46\pm11.48$), and CoLight's baseline ($22.38\pm0.33$) is within noise of both Flow ($22.36\pm0.49$) and behind only Topology ($21.42\pm0.06$). Partitioning is not shown to help in these two cells specifically; the size of network at which it becomes necessary is a question this study does not resolve.
+Table~\ref{tab:baselines} places Table~\ref{tab:wait-gains} against the wider literature. It also carries an unpartitioned Baseline ($k{=}1$) row for IPPO, MAPPO, and CoLight, and on Cologne8 that row is competitive with the best partition tested for two of the three: IPPO's baseline ($53.44\pm15.61$) sits inside Flow's own SD ($57.46\pm11.48$), and CoLight's baseline ($22.38\pm0.33$) is within noise of both Flow ($22.36\pm0.49$) and behind only Topology ($21.42\pm0.06$). Partitioning is not shown to help in these two cells, and the network size at which it becomes necessary is a question this study does not resolve.
 
 % ============================================================
 \section{Discussion}
