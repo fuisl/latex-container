@@ -99,7 +99,8 @@
       "WebFetch(domain:sumo.dlr.de)",
       "Bash(lualatex -interaction=nonstopmode -output-directory=/workspace/out main.tex)",
       "Bash(ls ../out)",
-      "Bash(grep -n \"^\\\\\\\\\\\\\\\\usepackage\\\\|out/\" ../Makefile)"
+      "Bash(grep -n \"^\\\\\\\\\\\\\\\\usepackage\\\\|out/\" ../Makefile)",
+      "Bash(lualatex -interaction=nonstopmode -output-directory=../out main.tex)"
     ]
   }
 }

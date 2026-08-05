@@ -275,7 +275,7 @@ For any non-negative dependency matrix $\mathbf{D}$, define
     {\sum_{i,j}D_{ij}}
     \label{eq:psi}
 \end{equation}
-the fraction of measured dependency retained within modules. Eq.~\eqref{eq:psi} is deliberately agnostic about what $\mathbf{D}$ contains: any non-negative pairwise dependency matrix can be scored, which is what lets the framework compare instruments that answer different questions on the same partition. Table~\ref{tab:notation} defines the three instruments used to score retention, $D^{\mathrm{MI}}$, $D^{G}$, and $D^{Q}$, plus a fourth, $D^{\mathrm{CMI}}$, used only as a diagnostic. Each instrument is matched to one of four coordination mechanisms, detailed in Section~\ref{sec:levels}: L1 regional reward, L2 regional critic, L3 regional attention, L4 regional manager. $D^{\mathrm{MI}}$ (KSG mutual information~\citep{kraskov2004ksg} between per-agent traffic-state slices, not the full network state vector) is the right instrument for regional reward sharing (level L1, Section~\ref{sec:levels}): independent actors have no cross-agent input path, so a Jacobian across agents would be structurally zero even if their traffic states are highly related. $D^{G}$ audits what a trained global attention model depends on, so it must be computed on a global, no-partition checkpoint; computing it on a partitioned model would bake in cross-module zeros and then rediscover the partition by construction. $D^{Q}$ applies the same Jacobian rule to a centralized MAPPO critic, measuring how strongly each agent's value estimate responds to every other agent's state features, and is the instrument aligned with regional critics (level L2, Section~\ref{sec:levels}). $D^{\mathrm{CMI}}$ conditions on the target agent's own queue and action to isolate one agent's causal effect on another's future queue. It targets causal control coupling, but we treat it only as a diagnostic: the effects it looks for turn out to be below what our data resolve (Section~\ref{sec:exp-perturb}).
+the fraction of measured dependency retained within modules. Eq.~\eqref{eq:psi} is deliberately agnostic about what $\mathbf{D}$ contains: any non-negative pairwise dependency matrix can be scored, which is what lets the framework compare instruments that answer different questions on the same partition. Table~\ref{tab:notation} defines the three instruments used to score retention, $D^{\mathrm{MI}}$, $D^{G}$, and $D^{Q}$, plus a fourth, $D^{\mathrm{CMI}}$, used only as a diagnostic. Each instrument is matched to one of three coordination mechanisms, detailed in Section~\ref{sec:levels}: L1 regional reward, L2 regional critic, L3 regional attention. $D^{\mathrm{MI}}$ (KSG mutual information~\citep{kraskov2004ksg} between per-agent traffic-state slices, not the full network state vector) is the right instrument for regional reward sharing (level L1, Section~\ref{sec:levels}): independent actors have no cross-agent input path, so a Jacobian across agents would be structurally zero even if their traffic states are highly related. $D^{G}$ audits what a trained global attention model depends on, so it must be computed on a global, no-partition checkpoint; computing it on a partitioned model would bake in cross-module zeros and then rediscover the partition by construction. $D^{Q}$ applies the same Jacobian rule to a centralized MAPPO critic, measuring how strongly each agent's value estimate responds to every other agent's state features, and is the instrument aligned with regional critics (level L2, Section~\ref{sec:levels}). $D^{\mathrm{CMI}}$ conditions on the target agent's own queue and action to isolate one agent's causal effect on another's future queue. It targets causal control coupling, but we treat it only as a diagnostic: the effects it looks for turn out to be below what our data resolve (Section~\ref{sec:exp-perturb}).
 
 % Chance-adjusted Psi_adj score against a size- and connectivity-matched null
 % family is left out of this iteration: the connected-null benchmark that
@@ -416,13 +416,14 @@ This separates the partition criterion from the learner that uses it.
         L1    & Regional reward    & IPPO    & $D^{\mathrm{MI}}$ \\
         L2    & Regional critic    & MAPPO   & $D^{Q}$           \\
         L3    & Regional attention & CoLight & $D^{G}$           \\
-        L4    & Regional manager   & FMA2C   & manager reward    \\
+        % L4    & Regional manager   & FMA2C   & manager reward    \\
         \bottomrule
     \end{tabular}
 \end{table}
 
 L1 uses regional reward averaging; it benefits when agents in a module have
-correlated outcomes. L2 uses a regional critic; it benefits when the critic keeps the dominant state dependencies while reducing input dimension. Its instrument $D^{Q}$ is read from the centralized critic itself, so $\Psi(D^{Q})$ measures the value-relevant dependency a partition removes from the critic's input, which is the quantity L2 actually forfeits. L3 uses graph attention; it is sensitive when modules become smaller than the one-hop influence range, so the $D^G$ result is expected to expose a module-size boundary instead of always favoring flow. L4 is feudal: a manager assigns goals to the workers inside its module, so the partition directly fixes the manager's span of control, the set of workers it assigns goals to. No pairwise dependency matrix is defined on an FMA2C checkpoint, and the manager's own reward, which aggregates outcomes over exactly the agents the partition grouped, is the available partition-sensitive signal.
+correlated outcomes. L2 uses a regional critic; it benefits when the critic keeps the dominant state dependencies while reducing input dimension. Its instrument $D^{Q}$ is read from the centralized critic itself, so $\Psi(D^{Q})$ measures the value-relevant dependency a partition removes from the critic's input, which is the quantity L2 actually forfeits. L3 uses graph attention; it is sensitive when modules become smaller than the one-hop influence range, so the $D^G$ result is expected to expose a module-size boundary instead of always favoring flow.
+% L4 is feudal: a manager assigns goals to the workers inside its module, so the partition directly fixes the manager's span of control, the set of workers it assigns goals to. No pairwise dependency matrix is defined on an FMA2C checkpoint, and the manager's own reward, which aggregates outcomes over exactly the agents the partition grouped, is the available partition-sensitive signal.
 
 \subsection{Retention-Guided Selection Workflow}
 \label{sec:workflow}
@@ -937,30 +938,30 @@ The Cologne8 flow partition splits two of its three modules into single intersec
 \paragraph{FMA2C}
 An FMA2C manager's span of control \emph{is} a module. Flow favors both networks: Cologne8 by $14.6\%$ ($52.28\pm13.53$ against $61.21\pm17.14$\,s) and Ingolstadt21 by $4.9\%$ ($328.37\pm91.62$ against $345.22\pm90.78$\,s), though the Ingolstadt21 gap is well inside either arm's own training-seed SD and not distinguishable from noise at this configuration.
 
-L4's own instrument is manager reward, not a pairwise dependency matrix (Table~\ref{tab:levels}).
-Table~\ref{tab:fma2c-manager} reports it as the whole-training-run average regional reward, the per-step mean of every worker agent's reward signal, manager reward excluded, averaged over each completed run, pooled over all three matched scenarios (Cologne8 $k=3$, Ingolstadt21 $k=4$, $k=5$) rather than the best-epoch snapshot used elsewhere.
-
-\begin{table}[t]
-    \centering
-    \caption{Whole-training-run regional reward, mean $\pm$ SD over all
-        completed FMA2C runs, pooled across Cologne8 $k=3$ and Ingolstadt21
-        $k\in\{4,5\}$. Regional reward averages every worker agent's reward
-        signal, manager reward excluded, over the full training run; higher
-        (less negative) is better.}
-    \label{tab:fma2c-manager}
-    \footnotesize
-    \begin{tabular}{lrr}
-        \toprule
-        Partition & Runs & Regional reward     \\
-        \midrule
-        Flow      & 13   & $-1124.16\pm594.39$ \\
-        Topology  & 13   & $-1174.09\pm633.69$ \\
-        \bottomrule
-    \end{tabular}
-\end{table}
-
-Pooled, Flow's regional reward is slightly higher than Topology's, but the pooled comparison hides scenario-level disagreement. Flow leads clearly at Cologne8 $k=3$ ($-850.57$ against $-1047.78$), matching that cell's delay result. Topology leads at Ingolstadt21 $k=4$ ($-1291.31$ against $-1430.53$), the module count Table~\ref{tab:wait-gains} reports; that cell's delay result already favors Flow by less than its own training-seed SD (above), so the reward instrument disagreeing on direction there reinforces rather than contradicts the noise reading. At Ingolstadt21 $k=5$, where no downstream training run exists to compare against, the two partitions are within a percentage point of each other ($-1270.43$ against $-1262.83$).
-The regional-reward instrument therefore agrees with the delay result exactly where that result was clear, Cologne8, and is inconclusive exactly where delay already was, Ingolstadt21 $k=4$.
+% L4's own instrument is manager reward, not a pairwise dependency matrix (Table~\ref{tab:levels}).
+% Table~\ref{tab:fma2c-manager} reports it as the whole-training-run average regional reward, the per-step mean of every worker agent's reward signal, manager reward excluded, averaged over each completed run, pooled over all three matched scenarios (Cologne8 $k=3$, Ingolstadt21 $k=4$, $k=5$) rather than the best-epoch snapshot used elsewhere.
+%
+% \begin{table}[t]
+%     \centering
+%     \caption{Whole-training-run regional reward, mean $\pm$ SD over all
+%         completed FMA2C runs, pooled across Cologne8 $k=3$ and Ingolstadt21
+%         $k\in\{4,5\}$. Regional reward averages every worker agent's reward
+%         signal, manager reward excluded, over the full training run; higher
+%         (less negative) is better.}
+%     \label{tab:fma2c-manager}
+%     \footnotesize
+%     \begin{tabular}{lrr}
+%         \toprule
+%         Partition & Runs & Regional reward     \\
+%         \midrule
+%         Flow      & 13   & $-1124.16\pm594.39$ \\
+%         Topology  & 13   & $-1174.09\pm633.69$ \\
+%         \bottomrule
+%     \end{tabular}
+% \end{table}
+%
+% Pooled, Flow's regional reward is slightly higher than Topology's, but the pooled comparison hides scenario-level disagreement. Flow leads clearly at Cologne8 $k=3$ ($-850.57$ against $-1047.78$), matching that cell's delay result. Topology leads at Ingolstadt21 $k=4$ ($-1291.31$ against $-1430.53$), the module count Table~\ref{tab:wait-gains} reports; that cell's delay result already favors Flow by less than its own training-seed SD (above), so the reward instrument disagreeing on direction there reinforces rather than contradicts the noise reading. At Ingolstadt21 $k=5$, where no downstream training run exists to compare against, the two partitions are within a percentage point of each other ($-1270.43$ against $-1262.83$).
+% The regional-reward instrument therefore agrees with the delay result exactly where that result was clear, Cologne8, and is inconclusive exactly where delay already was, Ingolstadt21 $k=4$.
 
 \paragraph{Comparison against baselines}
 
@@ -1022,7 +1023,8 @@ The limits are as follows.
 The relationship between $\Phi$ and $\Psi$ transfers in ordering but not magnitude; on the larger network most of the additionally retained flow does not appear as additionally retained dependency.
 The OD matrix is measured under a random warm-up policy, before a learned controller reshapes traffic, so it describes the demand the partition was designed for, not the traffic it will eventually see. $D^G$ rests on one checkpoint per network; $D^Q$ is not estimable on Ingolstadt21, where every available MAPPO checkpoint uses a regional critic, making Ingolstadt21 MAPPO the one training cell this paper cannot cross-check against critic-level retention.
 The Ingolstadt21 CoLight runs also stopped at unequal, sub-plateau episode counts.
-Ingolstadt21 FMA2C's Flow--Topology gap is already smaller than either arm's own training-seed SD, so that cell's ordering is not yet distinguishable from noise; the whole-run regional reward at the same module count favors Topology (Section~\ref{sec:exp-perf}), consistent with a cell neither instrument resolves.
+Ingolstadt21 FMA2C's Flow--Topology gap is already smaller than either arm's own training-seed SD, so that cell's ordering is not yet distinguishable from noise.
+% the whole-run regional reward at the same module count favors Topology (Section~\ref{sec:exp-perf}), consistent with a cell neither instrument resolves.
 Section~\ref{sec:exp-phi} raises a second confound this study does not separate: whether CoLight's split cell-level outcome, favoring Topology on Cologne8 and Flow on Ingolstadt21, traces to flow-based module membership or to module-size imbalance; the same question applies to why FMA2C's Ingolstadt21 margin is an order of magnitude smaller and noisier than its Cologne8 margin, even though both now favor Flow.
 A size-sequence-controlled flow partition, one that maximizes $\Phi_W$ subject to its module sizes matching Topology's multiset exactly, would isolate flow-based membership from size imbalance and is the natural next step for that question.
 A higher-demand arm is the decisive next experiment for causal spill-back: the regime in which spill-back should become active and the association reported here could be tested for causation.
