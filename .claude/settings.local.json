@@ -129,7 +129,10 @@
       "Bash(mkdir -p /tmp/dqbuild3)",
       "Bash(lualatex -interaction=nonstopmode -halt-on-error -output-directory=/tmp/dqbuild3 main.tex)",
       "Bash(rm -rf /tmp/dqbuild3)",
-      "Bash(git *)"
+      "Bash(git *)",
+      "Bash(tail -n 40 /tmp_compile_log.txt)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(tail -n 15 /tmp_compile_log2.txt)"
     ]
   }
 }

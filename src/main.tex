@@ -441,7 +441,7 @@ Downstream training evidence covers five independently trained seeds per (networ
 \paragraph{Random baseline}
 The Random baseline is a single reproducible round-robin assignment after a seeded shuffle: a fixed reference, not an estimate of a random-partition distribution.
 \paragraph{Evidence standards}
-We report no significance tests. The evidence is raw values, the differences between them, and the \emph{ordering} they induce, replicated across comparisons that share no seed, map, or module count. Retention scores use three traffic seeds and the seed-to-seed spread is given wherever available. Every table gives raw scores alongside the gain. Retention scores are bounded fractions, so their differences are reported in percentage points rather than ratios:
+The evidence is raw values, the differences between them, and the \emph{ordering} they induce, replicated across comparisons that share no seed, map, or module count. Retention scores use three traffic seeds and the seed-to-seed spread is given wherever available. Every table gives raw scores alongside the gain. Retention scores are bounded fractions, so their differences are reported in percentage points rather than ratios:
 \begin{equation}
     \Delta_{\mathrm{pp}}(S)
     =
@@ -485,50 +485,53 @@ Positive $\Delta_{\mathrm{pp}}$ therefore means Flow retains more mass, while ne
 
 Table~\ref{tab:phi} confirms that the constructed candidate realizes the criterion it was built for. The underlying counts are 1{,}781 signal-to-signal vehicle transitions over 22 observed edges on Cologne8 and 13{,}271 over 71 edges on Ingolstadt21, so the fractions are computed on tens of thousands of movements, not on a handful. The flow partition keeps between 57\% and 94\% of observed route flow inside modules, Topology between 42\% and 64\%, and the Random assignment between 14\% and 34\%. The ordering Flow $>$ Topology $>$ Random holds at every matched module count. Topology sits well above Random, so road adjacency does carry real flow structure; the additional 15.4 to 32.5 points Flow gains over Topology is the part attributable to using movement rather than geometry as the substrate. The margin is largest on Cologne8 at $k=3$, where the flow partition is nearly lossless ($\Phi=0.939$) with a $6/1/1$ module profile, a combination Section~\ref{sec:exp-perf} returns to; at Cologne8's finer $k=5$ the margin narrows to $15.4$ points, in the same range as Ingolstadt21's. This is the direct payoff of building modules from OD-induced movement rather than road adjacency (contribution 2, Section~\ref{sec:construction}): the substitution alone recovers 15.4 to 32.5 points of route flow that topology-based partitioning leaves on the table.
 
-\paragraph{Module size imbalance}
-\begin{table}[t]
-    \centering
-    \caption{Module size imbalance and retained flow, extending
-        Table~\ref{tab:phi}.
-        The Cologne8 block sweeps InfoMap's Bayesian regularization strength
-        at fixed $k=3$; \emph{Flow} and \emph{Topology} are the
-        partitions actually carried into Table~\ref{tab:wait-gains}, and
-        \emph{compromise}/\emph{balanced} are exploratory intermediate
-        candidates, not trained downstream.
-        CV is the population coefficient of variation $\sigma/\mu$ of module
-        sizes (0 is perfect balance); $\Phi$ repeats Table~\ref{tab:phi}'s
-        realized-flow retention.
-        Retained traffic light system (TLS) edges are undirected physical
-        communication edges with
-        both endpoints in the same module.}
-    \label{tab:sizeimbalance}
-    \scriptsize
-    \setlength{\tabcolsep}{3pt}
-    \begin{tabular}{llrrrr}
-        \toprule
-        Candidate        & $k$ & Sizes         & CV    & $\Phi$ & TLS edges \\
-        \midrule
-        \multicolumn{6}{@{}l}{\textit{Cologne8, regularization sweep}}      \\
-        Flow             & 3   & 6, 1, 1       & 0.884 & 0.939  & 9 / 11    \\
-        Flow, compromise & 3   & 4, 3, 1       & 0.468 & 0.737  & 5 / 11    \\
-        Flow, balanced   & 3   & 3, 3, 2       & 0.177 & 0.614  & 6 / 11    \\
-        Topology         & 3   & 3, 3, 2       & 0.177 & 0.614  & 6 / 11    \\
-        \addlinespace
-        \multicolumn{6}{@{}l}{\textit{Ingolstadt21, deployed partitions}}   \\
-        Flow             & 4   & 7, 4, 3, 7    & 0.340 & 0.817  & 24 / 33   \\
-        Topology         & 4   & 5, 5, 5, 6    & 0.082 & 0.643  & 22 / 33   \\
-        Flow             & 5   & 7, 2, 3, 2, 7 & 0.551 & 0.792  & 23 / 33   \\
-        Topology         & 5   & 4, 4, 4, 4, 5 & 0.095 & 0.636  & 19 / 33   \\
-        \bottomrule
-    \end{tabular}
-\end{table}
+% Module size imbalance analysis withdrawn from the main story: this study does not control module-size balance as an independent variable, and the CV-vs-outcome reading below over-claimed a link the data cannot isolate. Kept here for reference only.
+% \paragraph{Module size imbalance}
+% \begin{table}[t]
+%     \centering
+%     \caption{Module size imbalance and retained flow, extending
+%         Table~\ref{tab:phi}.
+%         The Cologne8 block sweeps InfoMap's Bayesian regularization strength
+%         at fixed $k=3$; \emph{Flow} and \emph{Topology} are the
+%         partitions actually carried into Table~\ref{tab:wait-gains}, and
+%         \emph{compromise}/\emph{balanced} are exploratory intermediate
+%         candidates, not trained downstream.
+%         CV is the population coefficient of variation $\sigma/\mu$ of module
+%         sizes (0 is perfect balance); $\Phi$ repeats Table~\ref{tab:phi}'s
+%         realized-flow retention.
+%         Retained traffic light system (TLS) edges are undirected physical
+%         communication edges with
+%         both endpoints in the same module.}
+%     \label{tab:sizeimbalance}
+%     \scriptsize
+%     \setlength{\tabcolsep}{3pt}
+%     \begin{tabular}{llrrrr}
+%         \toprule
+%         Candidate        & $k$ & Sizes         & CV    & $\Phi$ & TLS edges \\
+%         \midrule
+%         \multicolumn{6}{@{}l}{\textit{Cologne8, regularization sweep}}      \\
+%         Flow             & 3   & 6, 1, 1       & 0.884 & 0.939  & 9 / 11    \\
+%         Flow, compromise & 3   & 4, 3, 1       & 0.468 & 0.737  & 5 / 11    \\
+%         Flow, balanced   & 3   & 3, 3, 2       & 0.177 & 0.614  & 6 / 11    \\
+%         Topology         & 3   & 3, 3, 2       & 0.177 & 0.614  & 6 / 11    \\
+%         \addlinespace
+%         \multicolumn{6}{@{}l}{\textit{Ingolstadt21, deployed partitions}}   \\
+%         Flow             & 4   & 7, 4, 3, 7    & 0.340 & 0.817  & 24 / 33   \\
+%         Topology         & 4   & 5, 5, 5, 6    & 0.082 & 0.643  & 22 / 33   \\
+%         Flow             & 5   & 7, 2, 3, 2, 7 & 0.551 & 0.792  & 23 / 33   \\
+%         Topology         & 5   & 4, 4, 4, 4, 5 & 0.095 & 0.636  & 19 / 33   \\
+%         \bottomrule
+%     \end{tabular}
+% \end{table}
+%
+% The Cologne8 block shows the size axis is a continuous, controllable trade-off rather than a fixed difference between two algorithms. Raising the regularization strength on the flow candidate moves it from $6/1/1$ (CV $0.884$, $\Phi=0.939$) through $4/3/1$ (CV $0.468$, $\Phi=0.737$) to $3/3/2$ (CV $0.177$, $\Phi=0.614$). At that balanced end, InfoMap's own module membership is identical to Topology's, up to region-label permutation. The balanced-InfoMap row is therefore InfoMap converging to the topology-balanced solution under regularization, not an independent flow advantage at that size profile: retention and balance trade off along one frontier, and Topology sits at its balanced extreme. A more balanced $4/2/2$ profile is not a free improvement on this frontier: exhaustive enumeration over the connected, size-bounded candidate space finds only four connected $4/2/2$ partitions at $k=3$, and the best of them retains $57.43\%$ of flow, below the deployed $3/3/2$ candidate's $61.43\%$.
+%
+% Flow is more size-imbalanced than Topology in every deployed row, from $4.1\times$ (Ingolstadt21 $k=4$) to $5.8\times$ (Ingolstadt21 $k=5$) by CV, and Topology's sizes are the maximally even split of $n$ into $k$ parts at every deployed $k$. The Cologne8 $k=3$ cell is the extreme case already noted for Table~\ref{tab:phi}: the $6/1/1$ split that makes Flow nearly lossless in retained route flow also leaves two modules as a single TLS with no neighbor to attend to. That is a structural fact about the partition, not a trend read off this table.
+% Section~\ref{sec:exp-perf} finds Topology ahead of Flow in only one of the four CoLight/FMA2C cells, Cologne8 CoLight ($+4.4\%$), and behind Flow in the other three, Ingolstadt21 CoLight ($-14.0\%$), Cologne8 FMA2C ($-14.6\%$), and Ingolstadt21 FMA2C ($-4.9\%$) (Table~\ref{tab:wait-gains}); the CV margin in Table~\ref{tab:sizeimbalance} does not track this pattern either. Ingolstadt21 FMA2C's gap is well inside its own training-seed SD, and the Ingolstadt21 CoLight run stopped at unequal, sub-plateau episode counts (Section~\ref{sec:discussion}). Size imbalance is therefore a documented property of the flow partition and a plausible contributor to the one mechanistically clear case, Cologne8 $k=3$'s singleton modules undercutting attention, not a general predictor of the downstream ordering.
+%
+% Beyond that singleton-attention mechanism, a module's size can matter for any learner that trains it under a shared architecture and budget, since complexity results for localized actor-critic MARL scale with the state-action size of the \emph{largest} coordination neighborhood rather than the network total~\citep{qu2022scalable}. Flow's deployed partitions have a larger maximum module than Topology's at every module count in this study ($\max_k|P_k|=6$ against $3$ on Cologne8, $7$ against $5$--$6$ on Ingolstadt21), so training every module for the same episode budget and hyperparameters, as Table~\ref{tab:wait-gains} does, need not converge or condition regions of unequal size equally well. This is a plausible optimization-conditioning mechanism, not a demonstrated cause: nothing in this study isolates size imbalance from flow-based module membership, and the cell-level directions above do not fit it consistently either, since Ingolstadt21 CoLight trains better under Flow despite carrying the study's largest module ($7$ agents).
 
-The Cologne8 block shows the size axis is a continuous, controllable trade-off rather than a fixed difference between two algorithms. Raising the regularization strength on the flow candidate moves it from $6/1/1$ (CV $0.884$, $\Phi=0.939$) through $4/3/1$ (CV $0.468$, $\Phi=0.737$) to $3/3/2$ (CV $0.177$, $\Phi=0.614$). At that balanced end, InfoMap's own module membership is identical to Topology's, up to region-label permutation. The balanced-InfoMap row is therefore InfoMap converging to the topology-balanced solution under regularization, not an independent flow advantage at that size profile: retention and balance trade off along one frontier, and Topology sits at its balanced extreme. A more balanced $4/2/2$ profile is not a free improvement on this frontier: exhaustive enumeration over the connected, size-bounded candidate space finds only four connected $4/2/2$ partitions at $k=3$, and the best of them retains $57.43\%$ of flow, below the deployed $3/3/2$ candidate's $61.43\%$.
-
-Flow is more size-imbalanced than Topology in every deployed row, from $4.1\times$ (Ingolstadt21 $k=4$) to $5.8\times$ (Ingolstadt21 $k=5$) by CV, and Topology's sizes are the maximally even split of $n$ into $k$ parts at every deployed $k$. The Cologne8 $k=3$ cell is the extreme case already noted for Table~\ref{tab:phi}: the $6/1/1$ split that makes Flow nearly lossless in retained route flow also leaves two modules as a single TLS with no neighbor to attend to. That is a structural fact about the partition, not a trend read off this table.
-Section~\ref{sec:exp-perf} finds Topology ahead of Flow in only one of the four CoLight/FMA2C cells, Cologne8 CoLight ($+4.4\%$), and behind Flow in the other three, Ingolstadt21 CoLight ($-14.0\%$), Cologne8 FMA2C ($-14.6\%$), and Ingolstadt21 FMA2C ($-4.9\%$) (Table~\ref{tab:wait-gains}); the CV margin in Table~\ref{tab:sizeimbalance} does not track this pattern either. Ingolstadt21 FMA2C's gap is well inside its own training-seed SD, and the Ingolstadt21 CoLight run stopped at unequal, sub-plateau episode counts (Section~\ref{sec:discussion}). Size imbalance is therefore a documented property of the flow partition and a plausible contributor to the one mechanistically clear case, Cologne8 $k=3$'s singleton modules undercutting attention, not a general predictor of the downstream ordering.
-
-Beyond that singleton-attention mechanism, a module's size can matter for any learner that trains it under a shared architecture and budget, since complexity results for localized actor-critic MARL scale with the state-action size of the \emph{largest} coordination neighborhood rather than the network total~\citep{qu2022scalable}. Flow's deployed partitions have a larger maximum module than Topology's at every module count in this study ($\max_k|P_k|=6$ against $3$ on Cologne8, $7$ against $5$--$6$ on Ingolstadt21), so training every module for the same episode budget and hyperparameters, as Table~\ref{tab:wait-gains} does, need not converge or condition regions of unequal size equally well. This is a plausible optimization-conditioning mechanism, not a demonstrated cause: nothing in this study isolates size imbalance from flow-based module membership, and the cell-level directions above do not fit it consistently either, since Ingolstadt21 CoLight trains better under Flow despite carrying the study's largest module ($7$ agents).
+Module-size balance is not a variable this study controls: Flow's deployed partitions are less size-balanced than Topology's at every matched module count, by construction of the flow objective rather than by design choice, and we do not attempt to separate that covariate from flow-based module membership here. We report it as a property of the deployed partitions, not as a mechanism under test.
 
 \subsection{Result 2: State-Dependency Retention}
 \label{sec:exp-psi-mi}
@@ -952,9 +955,11 @@ An FMA2C manager's span of control \emph{is} a module. Flow favors both networks
 
 \paragraph{Comparison against baselines}
 
+Table~\ref{tab:baselines} reports RESCO's literature baselines, including FMA2C's own RESCO and Baseline rows, as mean $\pm$ SD over evaluation episodes, with FMA2C using RESCO's fixed default regional split (2 regions on Cologne8, 5 on Ingolstadt21) rather than an all-network partition; the remaining rows, the $k{=}1$ Baseline rows for IPPO, MAPPO, and CoLight and the Flow/Topology rows repeated from Table~\ref{tab:wait-gains}, use the all-network partition and report SD across independently trained seeds instead.
+
 \begin{table}[t]
     \centering
-    \caption{Delay (s/veh; lower is better) vs. non-partitioned literature baselines and regional learners. RESCO baselines are reported mean $\pm$ SD over evaluation episodes; FMA2C is inherently regional, so both its RESCO row and its own Baseline row use RESCO's fixed default management split (2 regions on Cologne8, 5 on Ingolstadt21) rather than an all-network partition. $k{=}1$ rows for IPPO, MAPPO, and CoLight use the all-network partition and, like the Flow and Topology rows repeated from Table~\ref{tab:wait-gains}, report SD across independently trained seeds, not episodes.}
+    \caption{Delay (s/veh; lower is better) vs. non-partitioned literature baselines and regional learners.}
     \label{tab:baselines}
     \scriptsize
     \setlength{\tabcolsep}{4pt}
@@ -1012,8 +1017,10 @@ The OD matrix is measured under a random warm-up policy, before a learned contro
 The Ingolstadt21 CoLight runs also stopped at unequal, sub-plateau episode counts.
 Ingolstadt21 FMA2C's Flow--Topology gap is already smaller than either arm's own training-seed SD, so that cell's ordering is not yet distinguishable from noise.
 % the whole-run regional reward at the same module count favors Topology (Section~\ref{sec:exp-perf}), consistent with a cell neither instrument resolves.
-Section~\ref{sec:exp-phi} raises a second confound this study does not separate: whether CoLight's split cell-level outcome, favoring Topology on Cologne8 and Flow on Ingolstadt21, traces to flow-based module membership or to module-size imbalance; the same question applies to why FMA2C's Ingolstadt21 margin is an order of magnitude smaller and noisier than its Cologne8 margin, even though both now favor Flow.
-A size-sequence-controlled flow partition, one that maximizes $\Phi_W$ subject to its module sizes matching Topology's multiset exactly, would isolate flow-based membership from size imbalance and is the natural next step for that question.
+% Confound framing withdrawn with the module-size-imbalance analysis in Section~\ref{sec:exp-phi} (see note there); kept for reference only.
+% Section~\ref{sec:exp-phi} raises a second confound this study does not separate: whether CoLight's split cell-level outcome, favoring Topology on Cologne8 and Flow on Ingolstadt21, traces to flow-based module membership or to module-size imbalance; the same question applies to why FMA2C's Ingolstadt21 margin is an order of magnitude smaller and noisier than its Cologne8 margin, even though both now favor Flow.
+% A size-sequence-controlled flow partition, one that maximizes $\Phi_W$ subject to its module sizes matching Topology's multiset exactly, would isolate flow-based membership from size imbalance and is the natural next step for that question.
+Module-size balance is out of scope here: this study does not hold it fixed, so it covaries with flow-based module membership in every comparison above, including CoLight's split cell-level outcome and FMA2C's uneven cross-network margin. We do not adjudicate between the two explanations. A size-sequence-controlled flow partition, one that maximizes $\Phi_W$ subject to its module sizes matching Topology's multiset exactly, would isolate flow-based membership from size balance and is the natural next step for that question.
 A higher-demand arm is the decisive next experiment for causal spill-back: the regime in which spill-back should become active and the association reported here could be tested for causation.
 
 % ============================================================
