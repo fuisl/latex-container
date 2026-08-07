@@ -133,7 +133,8 @@
       "Bash(tail -n 40 /tmp_compile_log.txt)",
       "Bash(echo \"EXIT: $?\")",
       "Bash(tail -n 15 /tmp_compile_log2.txt)",
-      "Bash(tail -n 8 /tmp_compile_log3.txt)"
+      "Bash(tail -n 8 /tmp_compile_log3.txt)",
+      "Bash(awk *)"
     ]
   }
 }

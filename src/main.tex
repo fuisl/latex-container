@@ -895,19 +895,23 @@ Hypothesis H2, and contribution 3's central claim, ask whether the partition tha
 
     \begin{tabular}{llrrrr}
         \toprule
-        Map & Learner & $k$ & Flow                      & Topology                  & $\Delta\%$       \\
+        Map & Learner & $k$ & Flow                      & Topology                  & $\Delta\%$ \\
         \midrule
-        C8  & IPPO    & 3   & $\mathbf{57.46\pm11.48}$  & $72.93\pm10.22$           & $\mathbf{-21.2}$ \\
-        I21 & IPPO    & 4   & $194.22\pm26.83$          & $\mathbf{192.52\pm22.94}$ & $+0.9$           \\
+        C8  & IPPO    & 3   & $\mathbf{57.46\pm11.48}$  & $72.93\pm10.22$           & $-21.2$    \\
+        I21 & IPPO    & 4   & $194.22\pm26.83$          & $\mathbf{192.52\pm22.94}$ & $+0.9$     \\
+        I21 & IPPO    & 5   & $\mathbf{148.45\pm20.44}$ & $155.89\pm21.76$          & $-4.8$     \\
         \addlinespace
-        C8  & MAPPO   & 3   & $\mathbf{50.7\pm7.0}$     & $66.4\pm12.1$             & $\mathbf{-23.6}$ \\
-        I21 & MAPPO   & 4   & $\mathbf{184.44\pm31.26}$ & $203.72\pm26.71$          & $\mathbf{-9.5}$  \\
+        C8  & MAPPO   & 3   & $\mathbf{50.7\pm7.0}$     & $66.4\pm12.1$             & $-23.6$    \\
+        I21 & MAPPO   & 4   & $\mathbf{184.44\pm31.26}$ & $203.72\pm26.71$          & $-9.5$     \\
+        I21 & MAPPO   & 5   & $\mathbf{124.52\pm18.22}$ & $141.12\pm23.31$          & $-11.8$    \\
         \addlinespace
-        C8  & CoLight & 3   & $22.36\pm0.49$            & $\mathbf{21.42\pm0.06}$   & $+4.4$           \\
-        I21 & CoLight & 4   & $\mathbf{252.04\pm10.03}$ & $293.17\pm46.86$          & $-14.0$          \\
+        C8  & CoLight & 3   & $22.36\pm0.49$            & $\mathbf{21.42\pm0.06}$   & $+4.4$     \\
+        I21 & CoLight & 4   & $\mathbf{252.04\pm10.03}$ & $293.17\pm46.86$          & $-14.0$    \\
+        I21 & CoLight & 5   & $\mathbf{230.71\pm23.17}$ & $272.88\pm18.08$          & $-15.5$    \\
         \addlinespace
-        C8  & FMA2C   & 3   & $\mathbf{52.28\pm13.53}$  & $61.21\pm17.14$           & $\mathbf{-14.6}$ \\
-        I21 & FMA2C   & 4   & $\mathbf{328.37\pm91.62}$ & $345.22\pm90.78$          & $\mathbf{-4.9}$  \\
+        C8  & FMA2C   & 3   & $\mathbf{52.28\pm13.53}$  & $61.21\pm17.14$           & $-14.6$    \\
+        I21 & FMA2C   & 4   & $\mathbf{328.37\pm91.62}$ & $345.22\pm90.78$          & $-4.9$     \\
+        I21 & FMA2C   & 5   & $309.86\pm21.87$          & $\mathbf{308.26\pm82.65}$ & $+0.5$     \\
         \bottomrule
     \end{tabular}
 \end{table}
