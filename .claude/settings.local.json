@@ -134,7 +134,10 @@
       "Bash(echo \"EXIT: $?\")",
       "Bash(tail -n 15 /tmp_compile_log2.txt)",
       "Bash(tail -n 8 /tmp_compile_log3.txt)",
-      "Bash(awk *)"
+      "Bash(awk *)",
+      "Bash(find / -path /proc -prune -o -iname \"SKILL.md\" -path \"*academic-paper*\" -print)",
+      "Bash(find / -path /proc -prune -o -iname \"MODE_REGISTRY.md\" -print)",
+      "Bash(xargs -I{} wc -l {})"
     ]
   }
 }
