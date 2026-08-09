@@ -152,7 +152,7 @@ Table~\ref{tab:notation} collects the symbols this section defines, for referenc
 \subsection{Coordination Graph as a Design Variable}
 \label{sec:ndpomdp}
 
-Each signalized intersection $i \in \mathcal{V}$ observes local queues, phase, and elapsed phase time $o_i$, and selects a phase action $a_i \in \mathcal{A}_i$. We model TSC as a network-distributed POMDP whose coordination graph $\mathcal{G}_C=(\mathcal{V},\mathcal{E}_C)$ determines which agents share explicit coordination machinery.
+Each signalized intersection $i \in \mathcal{V}$ observes local queues, phase, and elapsed phase time $o_i$, and selects a phase action $a_i \in \mathcal{A}_i$. We model TSC as a network-distributed POMDP~\citep{nair2005ndpomdp,kok2006ndpomdp,oliehoek2012ndpomdp} whose coordination graph $\mathcal{G}_C=(\mathcal{V},\mathcal{E}_C)$ determines which agents share explicit coordination machinery.
 The reward decomposes into local and interaction terms,
 \begin{equation}
     R(\mathbf{a})
@@ -163,7 +163,8 @@ The reward decomposes into local and interaction terms,
     r_{ij}(o_i,o_j,a_i,a_j)
     \label{eq:ndpomdp}
 \end{equation}
-Exact coordination over $\omega$ agents scales as $|\mathcal{A}|^\omega$, so practical MARL systems bound module size and decide which edges to keep before training. In traffic, the cost of cutting an edge is governed by vehicle movement: high-volume corridors create arrival coupling and, near saturation, spill-back coupling. The partitioning problem is therefore to keep the coordination graph small while retaining the vehicle flow that carries those dependencies.
+\noindent where the first term captures agent-local rewards and the second captures pairwise interaction rewards over the coordination edges $\mathcal{E}_C$.
+Exact coordination over $\omega$ agents scales as $|\mathcal{A}|^\omega$, so practical MARL systems bound module size and decide which edges to keep before training. In traffic, the cost of cutting an edge is governed by vehicle movement: high-volume corridors create arrival coupling and, near saturation, can additionally induce spill-back coupling. The partitioning problem is therefore to keep the coordination graph small while retaining the vehicle flow that carries those dependencies.
 
 \begin{figure}[t]
     \centering
@@ -220,14 +221,14 @@ Exact coordination over $\omega$ agents scales as $|\mathcal{A}|^\omega$, so pra
 
 Fig.~\ref{fig:threegraphs} distinguishes three often-conflated objects: the \emph{road graph} of physical adjacency, the \emph{OD-induced signal-transition flow graph} of vehicle exchange under a demand regime, and the \emph{coordination graph} of agents sharing rewards, critic inputs, or messages. Topology alone does not determine coordination needs: two adjacent, low-exchange intersections may need little coordination, while a high-volume corridor induces dependencies that a simple adjacency cut misses. The partition’s role is to convert the route-flow graph into a coordination graph whose modules are small enough for MARL yet coherent enough to keep key dependencies inside modules.
 
-The framework below therefore keeps two terms separate: the coupling term that the retention theory bounds, and the optimization-conditioning term that Section~\ref{sec:transfer} introduces and the experiments treat as a leading working interpretation.
+% The framework below therefore keeps two terms separate: the coupling term that the retention theory bounds, and the optimization-conditioning term that Section~\ref{sec:transfer} introduces and the experiments treat as a leading working interpretation.
 
 \subsection{Flow Retention and the Map Equation}
 \label{sec:flowretention}
 
 Let $\mathcal{G}_{\mathrm{flow}}=(\mathcal{V},\mathcal{E},\mathbf{W})$ be the OD-induced signal-transition flow graph, where $W_{ij}$ is the number of vehicles traveling from signal $i$ to the next signal $j$ along realized routes during a representative warm-up window that shows demand and network geometry before a learned controller reshapes the flow.
 Section~\ref{sec:odconstruction} gives the construction.
-For a partition $\mathcal{P}=\{P_1,\ldots,P_K\}$, define empirical OD-flow retention as
+For a partition $\mathcal{P}{=}\{P_1,\ldots,P_K\}$, empirical OD-flow retention is defined as:
 \begin{equation}
     \Phi_W(\mathcal{P})
     =
@@ -235,7 +236,8 @@ For a partition $\mathcal{P}=\{P_1,\ldots,P_K\}$, define empirical OD-flow reten
     {\sum_{i,j} W_{ij}}
     \label{eq:phi}
 \end{equation}
-We write $\Phi$ for $\Phi_W$ in the empirical tables. For another non-negative edge-weight matrix $\mathbf{X}$, $\Phi_W(\mathcal{P};\mathbf{X})$ denotes Eq.~\eqref{eq:phi} with $\mathbf{W}$ replaced by $\mathbf{X}$.
+We write $\Phi$ for $\Phi_W$ in the empirical tables.
+For another non-negative edge-weight matrix $\mathbf{X}$, $\Phi_W(\mathcal{P};\mathbf{X})$ denotes Eq.~\eqref{eq:phi} with $\mathbf{W}$ replaced by $\mathbf{X}$.
 
 Eq.~\eqref{eq:phi} defines a scoring rule. Any partitioner whose objective depends on movement over $\mathbf{W}$ rather than on cut geometry is likely to score well under it; this includes the flow-based family of Section~\ref{sec:related}. We work with the map equation~\citep{rosvall2008maps,rosvall2009mapequation} because its \emph{escape term}, the probability that a random walker leaves its current module on the next step, equals the complement of retained \emph{stationary} flow (Eq.~\eqref{eq:qphi}), so that link is an identity, not an approximation, for the stationary quantity $\Phi_\pi$ specifically. The map equation still only rewards partitions that compress a random walk's description well, so it favors the flow-retentive structure this hypothesis wants to preserve without uniquely optimizing it.
 For the random walk used by the map equation,
@@ -264,7 +266,7 @@ For any non-negative dependency matrix $\mathbf{D}$, define
     {\sum_{i,j}D_{ij}}
     \label{eq:psi}
 \end{equation}
-The fraction of measured dependency retained within modules. Eq.~\eqref{eq:psi} is deliberately agnostic about what $\mathbf{D}$ contains: any non-negative pairwise dependency matrix can be scored, which is what lets the framework compare instruments that answer different questions on the same partition. Table~\ref{tab:notation} defines the three instruments used to score retention, $D^{\mathrm{MI}}$, $D^{G}$, and $D^{Q}$, plus a fourth, $D^{\mathrm{CMI}}$, used only as a diagnostic. Each instrument is matched to one of three coordination mechanisms, detailed in Section~\ref{sec:levels}: L1 regional reward, L2 regional critic, L3 regional attention. $D^{\mathrm{MI}}$ (KSG mutual information~\citep{kraskov2004ksg} between per-agent traffic-state slices, not the full network state vector) is the right instrument for regional reward sharing (level L1, Section~\ref{sec:levels}): independent actors have no cross-agent input path, so a Jacobian across agents would be structurally zero even if their traffic states are highly related. $D^{G}$ audits what a trained global attention model depends on, so it must be computed on a global, no-partition checkpoint; computing it on a partitioned model would bake in cross-module zeros and then rediscover the partition by construction. $D^{Q}$ applies the same Jacobian rule to a centralized MAPPO critic, measuring how strongly each agent's value estimate responds to every other agent's state features, and is the instrument aligned with regional critics (level L2, Section~\ref{sec:levels}). $D^{\mathrm{CMI}}$ conditions on the target agent's own queue and action to isolate one agent's causal effect on another's future queue. It targets causal control coupling, but we treat it only as a diagnostic: the effects it looks for turn out to be below what our data resolve (Section~\ref{sec:exp-perturb}).
+The fraction of measured dependency retained within modules. Eq.~\eqref{eq:psi} is deliberately agnostic about what $\mathbf{D}$ contains: any non-negative pairwise dependency matrix can be scored, which is what lets the framework compare instruments that answer different questions on the same partition. Table~\ref{tab:notation} defines the three instruments used to score retention, $D^{\mathrm{MI}}$, $D^{G}$, and $D^{Q}$, plus a fourth, $D^{\mathrm{CMI}}$, used only as a diagnostic. Each instrument is matched to one of three coordination mechanisms, detailed in Section~\ref{sec:levels}: L1 regional reward, L2 regional critic, L3 regional attention. $D^{\mathrm{MI}}$ (KSG mutual information~\citep{kraskov2004ksg} between per-agent traffic-state slices, not the full network state vector) is the right instrument for regional reward sharing (level L1, Section~\ref{sec:levels}): independent actors have no cross-agent input path, so a Jacobian across agents would be structurally zero even if their traffic states are highly related. $D^{G}$ audits what a trained global attention model depends on, so it must be computed on a global, no-partition checkpoint; computing it on a partitioned model would bake in cross-module zeros and then rediscover the partition by construction. $D^{Q}$ applies the same Jacobian rule to a centralized MAPPO~\citep{yu2022mappo} critic, measuring how strongly each agent's value estimate responds to every other agent's state features, and is the instrument aligned with regional critics (level L2, Section~\ref{sec:levels}). $D^{\mathrm{CMI}}$ conditions on the target agent's own queue and action to isolate one agent's causal effect on another's future queue. It targets causal control coupling, but we treat it only as a diagnostic: the effects it looks for turn out to be below what our data resolve (Section~\ref{sec:exp-perturb}).
 
 % Chance-adjusted Psi_adj score against a size- and connectivity-matched null
 % family is left out of this iteration: the connected-null benchmark that
@@ -323,11 +325,10 @@ The main hypothesis of Section~\ref{sec:intro} is a chain: retained flow to reta
         {retained dependency aids\\regional learning; confounds:\\
             approximation, optimization};
 
-        \node[aud,below=5mm of val] (meas)
+        \node[aud,left=16mm of psi] (meas)
         {instruments\\[1pt]
             $D^{\mathrm{MI}},D^{G},D^{Q}$};
-        \draw[-{Latex[length=1.5mm]},dashed] (meas.west) -- ++(-7mm,0)
-        |- node[font=\tiny,above,pos=0.95,inner sep=1.5pt] {measures} (psi.west);
+        \draw[-{Latex[length=1.5mm]},dashed] (meas.east) -- node[font=\tiny,above,pos=0.5,inner sep=1.5pt] {measures} (psi.west);
     \end{tikzpicture}
     \caption{The measured chain. All four quantities are computed on the same
         partitions, the top two before any training. The first arrow is an
@@ -425,7 +426,7 @@ The framework's intended use builds Flow candidates with Algorithm~\ref{alg:od-d
 We evaluate on two SUMO~\citep{lopez2018sumo} networks: \textbf{Cologne8}, with 8 signalized intersections and a 30-dimensional total network state, and \textbf{Ingolstadt21}, with 21 signalized intersections and an 85-dimensional total network state. For each network, we compare one representative of each partitioning family at matched module count: directed InfoMap for the Flow candidate and METIS for the Topology candidate (as described in Section~\ref{sec:related}), together with a reproducible size-balanced Random partition: $k=3$ on Cologne8 and $k\in\{4,5\}$ on Ingolstadt21. All main retention comparisons are matched by map and module count.
 
 \paragraph{Retention instruments}
-$D^{\mathrm{MI}}$ uses three stochastic warm-up seeds per network; $D^G$ uses one seed-7 global CoLight checkpoint per network and therefore has no checkpoint uncertainty estimate; $D^Q$ uses three independently trained global MAPPO critic seeds per cell on both networks (Section~\ref{sec:exp-dq}). The state-MI matrices are estimated from per-agent state slices of 361-step warm-up trajectories with KSG $k=3$ and lags 1, 5, 15, and 30. Because KSG on autocorrelated traffic traces is noisy, the evidence uses partition-level retained mass and seed-wise ordering rather than isolated pairwise MI magnitudes. The learned-dependency matrices use the same partition-independent rule on both networks: take a global CoLight checkpoint, differentiate valid target outputs with respect to every source agent's input features, and aggregate absolute sensitivities into a directed non-negative matrix. A separate action-level perturbation probe (Section~\ref{sec:exp-perturb}) freezes the global CoLight policy and randomizes actions at execution time to test closed-loop causal influence without retraining.
+$D^{\mathrm{MI}}$ uses three stochastic warm-up seeds per network; $D^G$ uses one seed global CoLight checkpoint per network and therefore has no checkpoint uncertainty estimate; $D^Q$ uses three independently trained global MAPPO critic seeds per cell on both networks (Section~\ref{sec:exp-dq}). The state-MI matrices are estimated from per-agent state slices of 361-step warm-up trajectories with KSG $k=3$ and lags 1, 5, 15, and 30. Because KSG on autocorrelated traffic traces is noisy, the evidence uses partition-level retained mass and seed-wise ordering rather than isolated pairwise MI magnitudes. The learned-dependency matrices use the same partition-independent rule on both networks: take a global CoLight checkpoint, differentiate valid target outputs with respect to every source agent's input features, and aggregate absolute sensitivities into a directed non-negative matrix. A separate action-level perturbation probe (Section~\ref{sec:exp-perturb}) freezes the global CoLight policy and randomizes actions at execution time to test closed-loop causal influence without retraining.
 
 \paragraph{Downstream training}
 Downstream training evidence uses five independently trained seeds for each (network, learner, module count) combination, covering IPPO, MAPPO, and CoLight on Cologne8 at $k=3$ and on Ingolstadt21 at $k=4$. Each run's checkpoint is selected by minimum delay per vehicle over its logged evaluation episodes on the validation traces~\citep{henderson2018matters,agarwal2021rliable}; the delay reported for that run is the selected checkpoint's performance on the held-out traces. Delay per vehicle is SUMO's time loss, the travel time accrued beyond free-flow, and is the control metric throughout. The benchmark uses 10 stochastic-policy episodes at each of 5 traffic seeds per network, split chronologically into construction, validation, and held-out test traces; every reported delay is a mean $\pm$ SD across those five independently trained seeds, each evaluated at its selected checkpoint over the 5 held-out traffic seeds.
