@@ -137,7 +137,8 @@
       "Bash(awk *)",
       "Bash(find / -path /proc -prune -o -iname \"SKILL.md\" -path \"*academic-paper*\" -print)",
       "Bash(find / -path /proc -prune -o -iname \"MODE_REGISTRY.md\" -print)",
-      "Bash(xargs -I{} wc -l {})"
+      "Bash(xargs -I{} wc -l {})",
+      "Bash(lualatex -interaction=nonstopmode main.tex)"
     ]
   }
 }
